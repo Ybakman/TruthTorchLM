@@ -33,9 +33,6 @@ def calibrate_trust_method(dataset: Union[str, list], model:Union[str,PreTrained
         correctness.append(is_correct)
         trust_values.append(trust_dict['unnormalized_trust_values'][0])
       
-
-    print(trust_values)
-    
     std = np.std(trust_values)
     precisions, recalls, thresholds = precision_recall_curve(correctness, trust_values)
     if precision != -1:
