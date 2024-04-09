@@ -1,0 +1,7 @@
+AVAILABLE_API_MODELS = ['gpt-3.5-turbo'] 
+
+PROB_AVAILABLE_API_MODELS = ['gpt-3.5-turbo']
+
+AVAILABLE_DATASETS = ['trivia_qa']
+
+AVAILABLE_EVALUATION_METRICS = ['auroc']
