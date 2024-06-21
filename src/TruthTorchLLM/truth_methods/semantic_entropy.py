@@ -4,7 +4,7 @@ import numpy as np
 import random
 from litellm import completion
 from typing import Union
-from transformers import GPT2LMHeadModel, GPT2Tokenizer, PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast, DebertaForSequenceClassification, DebertaTokenizer
+from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast, DebertaForSequenceClassification, DebertaTokenizer
 from TruthTorchLLM.utils import *
 from TruthTorchLLM.availability import PROB_AVAILABLE_API_MODELS
 from .truth_method import TruthMethod
