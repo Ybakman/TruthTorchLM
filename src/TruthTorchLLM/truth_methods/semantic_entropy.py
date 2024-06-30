@@ -20,21 +20,18 @@ def calculating_total_log(generated_outputs : dict[str, float],clusters : list[s
 
 
 class SemanticEntropy(TruthMethod):
-    def __init__(self, model_for_entailment: PreTrainedModel = None, tokenizer_for_entailment: PreTrainedTokenizer = None, scoring_function : ScoringMethod = LengthNormalizedScoring(), number_of_generations=10, threshold=0.5, std=1.0):#normalization
+    def __init__(self, model_for_entailment: PreTrainedModel = DebertaForSequenceClassification.from_pretrained('microsoft/deberta-large-mnli'), tokenizer_for_entailment: PreTrainedTokenizer = DebertaTokenizer.from_pretrained('microsoft/deberta-large-mnli'), 
+    scoring_function : ScoringMethod = LengthNormalizedScoring(), number_of_generations=10, threshold=0.5, std=1.0):#normalization
         super().__init__()
-        self.model_for_entailment=model_for_entailment
-        self.tokenizer_for_entailment=tokenizer_for_entailment
+        self.model_for_entailment = model_for_entailment
+        self.tokenizer_for_entailment = tokenizer_for_entailment
         self.scoring_function = scoring_function
         self.number_of_generations = number_of_generations
         self.threshold = threshold
         self.std = std
-        if model_for_entailment is None:
-            self.model_for_entailment = DebertaForSequenceClassification.from_pretrained('microsoft/deberta-large-mnli')
-        if tokenizer_for_entailment is None:
-            self.tokenizer_for_entailment = DebertaTokenizer.from_pretrained('microsoft/deberta-large-mnli')
 
 
-    def generate_forward(self, model: PreTrainedModel, input_text: str, all_ids: Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, **kwargs):
+    def generate_forward(self, model: PreTrainedModel, input_text: str, generated_text:str, all_ids: Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, **kwargs):
         kwargs = copy.deepcopy(kwargs)
         generated_texts = []
         generated_outputs = {}

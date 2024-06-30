@@ -23,8 +23,7 @@ class Confidence(TruthMethod):
     def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, **kwargs):#fix this by using all_ids
         input_ids = tokenizer.encode(input_text, return_tensors="pt").to(model.device)
         
-        #concatenation of input and generated text
-        model_output = torch.concat((input_ids , tokenizer.encode(generated_text, return_tensors="pt", add_special_tokens=False).to(model.device)), dim=1)
+        model_output = all_ids
     
         tokens = model_output[0][len(input_ids[0]):]
         tokens_text = [tokenizer.decode(token) for token in tokens]
