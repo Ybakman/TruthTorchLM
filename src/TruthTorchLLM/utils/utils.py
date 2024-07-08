@@ -1,6 +1,10 @@
 import numpy as np
 import torch
 from transformers import GPT2LMHeadModel, GPT2Tokenizer, PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
+import re
+
+def find_keys_of_template(template: str):
+    return re.findall(r"\{(.*?)\}", template)
 
 def sigmoid_normalization(x: float, threshold: float = 0.0, std: float = 1.0):
     return 1 / (1 + np.exp(- (x - threshold) / std))
@@ -16,8 +20,9 @@ def check_entailment(model_for_entailment: PreTrainedModel, tokenizer_for_entail
     outputs = model_for_entailment(**inputs)
     logits = outputs.logits
     probs = torch.softmax(logits, dim=-1)
-    entailment_prob = probs[0][2]  # entailment class is the third class in Deberta-large-mnli
-    return entailment_prob > 0.5
+    out_class = torch.argmax(probs[0], dim=-1).item()
+    
+    return out_class
 
 # Function to perform bidirectional entailment clustering
 def bidirectional_entailment_clustering(model_for_entailment: PreTrainedModel, tokenizer_for_entailment: PreTrainedTokenizer, context : str, sequences: list[str]):
@@ -29,7 +34,7 @@ def bidirectional_entailment_clustering(model_for_entailment: PreTrainedModel, t
             left = check_entailment(model_for_entailment, tokenizer_for_entailment, context, s_c, s_m)
             right = check_entailment(model_for_entailment, tokenizer_for_entailment, context, s_m, s_c)
             
-            if left and right:
+            if left != 0 and right != 0:#it shows there is no contradiction
                 c.add(s_m)
                 added_to_class = True
                 break

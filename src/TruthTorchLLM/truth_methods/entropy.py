@@ -21,7 +21,7 @@ class Entropy(TruthMethod):
         self.std = std
 
 
-    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, **kwargs):
+    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, **kwargs):
         kwargs = copy.deepcopy(kwargs)
         scores = []
         generated_texts = []
@@ -45,7 +45,7 @@ class Entropy(TruthMethod):
             logprobs = torch.gather(logprobs, dim=1, index = model_output[0][len(input_ids[0]):].view(-1, 1))#logprobs for each token in the generated text
             logprobs = logprobs.view(-1).tolist()#convert to list
 
-            score = self.scoring_function(input_text, tokens_text, logprobs)
+            score = self.scoring_function(question_context, tokens_text, logprobs)
             scores.append(score)
             generated_texts.append(tokenizer.decode(tokens))
 
@@ -54,7 +54,7 @@ class Entropy(TruthMethod):
         normalized_truth_value = sigmoid_normalization(-entropy, self.threshold, self.std)
         return {"truth_value": -entropy, 'normalized_truth_value':normalized_truth_value,  'entropy': entropy,  "score_for_each_generation": scores, 'generated_texts_for_entropy': generated_texts}#this output format should be same for all truth methods
 
-    def completion_forward(self, model:str, input_text:str, generated_text:str, **kwargs):
+    def completion_forward(self, model:str, messages:list, generated_text:str, question_context, **kwargs):
         if not model in PROB_AVAILABLE_API_MODELS:
             raise ValueError("Entropy method is not applicable to given model")
 
@@ -70,15 +70,15 @@ class Entropy(TruthMethod):
             seed = random.randint(0, 1000000)
             kwargs['seed'] = seed
             response = completion(
-                model=model,
-                messages=[{ "content": input_text, "role": "user"}],
+                model = model,
+                messages = messages,
                 logprobs = True,
                 **kwargs
                 )
             
             logprobs = [token['logprob'] for token in response.choices[0].logprobs['content']]
             tokens = [token['token'] for token in response.choices[0].logprobs['content']]
-            score = self.scoring_function(input_text, tokens, logprobs)
+            score = self.scoring_function(question_context, tokens, logprobs)
             scores.append(score)
             generated_texts.append(response.choices[0].message['content'])
         

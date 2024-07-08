@@ -20,7 +20,7 @@ class Confidence(TruthMethod):
         self.std = std
 
 
-    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, **kwargs):#fix this by using all_ids
+    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, **kwargs):
         input_ids = tokenizer.encode(input_text, return_tensors="pt").to(model.device)
         
         model_output = all_ids
@@ -38,7 +38,7 @@ class Confidence(TruthMethod):
             logprobs = torch.gather(logprobs, dim=1, index = model_output[0][len(input_ids[0]):].view(-1, 1))#logprobs for each token in the generated text
             logprobs = logprobs.view(-1).tolist()#convert to list
 
-            score = self.scoring_function(input_text, tokens_text, logprobs)
+            score = self.scoring_function(question_context, tokens_text, logprobs)
             score = score
             generated_text = generated_text
         
@@ -47,7 +47,7 @@ class Confidence(TruthMethod):
         return {"truth_value": score, 'normalized_truth_value': normalized_truth_value, "generated_text": generated_text}# we shouldn't return generated text. remove it from the output format
     
 
-    def completion_forward(self, model:str, input_text:str, generated_text:str, **kwargs):
+    def completion_forward(self, model:str, messages:list, generated_text:str, question_context:str, **kwargs):
         if not model in PROB_AVAILABLE_API_MODELS:
             raise ValueError("Confidence method is not applicable to given model")
 
@@ -56,14 +56,14 @@ class Confidence(TruthMethod):
            
         response = completion(
             model=model,
-            messages=[{ "content": input_text, "role": "user"}],
+            messages=messages,
             logprobs = True,
             **kwargs
             )
             
         logprobs = [token['logprob'] for token in response.choices[0].logprobs['content']]
         tokens = [token['token'] for token in response.choices[0].logprobs['content']]
-        score = self.scoring_function(input_text, tokens, logprobs)
+        score = self.scoring_function(question_context, tokens, logprobs)
         generated_text = response.choices[0].message['content']
 
         normalized_truth_value = sigmoid_normalization(score, self.threshold, self.std)

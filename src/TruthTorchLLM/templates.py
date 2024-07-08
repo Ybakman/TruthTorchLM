@@ -1,7 +1,4 @@
-DEFAULT_TEMPLATE = "{question}"
+DEFAULT_TEMPLATE = "{context}"
 
-LLAMA_PROMPT_TEMPLATE = """[INST] <<SYS>>
-You are a helpful assistant. Give short and precise answers.
-<</SYS>>
-
-Question: {question} Answer: [/INST]"""
+DEFAULT_SYSTEM_PROMPT = 'You are a helpful assistant. Give short and precise answers.'
+DEFAULT_USER_PROMPT = 'Question: {question_context} Answer:'

@@ -8,11 +8,11 @@ class TruthMethod(ABC):
         pass
 
     @abstractmethod
-    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, **kwargs):
+    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, **kwargs):
         raise NotImplementedError("Subclasses must implement this method")
     
     @abstractmethod
-    def completion_forward(self, model:str, input_text:str, generated_text:str, **kwargs):
+    def completion_forward(self, model:str, messages:list, generated_text:str, question_context:str, **kwargs):
         raise NotImplementedError("Subclasses must implement this method")
     
     @abstractmethod
