@@ -5,4 +5,4 @@ from .semantic_entropy import SemanticEntropy
 from .p_true import PTrue
 
 
-__all__ = ['Entropy', 'Confidence', 'TruthMethod', 'SemanticEntropy']
+__all__ = ['Entropy', 'Confidence', 'TruthMethod', 'SemanticEntropy', 'PTrue']
