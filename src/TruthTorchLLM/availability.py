@@ -1,4 +1,4 @@
-AVAILABLE_API_MODELS = ['gpt-3.5-turbo'] 
+AVAILABLE_API_MODELS = ['gpt-3.5-turbo', 'gpt-4'] 
 
 PROB_AVAILABLE_API_MODELS = ['gpt-3.5-turbo']
 

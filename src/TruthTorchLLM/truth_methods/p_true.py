@@ -1,55 +1,31 @@
 from .truth_method import TruthMethod
 from TruthTorchLLM.scoring_methods import ScoringMethod, LengthNormalizedScoring
-from TruthTorchLLM.utils import sigmoid_normalization
+from TruthTorchLLM.utils import sigmoid_normalization, find_token_indices
 from litellm import completion
 from typing import Union
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
-from TruthTorchLLM.utils import find_keys_of_template
+from TruthTorchLLM.templates import PTRUE_SYSTEM_PROMPT, PTRUE_USER_PROMPT, PTRUE_MODEL_OUTPUT
 
 import torch
 import numpy as np
 import copy
 import random
 
-#for a target text, find the indices of the tokens that are in the target text. 
-#If target text cannot be tokenized in the original form, return the indices of the tokens that contain the target text and has the shortest length
-def find_token_indices(tokens:list, tokenizer:PreTrainedTokenizer, target_text:str, ):
-    indices = []
-    texts = []
-    begin = 0
-    found = False
-    while begin < len(tokens):
-        for end in range(begin+1, len(tokens)):
-            if  target_text in tokenizer.decode(tokens[begin:end]):
-                #move begin
-                while target_text in tokenizer.decode(tokens[begin:end]):
-                    begin += 1
-                begin -= 1
-                index_list = [i for i in range(begin, end)]
-                indices.append(index_list)
-                texts.append(tokenizer.decode(tokens[begin:end]))
-                begin = end
-                found = True
-                break
-        if not found:
-            break
-        else:
-            found = False
-    return indices, texts
-        
 
-#TODO:allow the user set their templates
+        
 class PTrue(TruthMethod):
-    def __init__(self, number_of_ideas: int = 5, threshold:float = 0.0, std:float = 1.0):
+    def __init__(self, number_of_ideas: int = 5, threshold:float = 0.0, std:float = 1.0, system_prompt:str = PTRUE_SYSTEM_PROMPT, user_prompt:str = PTRUE_USER_PROMPT, model_output:str = PTRUE_MODEL_OUTPUT):
         super().__init__()
         self.number_of_ideas= number_of_ideas
         self.threshold = threshold
         self.std = std
+        self.system_prompt = system_prompt
+        self.user_prompt = user_prompt
+        self.model_output = model_output
 
 
-    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, **kwargs):
+    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, **kwargs):
         kwargs = copy.deepcopy(kwargs)
-        scores = []
         generated_text = tokenizer.decode(tokenizer.encode(generated_text, return_tensors="pt").view(-1).tolist(), skip_special_tokens=True)#remove special tokens
         input_ids = tokenizer.encode(input_text, return_tensors="pt").to(model.device)
         kwargs.pop('do_sample', None)
@@ -62,10 +38,11 @@ class PTrue(TruthMethod):
             ideas.append(text)
 
         ideas = "\n".join(ideas)
-        chat = [{"role": "system", "content": 'You are a helpful, respectful and honest question-answer evaluator. You will be given a question, some brainstormed ideas and a generated answer. Evaluate the generate answer as true or false considering the question and brainstormed ideas. Output "The generated answer is true" or "The generated answer is false".'},
-        {"role": "user", "content": f'Question:{question_context}\nHere are some ideas that were brainstormed:{ideas}\nGenerated answer:{generated_text}'},
-        {"role": "assistant", "content": 'The generated answer is true'}]
+        chat = [{"role": "system", "content": self.system_prompt},
+        {"role": "user", "content": self.user_prompt.format(question_context = question_context, ideas = ideas, generated_text = generated_text)},
+        {"role": "assistant", "content": self.model_output}]
 
+        
         prompt = tokenizer.apply_chat_template(chat, tokenize=False)
         prompt_tokens = tokenizer.encode(prompt, return_tensors="pt").to(model.device)
         with torch.no_grad():
@@ -90,7 +67,7 @@ class PTrue(TruthMethod):
         normalized_truth_value = sigmoid_normalization(prob_true, self.threshold, self.std)
         return {"truth_value": prob_true, 'normalized_truth_value':normalized_truth_value,  'p_true': prob_true,  'generated_ideas': ideas}#this output format should be same for all truth methods
 
-    def completion_forward(self, model:str, input_text:str, generated_text:str, **kwargs):
+    def completion_forward(self, model:str, messages:list, generated_text:str, question_context:str, **kwargs):
         raise ValueError("PTrue is not applicable to API models. Please use a different truth method.")
 
     def __str__(self):

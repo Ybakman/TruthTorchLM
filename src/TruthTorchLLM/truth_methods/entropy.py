@@ -21,7 +21,7 @@ class Entropy(TruthMethod):
         self.std = std
 
 
-    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, **kwargs):
+    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, **kwargs):
         kwargs = copy.deepcopy(kwargs)
         scores = []
         generated_texts = []
@@ -54,7 +54,7 @@ class Entropy(TruthMethod):
         normalized_truth_value = sigmoid_normalization(-entropy, self.threshold, self.std)
         return {"truth_value": -entropy, 'normalized_truth_value':normalized_truth_value,  'entropy': entropy,  "score_for_each_generation": scores, 'generated_texts_for_entropy': generated_texts}#this output format should be same for all truth methods
 
-    def completion_forward(self, model:str, messages:list, generated_text:str, question_context, **kwargs):
+    def completion_forward(self, model:str, messages:list, generated_text:str, question_context:str, **kwargs):
         if not model in PROB_AVAILABLE_API_MODELS:
             raise ValueError("Entropy method is not applicable to given model")
 

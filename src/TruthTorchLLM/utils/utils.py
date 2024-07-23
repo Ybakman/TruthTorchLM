@@ -3,11 +3,34 @@ import torch
 from transformers import GPT2LMHeadModel, GPT2Tokenizer, PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 import re
 
-def find_keys_of_template(template: str):
-    return re.findall(r"\{(.*?)\}", template)
-
 def sigmoid_normalization(x: float, threshold: float = 0.0, std: float = 1.0):
     return 1 / (1 + np.exp(- (x - threshold) / std))
+
+#for a target text, find the indices of the tokens that are in the target text. 
+#If target text cannot be tokenized in the original form, return the indices of the tokens that contain the target text and has the shortest length
+def find_token_indices(tokens:list, tokenizer:PreTrainedTokenizer, target_text:str, ):
+    indices = []
+    texts = []
+    begin = 0
+    found = False
+    while begin < len(tokens):
+        for end in range(begin+1, len(tokens)):
+            if  target_text in tokenizer.decode(tokens[begin:end]):
+                #move begin
+                while target_text in tokenizer.decode(tokens[begin:end]):
+                    begin += 1
+                begin -= 1
+                index_list = [i for i in range(begin, end)]
+                indices.append(index_list)
+                texts.append(tokenizer.decode(tokens[begin:end]))
+                begin = end
+                found = True
+                break
+        if not found:
+            break
+        else:
+            found = False
+    return indices, texts
 
 # Function to check entailment between two sequences
 def check_entailment(model_for_entailment: PreTrainedModel, tokenizer_for_entailment: PreTrainedTokenizer, context: str, seq1: str, seq2: str):
