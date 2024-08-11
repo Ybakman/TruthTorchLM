@@ -1,11 +1,14 @@
 import copy
 import torch
+import random
 import numpy as np
 from typing import Union
+from litellm import completion
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 from transformers import GPT2LMHeadModel, GPT2Tokenizer, DebertaForSequenceClassification, DebertaTokenizer
 from scipy.sparse.csgraph import laplacian
 from TruthTorchLLM.utils import *
+from TruthTorchLLM.availability import PROB_AVAILABLE_API_MODELS
 from scipy.linalg import eigh
 from sklearn.metrics import jaccard_score
 from sklearn.feature_extraction.text import CountVectorizer
