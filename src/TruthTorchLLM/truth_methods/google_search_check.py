@@ -12,12 +12,9 @@ import numpy as np
 import copy
 
 
-#TODO:move std and threshold to the superclass
 class GoogleSearchCheck(TruthMethod):
     def __init__(self, threshold:float = 0.0, std:float = 1.0, number_of_snippets:int = 10, location:str = 'us', language:str = 'en') -> None:
-        super().__init__()
-        self.threshold = threshold
-        self.std = std
+        super().__init__(threshold = threshold, std = std)
         self.number_of_snippets = number_of_snippets
         self.location = location
         self.language = language
@@ -27,7 +24,8 @@ class GoogleSearchCheck(TruthMethod):
        
 
 
-    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, **kwargs):
+    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, **kwargs):
+        super().generate_forward(model, input_text, generated_text, question_context, all_ids, generation_seed=generation_seed)
         kwargs = copy.deepcopy(kwargs)
         generated_text = tokenizer.decode(tokenizer.encode(generated_text, return_tensors="pt").view(-1).tolist(), skip_special_tokens=True)#remove special tokens
         #first we need to generate search queries
@@ -65,8 +63,8 @@ class GoogleSearchCheck(TruthMethod):
         verification_dict = type_check(verification, dict)
 
         if verification_dict == None:
-            return {"truth_value": 0.5, 'normalized_truth_value': 0.5, 'evidences':evidences, 'query_text':query_text, 'evidences':evidences, 'verification_text':verification}
             print("The model output didn't match the output format in verification")
+            return {"truth_value": 0.5, 'normalized_truth_value': 0.5, 'evidences':evidences, 'query_text':query_text, 'evidences':evidences, 'verification_text':verification}
         else:
             try:
                 if  verification_dict['factuality'] == True:
@@ -87,7 +85,8 @@ class GoogleSearchCheck(TruthMethod):
 
 
 
-    def completion_forward(self, model:str, messages:list, generated_text:str, question_context:str, **kwargs):
+    def completion_forward(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, **kwargs):
+        super().completion_forward(model, messages, generated_text, question_context, generation_seed=generation_seed)
         kwargs = copy.deepcopy(kwargs)
         #first we need to generate search queries
         chat = [{"role": "system", "content": GOOGLE_CHECK_QUERY_SYSTEM_PROMPT},

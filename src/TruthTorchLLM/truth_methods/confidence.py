@@ -4,6 +4,7 @@ from TruthTorchLLM.utils import sigmoid_normalization
 from litellm import completion
 from typing import Union
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
+from .truth_method import TruthMethod
 
 from TruthTorchLLM.availability import PROB_AVAILABLE_API_MODELS
 import torch
@@ -14,15 +15,14 @@ import random
 
 class Confidence(TruthMethod):
     def __init__(self, scoring_function : ScoringMethod = LengthNormalizedScoring(),threshold:float=0.0, std:float = 1.0):#normalization, 
-        super().__init__()
+        super().__init__(threshold = threshold, std = std)
         self.scoring_function = scoring_function
-        self.threshold = threshold
-        self.std = std
 
 
-    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, **kwargs):
+    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, **kwargs):
+        super().generate_forward(model, input_text, generated_text, question_context, all_ids, generation_seed=generation_seed)
+
         input_ids = tokenizer.encode(input_text, return_tensors="pt").to(model.device)
-        
         model_output = all_ids
     
         tokens = model_output[0][len(input_ids[0]):]
@@ -47,7 +47,9 @@ class Confidence(TruthMethod):
         return {"truth_value": score, 'normalized_truth_value': normalized_truth_value, "generated_text": generated_text}# we shouldn't return generated text. remove it from the output format
     
 
-    def completion_forward(self, model:str, messages:list, generated_text:str, question_context:str, **kwargs):
+    def completion_forward(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, **kwargs):
+        super().completion_forward(model, messages, generated_text, question_context, generation_seed=generation_seed)
+
         if not model in PROB_AVAILABLE_API_MODELS:
             raise ValueError("Confidence method is not applicable to given model")
 
@@ -75,4 +77,4 @@ class Confidence(TruthMethod):
 
 
     def __str__(self):
-        return "Confidence Truth Method with " + str(self.scoring_function) + " scoring function." + " Threshold: " + str(self.threshold) + "Std: " + str(self.std)
+        return "Confidence Truth Method with " + str(self.scoring_function) + " scoring function." + " Threshold: " + str(self.threshold) + " Std: " + str(self.std)

@@ -33,7 +33,7 @@ class BlackBoxMethods():
         self.number_of_generations = number_of_generations
         self.threshold = threshold
         self.std = std
-        self.method_for_similarity=method_for_similarity #jaccard or semantic
+        self.method_for_similarity = method_for_similarity #jaccard or semantic
 
     def get_D_mat(self, W):
         D = np.diag(np.sum(W, axis=1))

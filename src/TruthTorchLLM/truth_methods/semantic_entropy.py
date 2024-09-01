@@ -20,17 +20,23 @@ def calculate_total_log(generated_outputs : dict[str, float],clusters : list[set
 
 
 class SemanticEntropy(TruthMethod):
-    def __init__(self, scoring_function : ScoringMethod = LengthNormalizedScoring(), number_of_generations=10, threshold=0.5, std=1.0, model_for_entailment: PreTrainedModel = DebertaForSequenceClassification.from_pretrained('microsoft/deberta-large-mnli'), tokenizer_for_entailment: PreTrainedTokenizer = DebertaTokenizer.from_pretrained('microsoft/deberta-large-mnli')):#normalization
-        super().__init__()
+    def __init__(self, scoring_function : ScoringMethod = LengthNormalizedScoring(), number_of_generations=5, threshold=0.0, std=1.0, 
+                 model_for_entailment: PreTrainedModel = None, tokenizer_for_entailment: PreTrainedTokenizer = None):#normalization
+        super().__init__(threshold = threshold, std = std)
+
+        if model_for_entailment is None or tokenizer_for_entailment is None:
+            model_for_entailment = DebertaForSequenceClassification.from_pretrained('microsoft/deberta-large-mnli')
+            tokenizer_for_entailment = DebertaTokenizer.from_pretrained('microsoft/deberta-large-mnli')
+
         self.model_for_entailment = model_for_entailment
         self.tokenizer_for_entailment = tokenizer_for_entailment
         self.scoring_function = scoring_function
         self.number_of_generations = number_of_generations
-        self.threshold = threshold
-        self.std = std
 
 
-    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, **kwargs):
+
+    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, **kwargs):
+        super().generate_forward(model, input_text, generated_text, question_context, all_ids, generation_seed=generation_seed)
         kwargs = copy.deepcopy(kwargs)
         generated_texts = []
         generated_outputs = {}
@@ -38,6 +44,7 @@ class SemanticEntropy(TruthMethod):
         input_ids = tokenizer.encode(input_text, return_tensors="pt").to(model.device)
         kwargs.pop('do_sample', None)
         kwargs.pop('num_return_sequences', None)
+
         for i in range(self.number_of_generations):
             model_output = model.generate(input_ids, num_return_sequences=1, do_sample=True, **kwargs)
             tokens = model_output[0][len(input_ids[0]):]
@@ -61,7 +68,9 @@ class SemanticEntropy(TruthMethod):
         normalized_truth_value = sigmoid_normalization(total_output_for_log, self.threshold, self.std)
         return {"truth_value": -total_output_for_log, 'normalized_truth_value': normalized_truth_value, 'semantic_entropy': total_output_for_log, "score_for_each_generation": scores, 'generated_texts': generated_texts, "clusters": clusters}
 
-    def completion_forward(self, model:str, messages:list, generated_text:str, question_context:str, **kwargs):
+    def completion_forward(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, **kwargs):
+        super().completion_forward(model, messages, generated_text, question_context, generation_seed=generation_seed)
+
         if model not in PROB_AVAILABLE_API_MODELS:
             raise ValueError("Semantic Entropy method is not applicable to given model")
         kwargs = copy.deepcopy(kwargs)
@@ -95,7 +104,7 @@ class SemanticEntropy(TruthMethod):
         return {"truth_value": -total_output_for_log, 'normalized_truth_value': normalized_truth_value, 'semantic_entropy': total_output_for_log, "score_for_each_generation": scores, 'generated_texts': generated_texts, "clusters": clusters}
 
     def __str__(self):
-        return "Semantic Entropy Truth Method with " + str(self.number_of_generations) + " generations. Model for checking semantic: " + str(self.model_for_entailment) + ". Tokenizer for checking semantic: " + str(self.tokenizer_for_entailment) + ". Threshold: " + str(self.threshold) + ". Standard Deviation: " + str(self.std)
+        return "Semantic Entropy Truth Method with " + str(self.number_of_generations) + " generations. Model for checking semantic: " + self.model_for_entailment.config._name_or_path + ". Threshold: " + str(self.threshold) + ". Standard Deviation: " + str(self.std)
 
     
 

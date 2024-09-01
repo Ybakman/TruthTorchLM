@@ -15,16 +15,15 @@ import random
         
 class PTrue(TruthMethod):
     def __init__(self, number_of_ideas: int = 5, threshold:float = 0.0, std:float = 1.0, system_prompt:str = PTRUE_SYSTEM_PROMPT, user_prompt:str = PTRUE_USER_PROMPT, model_output:str = PTRUE_MODEL_OUTPUT):
-        super().__init__()
+        super().__init__(threshold = threshold, std = std)
         self.number_of_ideas= number_of_ideas
-        self.threshold = threshold
-        self.std = std
         self.system_prompt = system_prompt
         self.user_prompt = user_prompt
         self.model_output = model_output
 
 
-    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, **kwargs):
+    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, **kwargs):
+        super().generate_forward(model, input_text, generated_text, question_context, all_ids, generation_seed=generation_seed)
         kwargs = copy.deepcopy(kwargs)
         generated_text = tokenizer.decode(tokenizer.encode(generated_text, return_tensors="pt").view(-1).tolist(), skip_special_tokens=True)#remove special tokens
         input_ids = tokenizer.encode(input_text, return_tensors="pt").to(model.device)
