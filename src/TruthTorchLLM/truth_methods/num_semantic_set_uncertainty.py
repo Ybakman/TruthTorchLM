@@ -5,7 +5,7 @@ import numpy as np
 from typing import Union
 from litellm import completion
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
-from transformers import GPT2LMHeadModel, GPT2Tokenizer, DebertaForSequenceClassification, DebertaTokenizer
+from transformers import DebertaForSequenceClassification, DebertaTokenizer
 from TruthTorchLLM.utils import calculate_U_num_set, sigmoid_normalization
 from .truth_method import TruthMethod
 
