@@ -8,7 +8,8 @@ from .eccentricity_uncertainty import EccentricityUncertainty
 from .matrix_degree_uncertainty import MatrixDegreeUncertainty
 from .num_semantic_set_uncertainty import NumSemanticSetUncertainty
 from .sum_eigen_uncertainty import SumEigenUncertainty
+from .self_detection import SelfDetection
 
 
 __all__ = ['Entropy', 'Confidence', 'TruthMethod', 'SemanticEntropy', 'PTrue', 
-'GoogleSearchCheck', 'EccentricityUncertainty', 'MatrixDegreeUncertainty', 'NumSemanticSetUncertainty', 'SumEigenUncertainty']
+'GoogleSearchCheck', 'EccentricityUncertainty', 'MatrixDegreeUncertainty', 'NumSemanticSetUncertainty', 'SumEigenUncertainty', 'SelfDetection']
