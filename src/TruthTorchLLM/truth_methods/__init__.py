@@ -9,7 +9,8 @@ from .matrix_degree_uncertainty import MatrixDegreeUncertainty
 from .num_semantic_set_uncertainty import NumSemanticSetUncertainty
 from .sum_eigen_uncertainty import SumEigenUncertainty
 from .self_detection import SelfDetection
+from .inside import Inside
 
 
-__all__ = ['Entropy', 'Confidence', 'TruthMethod', 'SemanticEntropy', 'PTrue', 
+__all__ = ['Entropy', 'Confidence', 'TruthMethod', 'SemanticEntropy', 'PTrue', 'Inside', 
 'GoogleSearchCheck', 'EccentricityUncertainty', 'MatrixDegreeUncertainty', 'NumSemanticSetUncertainty', 'SumEigenUncertainty', 'SelfDetection']

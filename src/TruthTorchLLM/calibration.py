@@ -1,5 +1,3 @@
-
-from tqdm import tqdm
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 from typing import Union
 from TruthTorchLLM.truth_methods import TruthMethod

@@ -1,16 +1,12 @@
-from .truth_method import TruthMethod
-from TruthTorchLLM.scoring_methods import ScoringMethod, LengthNormalizedScoring
-from TruthTorchLLM.utils import sigmoid_normalization
-from litellm import completion
-from typing import Union
-from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
-
-from TruthTorchLLM.availability import PROB_AVAILABLE_API_MODELS
-import torch
-import numpy as np
 import copy
-import random
+import torch
+from typing import Union
 
+from .truth_method import TruthMethod
+from TruthTorchLLM.utils import sigmoid_normalization
+from TruthTorchLLM.availability import ACTIVATION_AVAILABLE_API_MODELS 
+
+from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 
 class Inside(TruthMethod):
     def __init__(self, threshold:float=0.0, std:float=1.0, number_of_generations: int = 10, alpha:float = 0.001): 
@@ -21,7 +17,6 @@ class Inside(TruthMethod):
     def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, **kwargs):
         super().generate_forward(model, input_text, generated_text, question_context, all_ids, generation_seed=generation_seed)
         kwargs = copy.deepcopy(kwargs)
-        scores = []
         generated_texts = []
         input_ids = tokenizer.encode(input_text, return_tensors="pt").to(model.device)
         sentence_embeddings = torch.Tensor().to(model.device)
@@ -44,51 +39,26 @@ class Inside(TruthMethod):
         centering_matrix = centering_matrix.to(model.device)
 
         covariance = sentence_embeddings @ centering_matrix @ sentence_embeddings.T
-        regularized_covarience = covariance + torch.eye(hidden_dim).to(model.device) * self.alpha
+        regularized_covarience = covariance + torch.eye(self.number_of_generations).to(model.device) * self.alpha
 
         eigenvalues, _ = torch.linalg.eig(regularized_covarience)
         eigenvalues = eigenvalues.real
 
-        eigen_score = torch.mean(torch.log(eigenvalues))
+        eigen_score = torch.mean(torch.log(eigenvalues)).cpu().item()
 
 
         normalized_truth_value = sigmoid_normalization(-eigen_score, self.threshold, self.std)
-        return {"truth_value": -eigen_score, 'normalized_truth_value':normalized_truth_value,  'entropy': entropy,  "score_for_each_generation": scores, 'generated_texts_for_entropy': generated_texts}#this output format should be same for all truth methods
+        return {"truth_value": -eigen_score, 'normalized_truth_value':normalized_truth_value,  'generated_texts_for_inside': generated_texts}#this output format should be same for all truth methods
 
     def completion_forward(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, **kwargs):
         super().completion_forward(model, messages, generated_text, question_context, generation_seed=generation_seed)
-        if not model in PROB_AVAILABLE_API_MODELS:
-            raise ValueError("Entropy method is not applicable to given model")
 
-        kwargs = copy.deepcopy(kwargs)
-        scores = []
-        generated_texts = []
-        
-            
-        for i in range(self.number_of_generations):
-            kwargs.pop('logprobs', None)
-            seed = kwargs.pop('seed', None) #if user specifies seed, it won't be generated randomly
+        if not model in ACTIVATION_AVAILABLE_API_MODELS:
+            raise ValueError("Inside method cannot be used with black-box API models since it requires access to activations.")
 
-            seed = random.randint(0, 1000000)
-            kwargs['seed'] = seed
-            response = completion(
-                model = model,
-                messages = messages,
-                logprobs = True,
-                **kwargs
-                )
-            
-            logprobs = [token['logprob'] for token in response.choices[0].logprobs['content']]
-            tokens = [token['token'] for token in response.choices[0].logprobs['content']]
-            score = self.scoring_function(question_context, tokens, logprobs)
-            scores.append(score)
-            generated_texts.append(response.choices[0].message['content'])
-        
-        entropy = -np.sum(scores) / len(scores)#scores are in log scale
+        return {"truth_value": 0, 'normalized_truth_value':0,  'generated_texts_for_inside': []}#this output format should be same for all truth methods
 
-        normalized_truth_value = sigmoid_normalization(-entropy, self.threshold, self.std)
-        return {"truth_value": -entropy, 'normalized_truth_value':normalized_truth_value,  'entropy': entropy,  "score_for_each_generation": scores, 'generated_texts_for_entropy': generated_texts}#this output format should be same for all truth methods
+    def __str__(self):
+        return "Inside Truth Method with " + str(self.number_of_generations) + " generations. Threshold: " + str(self.threshold) + ". Standard Deviation: " + str(self.std)
 
     
-    def __str__(self):
-        return "Entropy Truth Method with " + str(self.number_of_generations) + " generations. Scoring function: " + str(self.scoring_function) + ". Threshold: " + str(self.threshold) + ". Standard Deviation: " + str(self.std)

@@ -1,9 +1,11 @@
 
-from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
-from typing import Union
-from .truth_methods.truth_method import TruthMethod
-from litellm import completion
 import random
+from typing import Union
+from litellm import completion
+
+from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
+
+from .truth_methods.truth_method import TruthMethod
 from TruthTorchLLM.availability import AVAILABLE_API_MODELS
 
 

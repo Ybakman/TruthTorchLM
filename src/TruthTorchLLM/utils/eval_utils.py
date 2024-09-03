@@ -3,8 +3,6 @@ from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokeniz
 from typing import Union
 from sklearn.metrics import roc_auc_score
 from TruthTorchLLM.truth_methods import TruthMethod
-from TruthTorchLLM.evaluators.correctness_evaluator import CorrectnessEvaluator 
-from TruthTorchLLM.evaluators.rouge import ROUGE
 from TruthTorchLLM.generation import generate_with_truth_value, completion_with_truth_value
 from TruthTorchLLM.templates import DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT
 import wandb
@@ -26,7 +24,7 @@ def metric_score(metric_names:list[str], generation_correctness:list, truth_valu
 
 
 def run_over_dataset(dataset: Union[str, list], model:Union[str,PreTrainedModel],  truth_methods: list[TruthMethod], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast]=None,
-                          correctness_evaluator:CorrectnessEvaluator = ROUGE(0.7), system_prompt:str = DEFAULT_SYSTEM_PROMPT, 
+                          correctness_evaluator = None, system_prompt:str = DEFAULT_SYSTEM_PROMPT, 
                            user_prompt:str = DEFAULT_USER_PROMPT, seed:int = 0, return_method_details:bool = False, wandb_run = None,  **kwargs):
     output_dict = {}
     output_dict['generation'] = []
