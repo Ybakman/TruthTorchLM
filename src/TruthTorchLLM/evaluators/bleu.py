@@ -9,7 +9,7 @@ class BLEU(CorrectnessEvaluator):
         self.threshold = threshold  
         self.bleu = evaluate.load('bleu')
 
-    def __call__(self, generated_text: str,  ground_truths: list[str]) -> bool:
+    def __call__(self, question_text:str, generated_text: str,  ground_truths: list[str], seed:int = None) -> bool:
         for i in range(len(ground_truths)):
             bleu_results = self.bleu.compute(predictions = [generated_text], references=[ground_truths[i]])
             if bleu_results['bleu'] > self.threshold:

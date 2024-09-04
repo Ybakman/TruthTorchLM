@@ -58,7 +58,7 @@ def run_over_dataset(dataset: Union[str, list], model:Union[str,PreTrainedModel]
         else:
             truth_dict = generate_with_truth_value(model, messages, question_context = dataset[i]['question'], truth_methods = truth_methods, tokenizer=tokenizer, generation_seed = seed, **kwargs)
 
-        is_correct = correctness_evaluator(truth_dict['generated_text'], dataset[i]['ground_truths'])
+        is_correct = correctness_evaluator(dataset[i]['question'], truth_dict['generated_text'], dataset[i]['ground_truths'])
         output_dict['generation_correctness'].append(is_correct)
         output_dict['generation'].append(truth_dict['generated_text'])
 
