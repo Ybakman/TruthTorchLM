@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import copy
 from transformers import GPT2LMHeadModel, GPT2Tokenizer, PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 import re
 from sklearn.metrics import jaccard_score
@@ -7,6 +8,7 @@ from scipy.linalg import eigh
 from sklearn.feature_extraction.text import CountVectorizer
 from transformers import DebertaForSequenceClassification, DebertaTokenizer
 from sklearn.metrics import precision_recall_curve
+from litellm import completion
 
 #logging.set_verbosity(40)
 
@@ -83,47 +85,93 @@ def calculate_jaccard_similarity(text1: str, text2: str) -> float:
 
 
 # Function to check entailment between two sequences
-def check_entailment(model_for_entailment: PreTrainedModel, tokenizer_for_entailment: PreTrainedTokenizer, context: str, seq1: str, seq2: str):
-    inputs = tokenizer_for_entailment.encode_plus(
-        text=context + " " + seq1,
-        text_pair=context + " " + seq2,
-        return_tensors='pt',
-        truncation=True
-    )
-    outputs = model_for_entailment(**inputs)
-    logits = outputs.logits
-    probs = torch.softmax(logits, dim=-1)
-    out_class = torch.argmax(probs[0], dim=-1).item()
-    
-    return out_class
+def check_entailment(model_for_entailment: PreTrainedModel, tokenizer_for_entailment: PreTrainedTokenizer, context: str, seq1: str, seq2: str, method: str = "model_for_entailment" , prompt: str = None, model_name:str =None, **kwargs):
+    kwargs = copy.deepcopy(kwargs)
+    if method == "model_for_entailment":
+        inputs = tokenizer_for_entailment.encode_plus(
+            text=context + " " + seq1,
+            text_pair=context + " " + seq2,
+            return_tensors='pt',
+            truncation=True
+        )
+        outputs = model_for_entailment(**inputs)
+        logits = outputs.logits
+        probs = torch.softmax(logits, dim=-1)
+        out_class = torch.argmax(probs[0], dim=-1).item()
+        
+        return out_class
+    elif method == "generation":
+        if prompt is None:
+            prompt = f" Determine whether the answer {seq1} is Contradicted or Same with the answer {seq2} for the question {context}. You need to check whether the two answers exactly describe the same thing such as the same entity, digit, or arithmetical results. If the two answers are the same, give Same, otherwise give Contradicted as the result."
+        input_ids = tokenizer_for_entailment.encode(prompt, return_tensors="pt")
+        model_output = model_for_entailment.generate(input_ids, num_return_sequences=1, do_sample=True, **kwargs)
+        tokens = model_output[0][len(input_ids[0]):]
+        generated_text = tokenizer_for_entailment.decode(tokens, skip_special_tokens=True)
+        if "Same" in generated_text:
+            return 2
+        elif "Contradicted" in generated_text:
+            return 0
+        else:
+            return 1
+    elif method == "completion":
+        if model_name is None:
+            raise ValueError("You must provide the model name for the completion method")
+        if prompt is None:
+            prompt = f" Determine whether the answer {seq1} is Contradicted or Same with the answer {seq2} for the question {context}. You need to check whether the two answers exactly describe the same thing such as the same entity, digit, or arithmetical results. If the two answers are the same, give Same, otherwise give Contradicted as the result."
+        response = completion(
+            model=model_name,
+            messages=[{"content": prompt, "role": "user"}],
+            **kwargs
+        )
+        generated_text = response.choices[0].message['content']
+        if "Same" in generated_text:
+            return 2
+        elif "Contradicted" in generated_text:
+            return 0
+        else:
+            return 1
+    else:
+        raise ValueError("You must use one of the following methods: model_for_entailment, generation, completion")
 
 
 
 
 # Function to perform bidirectional entailment clustering
-def bidirectional_entailment_clustering(model_for_entailment: PreTrainedModel, tokenizer_for_entailment: PreTrainedTokenizer, context : str, sequences: list[str],method = "semantic"):
-    clusters = [{sequences[0]}]
+def bidirectional_entailment_clustering(model_for_entailment: PreTrainedModel, tokenizer_for_entailment: PreTrainedTokenizer, context : str, sequences: list[str], method: str = "semantic", prompt: str = None, model_name:str =None, **kwargs):
+    clusters = [[sequences[0]]]
     for s_m in sequences[1:]:
         added_to_class = False
         for c in clusters:
-            s_c = next(iter(c))  # Use the first sequence in the class for comparison
+            s_c = c[0]  # Use the first sequence in the class for comparison
             if method == "semantic":
                 left = check_entailment(model_for_entailment, tokenizer_for_entailment, context, s_c, s_m)
                 right = check_entailment(model_for_entailment, tokenizer_for_entailment, context, s_m, s_c)
                 
                 if left != 0 and right != 0:#it shows there is no contradiction
-                    c.add(s_m)
+                    c.append(s_m)
                     added_to_class = True
                     break
             elif method == "jaccard":
                 similarity = calculate_jaccard_similarity(s_c, s_m)
                 if similarity >= 0.7:
-                    c.add(s_m)
+                    c.append(s_m)
+                    added_to_class = True
+                    break
+            elif method == "generation":
+                left = check_entailment(model_for_entailment, tokenizer_for_entailment, context, s_c, s_m, method="generation", prompt=prompt, **kwargs)
+                if left != 0:
+                    c.append(s_m)
+                    added_to_class = True
+                    break
+            elif method == "completion":
+                left = check_entailment(model_for_entailment, tokenizer_for_entailment, context, s_c, s_m, method="completion", prompt=prompt, model_name=model_name, **kwargs)
+                if left != 0:
+                    c.append(s_m)
                     added_to_class = True
                     break
         
         if not added_to_class:
-            clusters.append({s_m})
+            clusters.append([s_m])
     
     return clusters
 
