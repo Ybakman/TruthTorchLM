@@ -33,7 +33,7 @@ def generate_with_truth_value(model:PreTrainedModel, messages:list, question_con
     method_spec_outputs = []
     
     for truth_method in truth_methods:
-        truth_values = truth_method.generate_forward(model, text, generated_text, question_context, all_ids=model_output, tokenizer=tokenizer, generation_seed = generation_seed, **kwargs)
+        truth_values = truth_method.generate_forward(model, text, generated_text, question_context, all_ids=model_output, tokenizer=tokenizer, generation_seed = generation_seed, messages=messages, **kwargs)
         normalized_truth_values.append(truth_values['normalized_truth_value'])
         unnormalized_truth_values.append(truth_values['truth_value'])
         method_spec_outputs.append(truth_values)
