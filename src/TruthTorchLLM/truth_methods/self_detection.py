@@ -14,8 +14,14 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
 class SelfDetection(TruthMethod):
-    def __init__(self, model_for_questions, method_for_similarity: str = "semantic", number_of_generations=5, threshold=0.5, std=1.0, model_for_entailment: PreTrainedModel = DebertaForSequenceClassification.from_pretrained('microsoft/deberta-large-mnli'), tokenizer_for_entailment: PreTrainedTokenizer = DebertaTokenizer.from_pretrained('microsoft/deberta-large-mnli')):
+    def __init__(self, model_for_questions, method_for_similarity: str = "semantic", number_of_generations=5, threshold=0.5, std=1.0, model_for_entailment: PreTrainedModel = None, tokenizer_for_entailment: PreTrainedTokenizer = None):
         super().__init__(threshold = threshold, std = std)
+
+        if model_for_entailment is None or tokenizer_for_entailment is None:
+            model_for_entailment = DebertaForSequenceClassification.from_pretrained('microsoft/deberta-large-mnli')
+            tokenizer_for_entailment = DebertaTokenizer.from_pretrained('microsoft/deberta-large-mnli')
+
+
         self.tokenizer_for_entailment = tokenizer_for_entailment
         self.model_for_entailment = model_for_entailment
         self.number_of_generations = number_of_generations
@@ -43,7 +49,7 @@ class SelfDetection(TruthMethod):
             generated_questions.append(generated_question)
         return generated_questions
 
-    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, **kwargs):
+    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
         super().generate_forward(model, input_text, generated_text, question_context, all_ids, generation_seed=generation_seed)
         kwargs = copy.deepcopy(kwargs)
         generated_questions = []
@@ -69,7 +75,7 @@ class SelfDetection(TruthMethod):
         return {"truth_value": -entropy, 'normalized_entropy_value': normalized_entropy_value, 'entropy': entropy, "generated_questions": generated_questions, 'generated_texts': generated_texts, "clusters": clusters}
 
     
-    def completion_forward(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, **kwargs):
+    def completion_forward(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
         super().completion_forward(model, messages, generated_text, question_context, generation_seed=generation_seed)
         if model not in PROB_AVAILABLE_API_MODELS:
             raise ValueError("This method is not applicable to given model")

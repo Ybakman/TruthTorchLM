@@ -19,7 +19,7 @@ class Confidence(TruthMethod):
         self.scoring_function = scoring_function
 
 
-    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, **kwargs):
+    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
         super().generate_forward(model, input_text, generated_text, question_context, all_ids, generation_seed=generation_seed)
 
         input_ids = tokenizer.encode(input_text, return_tensors="pt").to(model.device)
@@ -38,7 +38,7 @@ class Confidence(TruthMethod):
             logprobs = torch.gather(logprobs, dim=1, index = model_output[0][len(input_ids[0]):].view(-1, 1))#logprobs for each token in the generated text
             logprobs = logprobs.view(-1).tolist()#convert to list
 
-            score = self.scoring_function(question_context, tokens_text, logprobs)
+            score = self.scoring_function(question_context, tokens_text, logprobs, generated_text, tokens)
             score = score
             generated_text = generated_text
         
@@ -47,7 +47,7 @@ class Confidence(TruthMethod):
         return {"truth_value": score, 'normalized_truth_value': normalized_truth_value, "generated_text": generated_text}# we shouldn't return generated text. remove it from the output format
     
 
-    def completion_forward(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, **kwargs):
+    def completion_forward(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
         super().completion_forward(model, messages, generated_text, question_context, generation_seed=generation_seed)
 
         if not model in PROB_AVAILABLE_API_MODELS:
@@ -65,8 +65,8 @@ class Confidence(TruthMethod):
             
         logprobs = [token['logprob'] for token in response.choices[0].logprobs['content']]
         tokens = [token['token'] for token in response.choices[0].logprobs['content']]
-        score = self.scoring_function(question_context, tokens, logprobs)
         generated_text = response.choices[0].message['content']
+        score = self.scoring_function(question_context, tokens, logprobs, generated_text)
 
         normalized_truth_value = sigmoid_normalization(score, self.threshold, self.std)
 

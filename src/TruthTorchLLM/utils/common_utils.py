@@ -39,7 +39,7 @@ def find_threshold_std(correctness: list, truth_values: list, precision: float =
 
 
 
-
+#TODO: solve numerical issue
 def sigmoid_normalization(x: float, threshold: float = 0.0, std: float = 1.0):
     return 1 / (1 + np.exp(- (x - threshold) / std))
 
@@ -88,8 +88,9 @@ def check_entailment(model_for_entailment: PreTrainedModel, tokenizer_for_entail
         text=context + " " + seq1,
         text_pair=context + " " + seq2,
         return_tensors='pt',
-        truncation=True
-    )
+        truncation=True,
+        max_length=model_for_entailment.config.max_position_embeddings
+    ).to(model_for_entailment.device)
     outputs = model_for_entailment(**inputs)
     logits = outputs.logits
     probs = torch.softmax(logits, dim=-1)
@@ -133,8 +134,10 @@ def entailment_probability(model_for_entailment: PreTrainedModel, tokenizer_for_
         text=context + " " + seq1,
         text_pair=context + " " + seq2,
         return_tensors='pt',
-        truncation=True
-    )
+        truncation=True,
+        max_length=model_for_entailment.config.max_position_embeddings
+    ).to(model_for_entailment.device)
+
     outputs = model_for_entailment(**inputs)
     logits = outputs.logits
     probs = torch.softmax(logits/temperature, dim=-1) # contradiction, neutral, entailment
@@ -158,10 +161,11 @@ def get_L_mat(W, symmetric=True):
         #L = np.linalg.inv(D) @ (D - W)
     return L.copy()
 
+#TODO: give the model as an argument
 def calculate_affinity_matrix(texts: list[str], context: str, method_for_similarity: str = 'semantic', model_for_entailment: PreTrainedModel = None,
                  tokenizer_for_entailment: PreTrainedTokenizer = None, temperature: float = 3.0):
     
-    if model_for_entailment is None or tokenizer_for_entailment is None:
+    if (model_for_entailment is None or tokenizer_for_entailment is None) and method_for_similarity == "semantic":
         model_for_entailment = DebertaForSequenceClassification.from_pretrained('microsoft/deberta-large-mnli')
         tokenizer_for_entailment = DebertaTokenizer.from_pretrained('microsoft/deberta-large-mnli')
 
@@ -193,22 +197,25 @@ def get_eig(L, thres=None):
         eigvals, eigvecs = eigvals[keep_mask], eigvecs[:, keep_mask]
     return eigvals, eigvecs
 
-def calculate_U_eigv(texts: list[str], context:str, temperature: float = 3.0):
-    W = calculate_affinity_matrix(texts, context, temperature=temperature)
+def calculate_U_eigv(texts: list[str], context:str, method_for_similarity:str = 'semantic', temperature: float = 3.0, model_for_entailment: PreTrainedModel = None, 
+                 tokenizer_for_entailment: PreTrainedTokenizer = None):
+    W = calculate_affinity_matrix(texts, context, temperature=temperature, model_for_entailment=model_for_entailment, tokenizer_for_entailment=tokenizer_for_entailment, method_for_similarity=method_for_similarity)
     L = get_L_mat(W)
     eigvals = np.linalg.eigvalsh(L)
     U_eigv = sum(max(0, 1 - eig) for eig in eigvals)
     return U_eigv
 
-def calculate_U_deg(texts: list[str], context: str, temperature: float = 3.0):
-    W = calculate_affinity_matrix(texts, context, temperature=temperature)
+def calculate_U_deg(texts: list[str], context: str,  method_for_similarity:str = 'semantic',  temperature: float = 3.0, model_for_entailment: PreTrainedModel = None, 
+                 tokenizer_for_entailment: PreTrainedTokenizer = None):
+    W = calculate_affinity_matrix(texts, context, temperature=temperature, model_for_entailment=model_for_entailment, tokenizer_for_entailment=tokenizer_for_entailment, method_for_similarity=method_for_similarity)
     D = get_D_mat(W)
     m = len(W)
     U_deg = np.trace(m * np.identity(m) - D) / (m ** 2)
     return U_deg
 
-def calculate_U_ecc(texts: list[str], context: str, temperature: float = 3.0, eigen_threshold: float = 0.9):
-    W = calculate_affinity_matrix(texts, context)
+def calculate_U_ecc(texts: list[str], context: str,  method_for_similarity:str = 'semantic',  temperature: float = 3.0, eigen_threshold: float = 0.9, model_for_entailment: PreTrainedModel = None, 
+                 tokenizer_for_entailment: PreTrainedTokenizer = None):
+    W = calculate_affinity_matrix(texts, context, model_for_entailment=model_for_entailment, tokenizer_for_entailment=tokenizer_for_entailment , method_for_similarity=method_for_similarity, temperature=temperature)
     L = get_L_mat(W, symmetric=True)
     eigvals, eigvecs = get_eig(L, thres=eigen_threshold)
     V = eigvecs
@@ -218,12 +225,9 @@ def calculate_U_ecc(texts: list[str], context: str, temperature: float = 3.0, ei
     U_ecc = np.linalg.norm(V_prime, axis=1).sum()
     return U_ecc
 
-def calculate_U_num_set(texts: list[str], context: str,method_for_similarity: str = 'semantic', model_for_entailment: PreTrainedModel = None, 
+#TODO: give the model as an argument
+def calculate_U_num_set(texts: list[str], context: str ,method_for_similarity: str = 'semantic', model_for_entailment: PreTrainedModel = None, 
                  tokenizer_for_entailment: PreTrainedTokenizer = None):
     
-    if model_for_entailment is None or tokenizer_for_entailment is None:
-        model_for_entailment = DebertaForSequenceClassification.from_pretrained('microsoft/deberta-large-mnli')
-        tokenizer_for_entailment = DebertaTokenizer.from_pretrained('microsoft/deberta-large-mnli')
-
     clusters = bidirectional_entailment_clustering(model_for_entailment, tokenizer_for_entailment, context, texts, method_for_similarity)
     return len(clusters)

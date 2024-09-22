@@ -11,7 +11,7 @@ class ScoringMethod(ABC):
     #tokens: list of tokens in the generated text
     #logprobs: list of log probabilities of each token in the generated text
     #returns a float score
-    def __call__(self, input_text: str,  generated_tokens: list[str], logprobs: list[float]) -> float:
+    def __call__(self, input_text: str,  generated_tokens: list[str], logprobs: list[float], generated_text:str, generated_token_ids:list[int]=None) -> float:
         raise NotImplementedError("Subclasses must implement this method")
     
     @abstractmethod

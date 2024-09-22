@@ -9,23 +9,27 @@ from TruthTorchLLM.utils import sigmoid_normalization, bidirectional_entailment_
 from TruthTorchLLM.availability import PROB_AVAILABLE_API_MODELS
 from .truth_method import TruthMethod
 from TruthTorchLLM.scoring_methods import ScoringMethod, LengthNormalizedScoring
+from ..generation import sample_generations_batch_hf_local, sample_generations_sequential_hf_local, sample_generations_api
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
 def calculate_total_log(generated_outputs : dict[str, float],clusters : list[set[str]]):
     total_output_for_log = 0
     for i, cluster in enumerate(clusters):
-        total_output_for_log -= sum(generated_outputs[elem] for elem in cluster)
+        total_output_for_log -= torch.logsumexp(torch.tensor([generated_outputs[elem] for elem in cluster]), dim=0).item()
     return total_output_for_log / len(clusters)
 
 
 class SemanticEntropy(TruthMethod):
+    REQUIRES_SAMPLED_TEXT = True
+    REQUIRES_SAMPLED_LOGPROBS = True
+
     def __init__(self, scoring_function : ScoringMethod = LengthNormalizedScoring(), number_of_generations=5, threshold=0.0, std=1.0, 
-                 model_for_entailment: PreTrainedModel = None, tokenizer_for_entailment: PreTrainedTokenizer = None):#normalization
+                 model_for_entailment: PreTrainedModel = None, tokenizer_for_entailment: PreTrainedTokenizer = None, entailment_model_device = 'cuda'):#normalization
         super().__init__(threshold = threshold, std = std)
 
         if model_for_entailment is None or tokenizer_for_entailment is None:
-            model_for_entailment = DebertaForSequenceClassification.from_pretrained('microsoft/deberta-large-mnli')
+            model_for_entailment = DebertaForSequenceClassification.from_pretrained('microsoft/deberta-large-mnli').to(entailment_model_device)
             tokenizer_for_entailment = DebertaTokenizer.from_pretrained('microsoft/deberta-large-mnli')
 
         self.model_for_entailment = model_for_entailment
@@ -33,70 +37,53 @@ class SemanticEntropy(TruthMethod):
         self.scoring_function = scoring_function
         self.number_of_generations = number_of_generations
 
-
-
-    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, **kwargs):
+    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
         super().generate_forward(model, input_text, generated_text, question_context, all_ids, generation_seed=generation_seed)
-        kwargs = copy.deepcopy(kwargs)
-        generated_texts = []
+
+        if sampled_generations_dict is None:
+            sampled_generations_dict = sample_generations_sequential_hf_local(model, input_text, tokenizer, [self], generation_seed, **kwargs)
+
+            
+        generated_texts = sampled_generations_dict["generated_texts"][:self.number_of_generations]
         generated_outputs = {}
         scores = []
-        input_ids = tokenizer.encode(input_text, return_tensors="pt").to(model.device)
-        kwargs.pop('do_sample', None)
-        kwargs.pop('num_return_sequences', None)
 
         for i in range(self.number_of_generations):
-            model_output = model.generate(input_ids, num_return_sequences=1, do_sample=True, **kwargs)
-            tokens = model_output[0][len(input_ids[0]):]
-            generated_text = tokenizer.decode(tokens, skip_special_tokens=True)
-            with torch.no_grad():
-                outputs = model(model_output)
-                logits = outputs.logits # Logits for each token in the input
-
-            logprobs = torch.log_softmax(logits, dim=-1)#logprobs for each token
-            logprobs = logprobs[0, len(input_ids[0])-1:-1, :]#logprobs for each token in the generated text
-            logprobs = torch.gather(logprobs, dim=1, index = model_output[0][len(input_ids[0]):].view(-1, 1))#logprobs for each token in the generated text
-            logprobs = logprobs.view(-1).tolist()#convert to list
-
-            score = self.scoring_function(question_context, tokens, logprobs) 
+            #check if the text is already sampled
+            text = generated_texts[i]
+            if text in generated_texts[:i]:
+                continue
+            tokens_text = [tokenizer.decode(token) for token in sampled_generations_dict["tokens"][i]]
+            score = self.scoring_function(question_context, tokens_text, sampled_generations_dict["logprobs"][i], generated_texts[i], sampled_generations_dict["tokens"][i]) 
             scores.append(score) #scores are in log scale
-            generated_texts.append(generated_text)
-            generated_outputs[generated_text] = score
+            generated_outputs[generated_texts[i]] = score
         
         clusters = bidirectional_entailment_clustering(self.model_for_entailment, self.tokenizer_for_entailment, question_context, list(generated_outputs.keys()))   
         total_output_for_log = calculate_total_log(generated_outputs,clusters)
         normalized_truth_value = sigmoid_normalization(total_output_for_log, self.threshold, self.std)
         return {"truth_value": -total_output_for_log, 'normalized_truth_value': normalized_truth_value, 'semantic_entropy': total_output_for_log, "score_for_each_generation": scores, 'generated_texts': generated_texts, "clusters": clusters}
 
-    def completion_forward(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, **kwargs):
+
+    def completion_forward(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
         super().completion_forward(model, messages, generated_text, question_context, generation_seed=generation_seed)
 
         if model not in PROB_AVAILABLE_API_MODELS:
             raise ValueError("Semantic Entropy method is not applicable to given model")
-        kwargs = copy.deepcopy(kwargs)
-        generated_texts = []
+        
+        if sampled_generations_dict is None:
+            sampled_generations_dict = sample_generations_api(model, messages, [self], generation_seed, **kwargs)
+            
+        generated_texts = sampled_generations_dict["generated_texts"][:self.number_of_generations]
         generated_outputs = {}
         scores = []
+
         for i in range(self.number_of_generations):
-            kwargs.pop('logprobs', None)
-            seed = kwargs.pop('seed', None) 
-            seed = random.randint(0, 1000000)
-            kwargs['seed'] = seed
-            
-            response = completion(
-                model=model,
-                messages=messages,
-                logprobs=True,
-                **kwargs
-            )
-
-            logprobs = [token['logprob'] for token in response.choices[0].logprobs['content']]
-            tokens = [token['token'] for token in response.choices[0].logprobs['content']]
-            generated_texts.append(response.choices[0].message['content'])
-
-            score = self.scoring_function(question_context, tokens, logprobs)
-            scores.append(score)#scores are in log scale
-            generated_outputs[response.choices[0].message['content']] = score
+            text = generated_texts[i]
+            if text in generated_texts[:i]:
+                continue
+            score = self.scoring_function(question_context, sampled_generations_dict["tokens"][i], sampled_generations_dict["logprobs"][i], generated_texts[i]) 
+            scores.append(score) #scores are in log scale
+            generated_outputs[generated_texts[i]] = score
 
         clusters = bidirectional_entailment_clustering(self.model_for_entailment, self.tokenizer_for_entailment, question_context, list(generated_outputs.keys()))
         total_output_for_log = calculate_total_log(generated_outputs,clusters) 

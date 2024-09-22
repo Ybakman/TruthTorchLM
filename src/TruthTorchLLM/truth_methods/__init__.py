@@ -10,7 +10,8 @@ from .num_semantic_set_uncertainty import NumSemanticSetUncertainty
 from .sum_eigen_uncertainty import SumEigenUncertainty
 from .self_detection import SelfDetection
 from .inside import Inside
+from .sentSAR import SentSAR
 
 
-__all__ = ['Entropy', 'Confidence', 'TruthMethod', 'SemanticEntropy', 'PTrue', 'Inside', 
+__all__ = ['Entropy', 'Confidence', 'TruthMethod', 'SemanticEntropy', 'PTrue', 'Inside', 'SentSAR',
 'GoogleSearchCheck', 'EccentricityUncertainty', 'MatrixDegreeUncertainty', 'NumSemanticSetUncertainty', 'SumEigenUncertainty', 'SelfDetection']

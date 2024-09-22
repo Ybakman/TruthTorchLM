@@ -10,78 +10,54 @@ import torch
 import numpy as np
 import copy
 import random
+from ..generation import sample_generations_batch_hf_local, sample_generations_sequential_hf_local, sample_generations_api
 
 
 class Entropy(TruthMethod):
+
+    REQUIRES_SAMPLED_TEXT = True
+    REQUIRES_SAMPLED_LOGPROBS = True
+
     def __init__(self, scoring_function : ScoringMethod = LengthNormalizedScoring(), number_of_generations: int = 5, threshold:float = 0.0, std:float = 1.0):#normalization, 
         super().__init__(threshold = threshold, std = std)
         self.scoring_function = scoring_function
         self.number_of_generations = number_of_generations
 
 
-    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, **kwargs):
+    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
         super().generate_forward(model, input_text, generated_text, question_context, all_ids, generation_seed=generation_seed)
-        kwargs = copy.deepcopy(kwargs)
+        
+        if sampled_generations_dict is None:
+            sampled_generations_dict = sample_generations_sequential_hf_local(model, input_text, tokenizer, [self], generation_seed, **kwargs)
+        
         scores = []
-        generated_texts = []
-        input_ids = tokenizer.encode(input_text, return_tensors="pt").to(model.device)
-        kwargs.pop('do_sample', None)
-        kwargs.pop('num_return_sequences', None)
+        generated_texts = sampled_generations_dict["generated_texts"][:self.number_of_generations]
+      
         for i in range(self.number_of_generations):
-            
-            model_output = model.generate(input_ids, num_return_sequences = 1, do_sample = True, **kwargs)
-            
-            tokens = model_output[0][len(input_ids[0]):]
-            tokens_text = [tokenizer.decode(token) for token in tokens]
-
-            with torch.no_grad():
-                outputs = model(model_output)
-                logits = outputs.logits  # Logits for each token in the input
-
-            # Calculate probabilities from logits
-            logprobs = torch.log_softmax(logits, dim=-1)#logprobs for each token
-            logprobs = logprobs[0, len(input_ids[0])-1:-1, :]#logprobs for each token in the generated text
-            logprobs = torch.gather(logprobs, dim=1, index = model_output[0][len(input_ids[0]):].view(-1, 1))#logprobs for each token in the generated text
-            logprobs = logprobs.view(-1).tolist()#convert to list
-
-            score = self.scoring_function(question_context, tokens_text, logprobs)
-            scores.append(score)
-            generated_texts.append(tokenizer.decode(tokens))
+            tokens_text = [tokenizer.decode(token) for token in sampled_generations_dict["tokens"][i]]
+            score = self.scoring_function(question_context, tokens_text, sampled_generations_dict["logprobs"][i], generated_texts[i], sampled_generations_dict["tokens"][i]) 
+            scores.append(score) #scores are in log scale
 
         entropy = -np.sum(scores) / len(scores)#scores are in log scale
 
         normalized_truth_value = sigmoid_normalization(-entropy, self.threshold, self.std)
         return {"truth_value": -entropy, 'normalized_truth_value':normalized_truth_value,  'entropy': entropy,  "score_for_each_generation": scores, 'generated_texts_for_entropy': generated_texts}#this output format should be same for all truth methods
 
-    def completion_forward(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, **kwargs):
+    def completion_forward(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
         super().completion_forward(model, messages, generated_text, question_context, generation_seed=generation_seed)
         if not model in PROB_AVAILABLE_API_MODELS:
             raise ValueError("Entropy method is not applicable to given model")
+        
+        if sampled_generations_dict is None:
+            sampled_generations_dict = sample_generations_api(model, messages, [self], generation_seed, **kwargs)
+            
+        generated_texts = sampled_generations_dict["generated_texts"][:self.number_of_generations]
 
-        kwargs = copy.deepcopy(kwargs)
         scores = []
-        generated_texts = []
-        
-            
         for i in range(self.number_of_generations):
-            kwargs.pop('logprobs', None)
-            seed = kwargs.pop('seed', None) #if user specifies seed, it won't be generated randomly
+            score = self.scoring_function(question_context, sampled_generations_dict["tokens"][i], sampled_generations_dict["logprobs"][i], generated_texts[i]) 
+            scores.append(score) #scores are in log scale
 
-            seed = random.randint(0, 1000000)
-            kwargs['seed'] = seed
-            response = completion(
-                model = model,
-                messages = messages,
-                logprobs = True,
-                **kwargs
-                )
-            
-            logprobs = [token['logprob'] for token in response.choices[0].logprobs['content']]
-            tokens = [token['token'] for token in response.choices[0].logprobs['content']]
-            score = self.scoring_function(question_context, tokens, logprobs)
-            scores.append(score)
-            generated_texts.append(response.choices[0].message['content'])
-        
         entropy = -np.sum(scores) / len(scores)#scores are in log scale
 
         normalized_truth_value = sigmoid_normalization(-entropy, self.threshold, self.std)

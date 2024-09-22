@@ -8,19 +8,27 @@ from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokeniz
 from transformers import GPT2LMHeadModel, GPT2Tokenizer, DebertaForSequenceClassification, DebertaTokenizer
 from TruthTorchLLM.utils import calculate_U_ecc, sigmoid_normalization
 from .truth_method import TruthMethod
+from ..generation import sample_generations_batch_hf_local, sample_generations_sequential_hf_local, sample_generations_api
 
 
 class EccentricityUncertainty(TruthMethod):
+    
+    REQUIRES_SAMPLED_TEXT = True
+
     def __init__(self, method_for_similarity: str = "semantic", number_of_generations=5, threshold=0.0, std=1.0, model_for_entailment: PreTrainedModel = None, 
-                 tokenizer_for_entailment: PreTrainedTokenizer = None, temperature= 3.0, eigen_threshold = 0.9):
+                 tokenizer_for_entailment: PreTrainedTokenizer = None, temperature= 3.0, eigen_threshold = 0.9, entailment_model_device = 'cuda'):
         super().__init__(threshold = threshold, std = std)
 
-        if model_for_entailment is None or tokenizer_for_entailment is None:
-            model_for_entailment = DebertaForSequenceClassification.from_pretrained('microsoft/deberta-large-mnli')
+        if (model_for_entailment is None or tokenizer_for_entailment is None) and method_for_similarity == "semantic":
+            model_for_entailment = DebertaForSequenceClassification.from_pretrained('microsoft/deberta-large-mnli').to(entailment_model_device)
             tokenizer_for_entailment = DebertaTokenizer.from_pretrained('microsoft/deberta-large-mnli')
+         
        
         if method_for_similarity not in ["semantic", "jaccard"]:
             raise ValueError("method_for_similarity should be either semantic or jaccard. Please refer to https://arxiv.org/pdf/2305.19187 for more information.")
+        
+        self.model_for_entailment = None
+        self.tokenizer_for_entailment = None
         
         if method_for_similarity == "semantic":
             print('There are 2 methods for similarity: semantic similarity and jaccard score. The default method is semantic similarity. If you want to use jaccard score, please set method_for_similarity="jaccard". Please refer to https://arxiv.org/pdf/2305.19187 for more information.')
@@ -32,51 +40,34 @@ class EccentricityUncertainty(TruthMethod):
         self.eigen_threshold = eigen_threshold
         self.temperature = temperature #temperature for NLI model
 
-    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, **kwargs):
+    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
         super().generate_forward(model, input_text, generated_text, question_context, all_ids, generation_seed=generation_seed)
-        kwargs = copy.deepcopy(kwargs)
-        generated_texts = []
-        input_ids = tokenizer.encode(input_text, return_tensors="pt").to(model.device)
-        kwargs.pop('do_sample', None)
-        kwargs.pop('num_return_sequences', None)
-        for i in range(self.number_of_generations):
-            model_output = model.generate(input_ids, num_return_sequences=1, do_sample=True, **kwargs)
-            tokens = model_output[0][len(input_ids[0]):]
-            generated_text = tokenizer.decode(tokens, skip_special_tokens=True)
-            generated_texts.append(generated_text)
+
+        if sampled_generations_dict is None:
+            sampled_generations_dict = sample_generations_sequential_hf_local(model, input_text, tokenizer, [self], generation_seed, **kwargs)
+            
+        generated_texts = sampled_generations_dict["generated_texts"][:self.number_of_generations]
 
         output_dict = {}
 
-        output = calculate_U_ecc(generated_texts, question_context, temperature = self.temperature, eigen_threshold = self.eigen_threshold)
+        output = calculate_U_ecc(generated_texts, question_context, method_for_similarity=self.method_for_similarity, temperature = self.temperature, eigen_threshold = self.eigen_threshold,  model_for_entailment=self.model_for_entailment, tokenizer_for_entailment=self.tokenizer_for_entailment)
         output_dict['U_ecc'] = output
         output_dict['generated_texts'] = generated_texts
         output_dict['truth_value'] = -output
         output_dict['normalized_truth_value'] = sigmoid_normalization(output, self.threshold, self.std)
         return output_dict
 
-    def completion_forward(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, **kwargs):
+    def completion_forward(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
         super().completion_forward(model, messages, generated_text, question_context, generation_seed=generation_seed)
-        kwargs = copy.deepcopy(kwargs)
-        generated_texts = []
-        generated_outputs = {}
-        scores = []
-        for i in range(self.number_of_generations):
-            kwargs.pop('logprobs', None)
-            seed = kwargs.pop('seed', None) 
-            seed = random.randint(0, 1000000)
-            kwargs['seed'] = seed
+        
+        if sampled_generations_dict is None:
+            sampled_generations_dict = sample_generations_api(model, messages, [self], generation_seed, **kwargs)
             
-            response = completion(
-                model=model,
-                messages=messages,
-                logprobs=True,
-                **kwargs
-            )
-            generated_texts.append(response.choices[0].message['content'])
+        generated_texts = sampled_generations_dict["generated_texts"][:self.number_of_generations]
 
         output_dict = {}
 
-        output = calculate_U_ecc(generated_texts, question_context)
+        output = calculate_U_ecc(generated_texts, question_context, method_for_similarity=self.method_for_similarity, temperature = self.temperature, model_for_entailment=self.model_for_entailment, tokenizer_for_entailment=self.tokenizer_for_entailment)
         output_dict['U_ecc'] = output
         output_dict['generated_texts'] = generated_texts
         output_dict['truth_value'] = -output

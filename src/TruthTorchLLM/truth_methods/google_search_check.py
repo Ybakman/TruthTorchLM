@@ -13,24 +13,32 @@ import copy
 
 
 class GoogleSearchCheck(TruthMethod):
-    def __init__(self, threshold:float = 0.0, std:float = 1.0, number_of_snippets:int = 10, location:str = 'us', language:str = 'en') -> None:
+    def __init__(self, threshold:float = 0.0, std:float = 1.0, number_of_snippets:int = 10, location:str = 'us', language:str = 'en', 
+    check_query_system_prompt:str = GOOGLE_CHECK_QUERY_SYSTEM_PROMPT, check_query_user_prompt:str = GOOGLE_CHECK_QUERY_USER_PROMPT,
+    check_verification_system_prompt:str = GOOGLE_CHECK_VERIFICATION_SYSTEM_PROMPT, check_verification_user_prompt:str = GOOGLE_CHECK_VERIFICATION_USER_PROMPT) -> None:
         super().__init__(threshold = threshold, std = std)
         self.number_of_snippets = number_of_snippets
         self.location = location
         self.language = language
         self.google_serper = GoogleSerperAPIWrapper(snippet_cnt = self.number_of_snippets, location = self.location, language = self.language)
+        self.check_query_system_prompt = check_query_system_prompt
+        self.check_query_user_prompt = check_query_user_prompt
+        self.check_verification_system_prompt = check_verification_system_prompt
+        self.check_verification_user_prompt = check_verification_user_prompt
 
 
-       
-
-
-    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, **kwargs):
+    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
         super().generate_forward(model, input_text, generated_text, question_context, all_ids, generation_seed=generation_seed)
         kwargs = copy.deepcopy(kwargs)
         generated_text = tokenizer.decode(tokenizer.encode(generated_text, return_tensors="pt").view(-1).tolist(), skip_special_tokens=True)#remove special tokens
         #first we need to generate search queries
-        chat = [{"role": "system", "content": GOOGLE_CHECK_QUERY_SYSTEM_PROMPT},
-        {"role": "user", "content": GOOGLE_CHECK_QUERY_USER_PROMPT.format(question_context = question_context, input = generated_text)}]
+
+        if self.check_query_system_prompt is None:#for some models there is no system prompt in their chat template such as gemma
+            chat = [{"role": "user", "content": self.check_query_user_prompt.format(question_context = question_context, input = generated_text)}]
+        else:
+            chat = [{"role": "system", "content": self.check_query_system_prompt},
+            {"role": "user", "content": self.check_query_user_prompt.format(question_context = question_context, input = generated_text)}]
+
         prompt = tokenizer.apply_chat_template(chat, tokenize=False)
         input_ids = tokenizer.encode(prompt, return_tensors="pt").to(model.device)
         
@@ -50,8 +58,12 @@ class GoogleSearchCheck(TruthMethod):
             print("The model output didn't match the output format while creating the query")
 
         #Ask model to verify the claim
-        chat = [{"role": "system", "content": GOOGLE_CHECK_VERIFICATION_SYSTEM_PROMPT},
-        {"role": "user", "content": GOOGLE_CHECK_VERIFICATION_USER_PROMPT.format(question_context = question_context, claim = generated_text, evidence = evidences)}]
+        if self.check_verification_system_prompt is None:#for some models there is no system prompt in their chat template such as gemma
+            chat = [{"role": "user", "content": self.check_verification_user_prompt.format(question_context = question_context, claim = generated_text, evidence = evidences)}]
+        else:
+            chat = [{"role": "system", "content": self.check_verification_system_prompt},
+            {"role": "user", "content": self.check_verification_user_prompt.format(question_context = question_context, claim = generated_text, evidence = evidences)}]
+        
         prompt = tokenizer.apply_chat_template(chat, tokenize=False)
         input_ids = tokenizer.encode(prompt, return_tensors="pt").to(model.device)
        
@@ -78,14 +90,13 @@ class GoogleSearchCheck(TruthMethod):
                 normalized_truth_value = 0.5
                 print("The model output didn't match the output format in verification")
             
-
             return {"truth_value": truth_value, 'normalized_truth_value': normalized_truth_value, 'evidences':evidences, 'query_text':query_text, 'evidences':evidences, 'verification_text':verification, 'verification':verification_dict}
 
 
 
 
 
-    def completion_forward(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, **kwargs):
+    def completion_forward(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
         super().completion_forward(model, messages, generated_text, question_context, generation_seed=generation_seed)
         kwargs = copy.deepcopy(kwargs)
         #first we need to generate search queries
