@@ -33,6 +33,7 @@ def evaluate_truth_method(dataset: Union[str, list], model:Union[str,PreTrainedM
 
     wandb_run.log({'model_accuracy': sum(output_dict['generation_correctness'])/len(output_dict['generation_correctness'])})
     
+    print(eval_dict)
     if wandb_run:
         for key, _ in eval_dict.items():
             methods = []
