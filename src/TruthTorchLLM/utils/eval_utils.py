@@ -3,7 +3,7 @@ from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokeniz
 from typing import Union
 from TruthTorchLLM.truth_methods import TruthMethod
 from TruthTorchLLM.generation import generate_with_truth_value, completion_with_truth_value
-from TruthTorchLLM.templates import DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT
+from TruthTorchLLM.templates import DEFAULT_SYSTEM_BENCHMARK_PROMPT, DEFAULT_USER_PROMPT
 import wandb
 from sklearn.metrics import roc_auc_score, precision_recall_curve, auc
 import pandas as pd
@@ -19,6 +19,15 @@ def area_under_accuracy_coverage_curve(t_s, acc):
 
 def metric_score(metric_names:list[str], generation_correctness:list, truth_values:list[float], normalized_truth_values:list[float] = [],  seed:int = 0) -> dict:
     eval_dict = {}
+    #replace NaN values with a big number
+    truth_values = np.array(truth_values)
+    truth_values[np.isnan(truth_values)] = 1000000
+    normalized_truth_values = np.array(normalized_truth_values)
+    normalized_truth_values[np.isnan(normalized_truth_values)] = 1000000
+
+    truth_values = list(truth_values) #convert to list
+    normalized_truth_values = (normalized_truth_values) #convert to list
+
     if "auroc" in metric_names:
         try:
             auroc = roc_auc_score(generation_correctness, truth_values)
@@ -46,21 +55,24 @@ def metric_score(metric_names:list[str], generation_correctness:list, truth_valu
 
 
 def run_over_dataset(dataset: Union[str, list], model:Union[str,PreTrainedModel],  truth_methods: list[TruthMethod], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast]=None,
-                          correctness_evaluator = None, previous_context:list =[{'role': 'system', 'content': DEFAULT_SYSTEM_PROMPT}], user_prompt:str = DEFAULT_USER_PROMPT, seed:int = 0, return_method_details:bool = False, wandb_run = None, 
+                          correctness_evaluator = None, previous_context:list =[{'role': 'system', 'content': DEFAULT_SYSTEM_BENCHMARK_PROMPT}], user_prompt:str = DEFAULT_USER_PROMPT, seed:int = 0, return_method_details:bool = False, wandb_run = None, 
                           wandb_push_method_details:bool = False, batch_generation=True,  add_generation_prompt = True, continue_final_message = False, **kwargs):
     output_dict = {}
+    output_dict['previous_context'] = previous_context
+    output_dict['user_prompt'] = user_prompt
     output_dict['generation'] = []
     output_dict['generation_correctness'] = []
     output_dict['question_text'] = []
     output_dict['ground_truths'] = []
 
-
+    
     for i in range(len(truth_methods)):
-        output_dict[i] = {}
-        output_dict[i]['truth_values'] = []
-        output_dict[i]['normalized_truth_values'] = []  
+        output_dict[f'truth_method_{i}'] = {}
+        output_dict[f'truth_method_{i}']['name'] = str(truth_methods[i])
+        output_dict[f'truth_method_{i}']['truth_values'] = []
+        output_dict[f'truth_method_{i}']['normalized_truth_values'] = []  
         if return_method_details:
-            output_dict[i]['method_specific_details'] = []
+            output_dict[f'truth_method_{i}']['method_specific_details'] = []
 
     if wandb_run is not None:
         logged_data = []
@@ -90,18 +102,11 @@ def run_over_dataset(dataset: Union[str, list], model:Union[str,PreTrainedModel]
         output_dict['question_text'].append(dataset[i]['question'])
         output_dict['ground_truths'].append(dataset[i]['ground_truths'])
         
-
-
         for j in range(len(truth_methods)):
-            output_dict[j]['truth_values'].append(truth_dict['unnormalized_truth_values'][j])
-            output_dict[j]['normalized_truth_values'].append(truth_dict['normalized_truth_values'][j])
+            output_dict[f'truth_method_{j}']['truth_values'].append(truth_dict['unnormalized_truth_values'][j])
+            output_dict[f'truth_method_{j}']['normalized_truth_values'].append(truth_dict['normalized_truth_values'][j])
             if return_method_details:
-                output_dict[j]['method_specific_details'].append(truth_dict['method_specific_outputs'][j])
-
-        
-        for j in range(len(truth_methods)):
-            if return_method_details:
-                output_dict[j]['method_specific_details'].append(truth_dict['method_specific_outputs'][j])
+                output_dict[f'truth_method_{j}']['method_specific_details'].append(truth_dict['method_specific_outputs'][j])
             
             if wandb_push_method_details and wandb_run is not None:
                 columns=['truth_values','normalized_truth_values', 'generation_correctness', 
@@ -121,32 +126,7 @@ def run_over_dataset(dataset: Union[str, list], model:Union[str,PreTrainedModel]
                 'index': i,
             })
             wandb.log({"run_summary" : summary_table})
-    
-        # if wandb_run is not None:
-        #     for j in range(len(truth_methods)):
-        #         wandb_run.log({
-        #             f'truth_values_{j}': truth_dict['unnormalized_truth_values'][j],
-        #             f'normalized_truth_values_{j}': truth_dict['normalized_truth_values'][j],
-        #         })
-        #     if return_method_details:
-        #         columns=['truth_values','normalized_truth_values', 'generation_correctness', 
-        #     'question_text', 'ground_truths', 'generated_text', 'index', 'method_specific_details']
 
-        #         data = [str(truth_dict['unnormalized_truth_values']), str(truth_dict['normalized_truth_values']), is_correct, dataset[i]['question'], 
-        #             (', ').join(dataset[i]['ground_truths']) , truth_dict['generated_text'], i, str(truth_dict['method_specific_outputs'])]
-        #         output_dict[j]['method_specific_details'].append(truth_dict['method_specific_outputs'][j])
-        #     else:
-        #         columns= ['truth_values','normalized_truth_values', 'generation_correctness', 
-        #     'question_text', 'ground_truths', 'generated_text', 'index']
-        #         data = [str(truth_dict['unnormalized_truth_values']), str(truth_dict['normalized_truth_values']), is_correct, dataset[i]['question'], (', ').join(dataset[i]['ground_truths']) , truth_dict['generated_text'], i]
-            
-        #     logged_data.extend([data])
-        #     summary_table = wandb.Table(data = logged_data, columns=columns)
-        #     wandb_run.log({
-        #         'accuracy': is_correct,
-        #         'index': i,
-        #     })
-        #     wandb.log({"run_summary" : summary_table})
 
     return output_dict
     

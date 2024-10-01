@@ -42,7 +42,8 @@ class NumSemanticSetUncertainty(TruthMethod):
         super().generate_forward(model, input_text, generated_text, question_context, all_ids, generation_seed=generation_seed)
 
         if sampled_generations_dict is None:
-            sampled_generations_dict = sample_generations_sequential_hf_local(model, input_text, tokenizer, [self], generation_seed, **kwargs)
+            sampled_generations_dict = sample_generations_sequential_hf_local(model = model, input_text = input_text, tokenizer = tokenizer, generation_seed=generation_seed, 
+            number_of_generations=self.number_of_generations, return_text = True, **kwargs)
             
         generated_texts = sampled_generations_dict["generated_texts"][:self.number_of_generations]
 
@@ -59,7 +60,8 @@ class NumSemanticSetUncertainty(TruthMethod):
         super().completion_forward(model, messages, generated_text, question_context, generation_seed=generation_seed)
         
         if sampled_generations_dict is None:
-            sampled_generations_dict = sample_generations_api(model, messages, [self], generation_seed, **kwargs)
+            sampled_generations_dict = sample_generations_api(model = model, messages = messages, generation_seed = generation_seed, 
+            number_of_generations=self.number_of_generations, return_text = True, **kwargs)
             
         generated_texts = sampled_generations_dict["generated_texts"][:self.number_of_generations]
 

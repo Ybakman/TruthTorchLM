@@ -13,10 +13,16 @@ from ..generation import sample_generations_batch_hf_local, sample_generations_s
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
-def calculate_total_log(generated_outputs : dict[str, float],clusters : list[set[str]]):
+
+def calculate_total_log(generated_outputs : list[str, float],clusters : list[set[str]]):
     total_output_for_log = 0
     for i, cluster in enumerate(clusters):
-        total_output_for_log -= torch.logsumexp(torch.tensor([generated_outputs[elem] for elem in cluster]), dim=0).item()
+        score_list = []
+        for elem in cluster:
+            for output in generated_outputs:
+                if elem == output[0]:
+                    score_list.append(output[1])
+        total_output_for_log -= torch.logsumexp(torch.tensor(score_list), dim=0).item()
     return total_output_for_log / len(clusters)
 
 
@@ -41,24 +47,22 @@ class SemanticEntropy(TruthMethod):
         super().generate_forward(model, input_text, generated_text, question_context, all_ids, generation_seed=generation_seed)
 
         if sampled_generations_dict is None:
-            sampled_generations_dict = sample_generations_sequential_hf_local(model, input_text, tokenizer, [self], generation_seed, **kwargs)
+            sampled_generations_dict = sample_generations_sequential_hf_local(model = model, input_text = input_text, tokenizer = tokenizer, generation_seed=generation_seed, 
+            number_of_generations=self.number_of_generations, return_text = True, return_logprobs=True, **kwargs)
 
             
         generated_texts = sampled_generations_dict["generated_texts"][:self.number_of_generations]
-        generated_outputs = {}
+        generated_outputs = []
         scores = []
 
         for i in range(self.number_of_generations):
-            #check if the text is already sampled
             text = generated_texts[i]
-            if text in generated_texts[:i]:
-                continue
             tokens_text = [tokenizer.decode(token) for token in sampled_generations_dict["tokens"][i]]
             score = self.scoring_function(question_context, tokens_text, sampled_generations_dict["logprobs"][i], generated_texts[i], sampled_generations_dict["tokens"][i]) 
             scores.append(score) #scores are in log scale
-            generated_outputs[generated_texts[i]] = score
+            generated_outputs.append((text,score))
         
-        clusters = bidirectional_entailment_clustering(self.model_for_entailment, self.tokenizer_for_entailment, question_context, list(generated_outputs.keys()))   
+        clusters = bidirectional_entailment_clustering(self.model_for_entailment, self.tokenizer_for_entailment, question_context, generated_texts)   
         total_output_for_log = calculate_total_log(generated_outputs,clusters)
         normalized_truth_value = sigmoid_normalization(total_output_for_log, self.threshold, self.std)
         return {"truth_value": -total_output_for_log, 'normalized_truth_value': normalized_truth_value, 'semantic_entropy': total_output_for_log, "score_for_each_generation": scores, 'generated_texts': generated_texts, "clusters": clusters}
@@ -71,21 +75,20 @@ class SemanticEntropy(TruthMethod):
             raise ValueError("Semantic Entropy method is not applicable to given model")
         
         if sampled_generations_dict is None:
-            sampled_generations_dict = sample_generations_api(model, messages, [self], generation_seed, **kwargs)
+            sampled_generations_dict = sample_generations_api(model = model, messages = messages, generation_seed = generation_seed, 
+            number_of_generations=self.number_of_generations, return_text = True, return_logprobs=True, **kwargs)
             
         generated_texts = sampled_generations_dict["generated_texts"][:self.number_of_generations]
-        generated_outputs = {}
+        generated_outputs = []
         scores = []
 
         for i in range(self.number_of_generations):
             text = generated_texts[i]
-            if text in generated_texts[:i]:
-                continue
             score = self.scoring_function(question_context, sampled_generations_dict["tokens"][i], sampled_generations_dict["logprobs"][i], generated_texts[i]) 
             scores.append(score) #scores are in log scale
-            generated_outputs[generated_texts[i]] = score
+            generated_outputs.append((text,score))
 
-        clusters = bidirectional_entailment_clustering(self.model_for_entailment, self.tokenizer_for_entailment, question_context, list(generated_outputs.keys()))
+        clusters = bidirectional_entailment_clustering(self.model_for_entailment, self.tokenizer_for_entailment, question_context, generated_texts)
         total_output_for_log = calculate_total_log(generated_outputs,clusters) 
         normalized_truth_value = sigmoid_normalization(total_output_for_log, self.threshold, self.std)
         return {"truth_value": -total_output_for_log, 'normalized_truth_value': normalized_truth_value, 'semantic_entropy': total_output_for_log, "score_for_each_generation": scores, 'generated_texts': generated_texts, "clusters": clusters}

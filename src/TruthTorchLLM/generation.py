@@ -9,6 +9,7 @@ from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokeniz
 
 from .truth_methods.truth_method import TruthMethod
 from TruthTorchLLM.availability import AVAILABLE_API_MODELS
+from TruthTorchLLM.utils.common_utils import generate
 
 import time
 
@@ -37,8 +38,11 @@ def get_sampling_properties(truth_methods: list[TruthMethod]):
     return number_of_generations, return_text, return_logits, return_logprobs, return_attentions, return_activations
 
 
-def sample_generations_batch_hf_local(model:PreTrainedModel, input_text:str, tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast], truth_methods: list = [], generation_seed:int=None, **kwargs):
-    number_of_generations, return_text, return_logits, return_logprobs, return_attentions, return_activations = get_sampling_properties(truth_methods)
+def sample_generations_batch_hf_local(model:PreTrainedModel, input_text:str, tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast], generation_seed:int=None, 
+number_of_generations:int = 0, return_text:bool = False, return_logits:bool = False, return_logprobs:bool = False, return_attentions:bool = False, return_activations:bool = False, **kwargs):
+
+    #number_of_generations, return_text, return_logits, return_logprobs, return_attentions, return_activations = get_sampling_properties(truth_methods)
+
     if number_of_generations == 0 or (not return_text and not return_logprobs and not return_activations and not return_attentions and not return_logits):
         return None
     
@@ -128,8 +132,10 @@ def sample_generations_batch_hf_local(model:PreTrainedModel, input_text:str, tok
          
 
 
-def sample_generations_sequential_hf_local(model:PreTrainedModel, input_text:str, tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast], truth_methods: list = [], generation_seed:int=None, **kwargs):
-    number_of_generations, return_text, return_logits, return_logprobs, return_attentions, return_activations = get_sampling_properties(truth_methods)
+def sample_generations_sequential_hf_local(model:PreTrainedModel, input_text:str, tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast], generation_seed:int=None,
+ number_of_generations:int = 0, return_text:bool = False, return_logits:bool = False, return_logprobs:bool = False, return_attentions:bool = False, return_activations:bool = False, **kwargs):
+
+    #number_of_generations, return_text, return_logits, return_logprobs, return_attentions, return_activations = get_sampling_properties(truth_methods)
     if number_of_generations == 0 or (not return_text and not return_logprobs and not return_activations and not return_attentions and not return_logits):
         return None
     
@@ -205,8 +211,9 @@ def sample_generations_sequential_hf_local(model:PreTrainedModel, input_text:str
             
 
 
-def sample_generations_api(model:str, messages:list, truth_methods: list = [], generation_seed:int=None, **kwargs):
-    number_of_generations, return_text, return_logits, return_logprobs, return_attentions, return_activations = get_sampling_properties(truth_methods)
+def sample_generations_api(model:str, messages:list, generation_seed:int=None, 
+number_of_generations:int = 0, return_text:bool = False, return_logits:bool = False, return_logprobs:bool = False, return_attentions:bool = False, return_activations:bool = False, **kwargs):
+    #number_of_generations, return_text, return_logits, return_logprobs, return_attentions, return_activations = get_sampling_properties(truth_methods)
 
     if number_of_generations == 0 or (not return_text and not return_logprobs):
         return None
@@ -240,6 +247,9 @@ def sample_generations_api(model:str, messages:list, truth_methods: list = [], g
             token_lists.append([token['token'] for token in response.choices[0].logprobs['content']])
      
     return {"generated_texts": generated_texts, "logprobs": logprobs_list, "tokens":token_lists}
+
+
+
             
 #TODO: remove number of generations from kwargs if exists
 def generate_with_truth_value(model:PreTrainedModel, messages:list, question_context:str = None, truth_methods: list[TruthMethod] = [], 
@@ -255,17 +265,19 @@ def generate_with_truth_value(model:PreTrainedModel, messages:list, question_con
                 question_context = message['content']
                 break
 
-    with torch.no_grad():
-        inputs = tokenizer(text, return_tensors="pt").to(model.device)
-        input_ids = inputs['input_ids']
-        model_output = model.generate(**inputs, **kwargs)
-        tokens = model_output[0][len(input_ids[0]):]
-        generated_text = tokenizer.decode(tokens, skip_special_tokens = False)
-        generated_text_return = tokenizer.decode(tokens, skip_special_tokens = True)
+    generated_output = generate(text, model, tokenizer, **kwargs)
+    generated_text_return = generated_output['generated_text_skip_specials']
+    generated_text = generated_output['generated_text']
+    tokens = generated_output['tokens']
+    model_output = generated_output['all_ids']
 
     #Get sampled generations to be used in truth methods
     sample_generations_hf_local = sample_generations_batch_hf_local if batch_generation else sample_generations_sequential_hf_local
-    sampled_gen_dict = sample_generations_hf_local(model, text, tokenizer, truth_methods, generation_seed, **kwargs)
+
+    number_of_generations, return_text, return_logits, return_logprobs, return_attentions, return_activations = get_sampling_properties(truth_methods)
+
+    sampled_gen_dict = sample_generations_hf_local(model, text, tokenizer, generation_seed, number_of_generations=number_of_generations, 
+    return_text=return_text, return_logits=return_logits, return_logprobs=return_logprobs,return_attentions=return_attentions, return_activations=return_activations,  **kwargs)
 
 
     # Get scores from all truth methods
@@ -319,7 +331,9 @@ def completion_with_truth_value(model:str, messages:list, question_context:str =
     generated_text = response.choices[0].message['content']
     
     #Get sampled generations to be used in truth methods
-    sampled_gen_dict = sample_generations_api(model, messages, truth_methods, generation_seed, **kwargs)
+    number_of_generations, return_text, return_logits, return_logprobs, return_attentions, return_activations = get_sampling_properties(truth_methods)
+    sampled_gen_dict = sample_generations_api(model, messages, generation_seed, number_of_generations=number_of_generations, 
+    return_text=return_text, return_logits=return_logits, return_logprobs=return_logprobs,return_attentions=return_attentions, return_activations=return_activations, **kwargs)
       
     # Get scores from all truth methods
     normalized_truth_values = []

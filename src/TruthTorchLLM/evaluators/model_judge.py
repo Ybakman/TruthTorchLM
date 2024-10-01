@@ -5,13 +5,8 @@ from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokeniz
 from litellm import completion
 import random
 import torch
+from TruthTorchLLM.templates import DEFAULT_JUDGE_PROMPT, DEFAULT_JUDGE_SYSTEM_PROMPT
 
-DEFAULT_JUDGE_SYSTEM_PROMPT = '''You are a question answer evaluator.'''
-DEFAULT_JUDGE_PROMPT = '''I will give you a question, all ground truths of the question and a generated answer by a language model. You will only output "correct" if the generated answer is correct regarding question and ground truths. \
-Otherwise, output "false".
-Question: {question}, 
-Ground Truth: {ground_truths},
-Generated Answer: {answer}'''
 
 class ModelJudge(CorrectnessEvaluator):
     def __init__(self, model:Union[PreTrainedModel, str], tokenizer:Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, prompt:str = DEFAULT_JUDGE_PROMPT, system_prompt:str = DEFAULT_JUDGE_SYSTEM_PROMPT, num_retries:int = 1) -> None: 

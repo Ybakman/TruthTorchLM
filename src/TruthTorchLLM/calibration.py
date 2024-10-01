@@ -2,14 +2,14 @@ from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokeniz
 from typing import Union
 from TruthTorchLLM.truth_methods import TruthMethod
 from TruthTorchLLM.evaluators import CorrectnessEvaluator, ROUGE
-from TruthTorchLLM.templates import DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT 
+from TruthTorchLLM.templates import DEFAULT_SYSTEM_BENCHMARK_PROMPT, DEFAULT_USER_PROMPT 
 from TruthTorchLLM.utils.dataset_utils import get_dataset
 from TruthTorchLLM.utils.eval_utils import run_over_dataset
 from TruthTorchLLM.utils.common_utils import find_threshold_std
 
 
 def calibrate_truth_method(dataset: Union[str, list], model:Union[str,PreTrainedModel],  truth_methods: list[TruthMethod], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] =None, precision:float = -1, 
-                           recall:float = -1, correctness_evaluator:CorrectnessEvaluator = ROUGE(0.7), fraction_of_data:float = 1.0, previous_context:list =[{'role': 'system', 'content': DEFAULT_SYSTEM_PROMPT}], 
+                           recall:float = -1, correctness_evaluator:CorrectnessEvaluator = ROUGE(0.7), fraction_of_data:float = 1.0, previous_context:list =[{'role': 'system', 'content': DEFAULT_SYSTEM_BENCHMARK_PROMPT}], 
                           user_prompt:str = DEFAULT_USER_PROMPT, seed:int = 0, wandb_run = None, return_method_details:bool = False, wandb_push_method_details:bool = False, **kwargs):
     
     dataset = get_dataset(dataset, fraction_of_data=fraction_of_data, seed=seed)

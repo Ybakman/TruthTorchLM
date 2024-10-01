@@ -22,7 +22,8 @@ class Inside(TruthMethod):
         super().generate_forward(model, input_text, generated_text, question_context, all_ids, generation_seed=generation_seed)
         
         if sampled_generations_dict is None:
-            sampled_generations_dict = sample_generations_sequential_hf_local(model, input_text, tokenizer, [self], generation_seed, **kwargs)
+            sampled_generations_dict = sample_generations_sequential_hf_local(model = model, input_text = input_text, tokenizer = tokenizer, generation_seed=generation_seed, 
+            number_of_generations=self.number_of_generations, return_text = True, return_activations=True, **kwargs)
         
         generated_texts = sampled_generations_dict["generated_texts"][:self.number_of_generations]
         sentence_embeddings = torch.stack([hidden_states[-1][int(len(hidden_states[-1])/2)][0] for hidden_states in sampled_generations_dict["activations"][:self.number_of_generations]]) #TODO: check this part is correct or not

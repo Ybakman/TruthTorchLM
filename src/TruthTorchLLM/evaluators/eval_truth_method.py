@@ -4,14 +4,14 @@ from TruthTorchLLM.truth_methods import TruthMethod
 from .correctness_evaluator import CorrectnessEvaluator 
 from .rouge import ROUGE
 from TruthTorchLLM.availability import AVAILABLE_EVALUATION_METRICS
-from TruthTorchLLM.templates import DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT
+from TruthTorchLLM.templates import DEFAULT_SYSTEM_BENCHMARK_PROMPT, DEFAULT_USER_PROMPT
 from TruthTorchLLM.utils.dataset_utils import get_dataset
 from TruthTorchLLM.utils.eval_utils import metric_score, run_over_dataset
 import wandb
 
 
 def evaluate_truth_method(dataset: Union[str, list], model:Union[str,PreTrainedModel],  truth_methods: list[TruthMethod], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast]=None, eval_metrics:list[str] = ['auroc'],
-                          correctness_evaluator:CorrectnessEvaluator = ROUGE(0.7), fraction_of_data = 1.0,  previous_context:list =[{'role': 'system', 'content': DEFAULT_SYSTEM_PROMPT}], 
+                          correctness_evaluator:CorrectnessEvaluator = ROUGE(0.7), fraction_of_data = 1.0,  previous_context:list =[{'role': 'system', 'content': DEFAULT_SYSTEM_BENCHMARK_PROMPT}], 
                           user_prompt:str = DEFAULT_USER_PROMPT, seed:int = 0, return_method_details:bool = False, wandb_run = None, wandb_push_method_details:bool = False, 
                           batch_generation=True,  add_generation_prompt = True, continue_final_message = False,  **kwargs):
     
@@ -28,12 +28,12 @@ def evaluate_truth_method(dataset: Union[str, list], model:Union[str,PreTrainedM
 
     eval_list = []
     for i in range(len(truth_methods)):
-        eval_dict = metric_score(eval_metrics, output_dict['generation_correctness'], output_dict[i]['truth_values'], output_dict[i]['normalized_truth_values'], seed=seed)
+        eval_dict = metric_score(eval_metrics, output_dict['generation_correctness'], output_dict[f'truth_method_{i}']['truth_values'], output_dict[f'truth_method_{i}']['normalized_truth_values'], seed=seed)
         eval_list.append(eval_dict)
 
     wandb_run.log({'model_accuracy': sum(output_dict['generation_correctness'])/len(output_dict['generation_correctness'])})
     
-    print(eval_dict)
+   
     if wandb_run:
         for key, _ in eval_dict.items():
             methods = []

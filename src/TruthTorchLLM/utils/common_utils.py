@@ -9,9 +9,22 @@ from sklearn.feature_extraction.text import CountVectorizer
 from transformers import DebertaForSequenceClassification, DebertaTokenizer
 from sklearn.metrics import precision_recall_curve
 from litellm import completion
+from TruthTorchLLM.templates import ENTAILMENT_PROMPT, DEFAULT_SYSTEM_PROMPT 
+from typing import Union
+
 
 #logging.set_verbosity(40)
 
+
+def generate(text:str, model:PreTrainedModel, tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast], **kwargs) -> dict:
+    with torch.no_grad():
+        inputs = tokenizer(text, return_tensors="pt").to(model.device)
+        model_output = model.generate(**inputs, **kwargs)
+        tokens = model_output[0][len(inputs['input_ids'][0]):]
+        generated_text = tokenizer.decode(tokens, skip_special_tokens = False)
+        generated_text_return = tokenizer.decode(tokens, skip_special_tokens = True)
+
+    return {'generated_text_skip_specials':generated_text_return, 'generated_text':generated_text, 'tokens':tokens, 'all_ids':model_output}
 
 def find_threshold_std(correctness: list, truth_values: list, precision: float = -1, recall: float = -1):
     std = np.std(truth_values)
@@ -39,11 +52,14 @@ def find_threshold_std(correctness: list, truth_values: list, precision: float =
 
     return threshold, std
 
-
-
-#TODO: solve numerical issue
 def sigmoid_normalization(x: float, threshold: float = 0.0, std: float = 1.0):
-    return 1 / (1 + np.exp(- (x - threshold) / std))
+    z = (x - threshold) / std
+    if z >= 0:
+        # For positive z, compute sigmoid as 1 / (1 + exp(-z)) directly
+        return 1 / (1 + np.exp(-z))
+    else:
+        # For negative z, to avoid overflow, use the identity: sigmoid(z) = exp(z) / (1 + exp(z))
+        return np.exp(z) / (1 + np.exp(z))
 
 #for a target text, find the indices of the tokens that are in the target text. 
 #If target text cannot be tokenized in the original form, return the indices of the tokens that contain the target text and has the shortest length
@@ -78,8 +94,6 @@ def calculate_jaccard_similarity(text1: str, text2: str) -> float:
     
     intersection = (vectors[0] & vectors[1]).sum()
     union = (vectors[0] | vectors[1]).sum()
-    print(intersection)
-    print(union)
     return intersection / union if union != 0 else 0
 
 
@@ -100,11 +114,34 @@ def check_entailment(model_for_entailment: PreTrainedModel, tokenizer_for_entail
     
     return out_class
 
+def check_entailment_with_generation(model, seq1: str = None, seq2: str = None, context:str = None, entailment_prompt:str = ENTAILMENT_PROMPT, system_prompt:str = DEFAULT_SYSTEM_PROMPT,  tokenizer = None, max_new_tokens: int = 32):
+    if system_prompt is None:#for some models there is no system prompt in their chat template such as gemma
+        chat = [
+        {"role": "user", "content": entailment_prompt.format(question = input_text)}]
+    else:
+        chat = [{"role": "system", "content": system_prompt},
+        {"role": "user", "content": entailment_prompt.format(seq1=seq1, seq2=seq2, context=context)}]
+    if type(model) != str:
+        input_text = tokenizer.apply_chat_template(chat, tokenize=False, add_generation_prompt=True)
+        generated_text = generate(input_text, model, tokenizer=tokenizer, do_sample = False, max_new_tokens = max_new_tokens)['generated_text_skip_specials']
+    else:
+        response = completion(
+                model=model,
+                messages= chat
+            )
+        generated_text = response.choices[0].message['content']
+    if "same" in generated_text.lower():
+        return 2
+    elif "contradicted" in generated_text.lower():
+        return 0
+    else:
+        return 1
 
 
 
-# Function to perform bidirectional entailment clustering
-def bidirectional_entailment_clustering(model_for_entailment: PreTrainedModel, tokenizer_for_entailment: PreTrainedTokenizer, context : str, sequences: list[str], method: str = "semantic", prompt: str = None, model_name:str =None, **kwargs):
+
+
+def bidirectional_entailment_clustering(model_for_entailment: PreTrainedModel, tokenizer_for_entailment: PreTrainedTokenizer, context : str, sequences: list[str], method: str = "semantic", entailment_prompt:str = ENTAILMENT_PROMPT, system_prompt:str = DEFAULT_SYSTEM_PROMPT):
     clusters = [[sequences[0]]]
     for s_m in sequences[1:]:
         added_to_class = False
@@ -125,23 +162,15 @@ def bidirectional_entailment_clustering(model_for_entailment: PreTrainedModel, t
                     added_to_class = True
                     break
             elif method == "generation":
-                left = check_entailment(model_for_entailment, tokenizer_for_entailment, context, s_c, s_m, method="generation", prompt=prompt, **kwargs)
-                if left != 0:
+                check = check_entailment_with_generation(model_for_entailment, seq1=s_c, seq2=s_m, context=context, entailment_prompt=entailment_prompt, system_prompt=system_prompt, tokenizer=tokenizer_for_entailment)
+                if check != 0:
                     c.append(s_m)
                     added_to_class = True
                     break
-            elif method == "completion":
-                left = check_entailment(model_for_entailment, tokenizer_for_entailment, context, s_c, s_m, method="completion", prompt=prompt, model_name=model_name, **kwargs)
-                if left != 0:
-                    c.append(s_m)
-                    added_to_class = True
-                    break
-        
         if not added_to_class:
             clusters.append([s_m])
     
     return clusters
-
 
 def entailment_probability(model_for_entailment: PreTrainedModel, tokenizer_for_entailment: PreTrainedTokenizer, context: str, seq1: str, seq2: str, mode='minus_contradiction', temperature: float = 3.0):
     inputs = tokenizer_for_entailment.encode_plus(
