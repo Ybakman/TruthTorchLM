@@ -2,10 +2,10 @@ from tqdm import tqdm
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 from typing import Union
 from TruthTorchLLM.truth_methods import TruthMethod
-from TruthTorchLLM.generation import generate_with_truth_value, completion_with_truth_value
+from TruthTorchLLM.generation import generate_with_truth_value
 from TruthTorchLLM.templates import DEFAULT_SYSTEM_BENCHMARK_PROMPT, DEFAULT_USER_PROMPT
 import wandb
-from sklearn.metrics import roc_auc_score, precision_recall_curve, auc
+from sklearn.metrics import roc_auc_score, precision_recall_curve, auc, f1_score, precision_score, recall_score
 import pandas as pd
 import numpy as np
 
@@ -16,6 +16,40 @@ def area_under_accuracy_coverage_curve(t_s, acc):
     df = pd.DataFrame({"t_s": t_s, 'acc': acc}).sort_values('t_s', ascending=False)#that should be false in case of truth values
     df['acc_mean'] = df['acc'].expanding().mean()
     return auc(np.linspace(0,1,len(df)), df['acc_mean'])
+
+def normalize(target):
+    min_t, max_t = np.min(target), np.max(target)
+    if np.isclose(min_t, max_t):
+        min_t -= 1
+        max_t += 1
+    target = (np.array(target) - min_t) / (max_t - min_t)
+    return target
+
+def prediction_rejection_curve(estimator, target):
+    target = normalize(target) #higher is correct
+    # estimator: lower is more uncertain
+    ue = np.array(estimator)
+    num_obs = len(ue)
+    # Sort in descending order: the least uncertain come first
+    ue_argsort = np.argsort(ue)[::-1]
+    # want sorted_metrics to be increasing => smaller scores is better
+    sorted_metrics = np.array(target)[ue_argsort]
+    # Since we want all plots to coincide when all the data is discarded
+    cumsum = np.cumsum(sorted_metrics)[-num_obs:]
+    scores = (cumsum / np.arange(1, num_obs + 1))[::-1]
+    prr_score = np.sum(scores) / num_obs
+    return prr_score
+
+def get_random_scores(function, metrics, num_iter=1000, seed=42):
+    np.random.seed(seed)
+    rand_scores = np.arange(len(metrics))
+
+    value = []
+    for i in range(num_iter):
+        np.random.shuffle(rand_scores)
+        rand_val = function(rand_scores, metrics)
+        value.append(rand_val)
+    return np.mean(value)
 
 def metric_score(metric_names:list[str], generation_correctness:list, truth_values:list[float], normalized_truth_values:list[float] = [],  seed:int = 0) -> dict:
     eval_dict = {}
@@ -30,7 +64,7 @@ def metric_score(metric_names:list[str], generation_correctness:list, truth_valu
 
     if "auroc" in metric_names:
         try:
-            auroc = roc_auc_score(generation_correctness, truth_values)
+            auroc = roc_auc_score(generation_correctness, truth_values) 
         except:
             print("Auroc couldn't be calculated because there is only one class. Returning 0.5 as auroc.")
             auroc = 0.5
@@ -50,6 +84,33 @@ def metric_score(metric_names:list[str], generation_correctness:list, truth_valu
         normalized_truth_values = np.array(normalized_truth_values)
         accuracy = np.mean((normalized_truth_values > 0.5) == generation_correctness)
         eval_dict['accuracy'] = accuracy
+
+    if 'f1' in metric_names:
+        normalized_truth_values = np.array(normalized_truth_values)
+        predictions = (normalized_truth_values > 0.5)
+        f1 = f1_score(generation_correctness, predictions, zero_division=1)
+        eval_dict['f1'] = f1
+    if 'precision' in metric_names:
+        normalized_truth_values = np.array(normalized_truth_values)
+        predictions = (normalized_truth_values > 0.5)
+        precision = precision_score(generation_correctness, predictions, zero_division=1)
+        eval_dict['precision'] = precision
+    if 'recall' in metric_names:
+        normalized_truth_values = np.array(normalized_truth_values)
+        predictions = (normalized_truth_values > 0.5)
+        recall = recall_score(generation_correctness, predictions, zero_division=1)
+        eval_dict['recall'] = recall
+
+    if 'prr' in metric_names:
+        ue_prr = prediction_rejection_curve(normalized_truth_values, generation_correctness)
+        orc_prr = prediction_rejection_curve(generation_correctness, generation_correctness)
+        rand_prr = get_random_scores(prediction_rejection_curve, generation_correctness, seed = seed)
+
+        if not (orc_prr == rand_prr):
+            ue_prr = (ue_prr - rand_prr) / (orc_prr - rand_prr)
+        eval_dict['prr'] = ue_prr
+
+        
     
     return eval_dict
 
@@ -64,9 +125,12 @@ def run_over_dataset(dataset: Union[str, list], model:Union[str,PreTrainedModel]
     output_dict['generation_correctness'] = []
     output_dict['question_text'] = []
     output_dict['ground_truths'] = []
+    
+    output_dict['truth_methods'] = []#save the truth methods
 
     
     for i in range(len(truth_methods)):
+        output_dict['truth_methods'].append(str(truth_methods[i]))
         output_dict[f'truth_method_{i}'] = {}
         output_dict[f'truth_method_{i}']['name'] = str(truth_methods[i])
         output_dict[f'truth_method_{i}']['truth_values'] = []
@@ -90,12 +154,10 @@ def run_over_dataset(dataset: Union[str, list], model:Union[str,PreTrainedModel]
     for i in tqdm(range(len(dataset))):
         messages = previous_context.copy()
         messages.append({'role': 'user', 'content': user_prompt.format(question_context = dataset[i]['question'])})
-        if type(model) == str:
-            truth_dict = completion_with_truth_value(model, messages, question_context = dataset[i]['question'], truth_methods = truth_methods, generation_seed = seed, **kwargs)
-        else:
-            truth_dict = generate_with_truth_value(model, messages, question_context = dataset[i]['question'], truth_methods = truth_methods, tokenizer=tokenizer, 
-            generation_seed = seed,batch_generation=batch_generation, add_generation_prompt=add_generation_prompt, continue_final_message=continue_final_message, **kwargs)
 
+        truth_dict = generate_with_truth_value(model = model, messages = messages, question_context = dataset[i]['question'], truth_methods = truth_methods, tokenizer=tokenizer,
+        generation_seed = seed, batch_generation=batch_generation, add_generation_prompt=add_generation_prompt, continue_final_message=continue_final_message, **kwargs)
+        
         is_correct = correctness_evaluator(dataset[i]['question'], truth_dict['generated_text'], dataset[i]['ground_truths'])
         output_dict['generation_correctness'].append(is_correct)
         output_dict['generation'].append(truth_dict['generated_text'])

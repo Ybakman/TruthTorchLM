@@ -1,11 +1,10 @@
 from .truth_method import TruthMethod
-from TruthTorchLLM.scoring_methods import ScoringMethod, LengthNormalizedScoring
 from TruthTorchLLM.utils import sigmoid_normalization, find_token_indices
 from litellm import completion
 from typing import Union
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 from TruthTorchLLM.templates import PTRUE_SYSTEM_PROMPT, PTRUE_USER_PROMPT, PTRUE_MODEL_OUTPUT
-from ..generation import sample_generations_batch_hf_local, sample_generations_sequential_hf_local
+from ..generation import sample_generations_hf_local
 
 import torch
 import numpy as np
@@ -18,19 +17,19 @@ class PTrue(TruthMethod):
 
     REQUIRES_SAMPLED_TEXT = True
     
-    def __init__(self, number_of_ideas: int = 5, threshold:float = 0.0, std:float = 1.0, system_prompt:str = PTRUE_SYSTEM_PROMPT, user_prompt:str = PTRUE_USER_PROMPT, model_output:str = PTRUE_MODEL_OUTPUT):
+    def __init__(self, number_of_ideas: int = 5, threshold:float = 0.0, std:float = 1.0, system_prompt:str = PTRUE_SYSTEM_PROMPT, user_prompt:str = PTRUE_USER_PROMPT, model_output:str = PTRUE_MODEL_OUTPUT, batch_generation = True):
         super().__init__(threshold = threshold, std = std)
         self.number_of_ideas= number_of_ideas
         self.system_prompt = system_prompt
         self.user_prompt = user_prompt
         self.model_output = model_output
+        self.batch_generation = batch_generation
 
-
-    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
-        super().generate_forward(model, input_text, generated_text, question_context, all_ids, generation_seed=generation_seed)
+    def forward_hf_local(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], 
+        tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, messages:list = [], **kwargs): 
         
         if sampled_generations_dict is None:
-            sampled_generations_dict = sample_generations_sequential_hf_local(model, input_text, tokenizer, [self], generation_seed, **kwargs)
+            sampled_generations_dict = sample_generations_hf_local(model, input_text, tokenizer, [self], generation_seed, **kwargs)
         
         generated_text = tokenizer.decode(tokenizer.encode(generated_text, return_tensors="pt").view(-1).tolist(), skip_special_tokens=True)#remove special tokens
    
@@ -68,10 +67,9 @@ class PTrue(TruthMethod):
         loss_true = loss_true / len(indices[-1])#length normalization
         prob_true = np.exp(loss_true).item()
 
-        normalized_truth_value = sigmoid_normalization(prob_true, self.threshold, self.std)
-        return {"truth_value": prob_true, 'normalized_truth_value':normalized_truth_value,  'p_true': prob_true,  'generated_ideas': ideas}#this output format should be same for all truth methods
+        return {"truth_value": prob_true, 'p_true': prob_true,  'generated_ideas': ideas}#this output format should be same for all truth methods
 
-    def completion_forward(self, model:str, messages:list, generated_text:str, question_context:str, sampled_generations_dict:dict = None, **kwargs):
+    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
         raise ValueError("PTrue is not applicable to API models. Please use a different truth method.")
 
     def __str__(self):

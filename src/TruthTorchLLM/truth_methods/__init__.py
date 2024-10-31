@@ -11,7 +11,12 @@ from .sum_eigen_uncertainty import SumEigenUncertainty
 from .self_detection import SelfDetection
 from .inside import Inside
 from .sentSAR import SentSAR
+from .tokenSAR import TokenSAR
+from .lars import LARS
+from .kernel_language_entropy import KernelLanguageEntropy
+from .cross_examination import CrossExamination
 
 
 __all__ = ['Entropy', 'Confidence', 'TruthMethod', 'SemanticEntropy', 'PTrue', 'Inside', 'SentSAR',
-'GoogleSearchCheck', 'EccentricityUncertainty', 'MatrixDegreeUncertainty', 'NumSemanticSetUncertainty', 'SumEigenUncertainty', 'SelfDetection']
+'GoogleSearchCheck', 'EccentricityUncertainty', 'MatrixDegreeUncertainty', 'NumSemanticSetUncertainty', 
+'SumEigenUncertainty', 'SelfDetection', 'TokenSAR', "LARS", 'KernelLanguageEntropy', 'CrossExamination']

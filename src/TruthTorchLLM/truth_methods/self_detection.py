@@ -9,15 +9,9 @@ from transformers import GPT2LMHeadModel, GPT2Tokenizer, DebertaForSequenceClass
 from TruthTorchLLM.availability import AVAILABLE_API_MODELS
 from TruthTorchLLM.utils import *
 from .truth_method import TruthMethod
-from TruthTorchLLM.scoring_methods import ScoringMethod, LengthNormalizedScoring
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from TruthTorchLLM.templates import SELF_DETECTION_QUESTION_PROMPT, SELF_DETECTION_SYSTEM_PROMPT, ENTAILMENT_PROMPT, DEFAULT_SYSTEM_PROMPT 
-from TruthTorchLLM.generation import sample_generations_sequential_hf_local, sample_generations_api, sample_generations_batch_hf_local
-
-
-MAX_NEW_TOKENS = 64
-TEMPERATURE = 1.0
-
+from TruthTorchLLM.generation import sample_generations_hf_local, sample_generations_api
 
 
 #https://arxiv.org/pdf/2310.17918
@@ -25,7 +19,7 @@ TEMPERATURE = 1.0
 class SelfDetection(TruthMethod):
     def __init__(self, output_type:str = 'entropy',method_for_similarity: str = "semantic", number_of_questions=5, threshold=0.5, std=1.0, model_for_entailment: PreTrainedModel = None, 
     tokenizer_for_entailment: PreTrainedTokenizer = None, prompt_for_generating_question = SELF_DETECTION_QUESTION_PROMPT, 
-    system_prompt = SELF_DETECTION_SYSTEM_PROMPT, prompt_for_entailment:str = ENTAILMENT_PROMPT, system_prompt_for_entailment:str = DEFAULT_SYSTEM_PROMPT):
+    system_prompt = SELF_DETECTION_SYSTEM_PROMPT, prompt_for_entailment:str = ENTAILMENT_PROMPT, system_prompt_for_entailment:str = DEFAULT_SYSTEM_PROMPT, batch_generation = True, question_max_new_tokens = 64, question_temperature = 1.0):
         super().__init__(threshold = threshold, std = std)
 
         self.tokenizer_for_entailment = tokenizer_for_entailment
@@ -40,6 +34,9 @@ class SelfDetection(TruthMethod):
         self.system_prompt = system_prompt
         self.prompt_for_entailment = prompt_for_entailment
         self.system_prompt_for_entailment = system_prompt_for_entailment
+        self.batch_generation = batch_generation
+        self.question_max_new_tokens = question_max_new_tokens
+        self.question_temperature = question_temperature
         
 
         if output_type not in ['entropy', 'consistency']:
@@ -62,15 +59,36 @@ class SelfDetection(TruthMethod):
 
         if type(model) != str:
             input_text = tokenizer.apply_chat_template(chat, tokenize=False, add_generation_prompt = True)
-            sampled_generations_dict = sample_generations_batch_hf_local(model, input_text, tokenizer, number_of_generations=self.number_of_questions, return_text=True, generation_seed=generation_seed, max_new_tokens=MAX_NEW_TOKENS, temperature=TEMPERATURE)
+            sampled_generations_dict = sample_generations_hf_local(model, input_text, tokenizer, number_of_generations=self.number_of_questions, return_text=True, generation_seed=generation_seed, 
+            max_new_tokens=self.question_max_new_tokens, temperature=self.question_temperature, batch_generation=self.batch_generation)
         if type(model) == str:
-            sampled_generations_dict = sample_generations_api(model, chat, number_of_generations=self.number_of_questions, return_text=True, generation_seed=generation_seed, temperature=TEMPERATURE)
+            sampled_generations_dict = sample_generations_api(model, chat, number_of_generations=self.number_of_questions, return_text=True, generation_seed=generation_seed, temperature=self.question_temperature)
 
         return sampled_generations_dict["generated_texts"]
 
+    def _self_detection_output(self,model, tokenizer, generated_texts:list, question_context:str, generated_questions):#TODO: check the similarity method's correctness
+        if self.method_for_similarity == "semantic":
+            clusters = bidirectional_entailment_clustering(self.model_for_entailment, self.tokenizer_for_entailment, question_context, generated_texts, 
+            self.method_for_similarity, entailment_prompt= self.prompt_for_entailment, system_prompt=self.system_prompt_for_entailment)
+        else:
+            clusters = bidirectional_entailment_clustering(model, tokenizer, question_context, generated_texts, self.method_for_similarity, entailment_prompt= self.prompt_for_entailment, system_prompt=self.system_prompt_for_entailment)
 
-    def generate_forward(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
-        super().generate_forward(model, input_text, generated_text, question_context, all_ids, generation_seed=generation_seed)
+        entropy = 0
+        for cluster in clusters:
+            entropy -= len(cluster)/self.number_of_questions * np.log(len(cluster)/self.number_of_questions)
+        consistency = (len(clusters[0])-1)/(self.number_of_questions - 1)
+
+        if self.output_type == 'entropy':
+            truth_value = -entropy
+        elif self.output_type == 'consistency':
+            truth_value = consistency
+
+        return {"truth_value": truth_value, 'entropy': entropy, "consistency": consistency, 
+        "generated_questions": generated_questions, 'generated_texts': generated_texts, "clusters": clusters}
+
+
+    def forward_hf_local(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], 
+        tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, messages:list = [], **kwargs):       
         kwargs = copy.deepcopy(kwargs)
         generated_questions = []
         generated_texts = []
@@ -91,28 +109,12 @@ class SelfDetection(TruthMethod):
             generated_text = tokenizer.decode(tokens, skip_special_tokens=True)
             generated_texts.append(generated_text)
 
-        if self.method_for_similarity == "semantic":
-            clusters = bidirectional_entailment_clustering(self.model_for_entailment, self.tokenizer_for_entailment, question_context, generated_texts, self.method_for_similarity, entailment_prompt= self.prompt_for_entailment, system_prompt=self.system_prompt_for_entailment)
-        else:
-            clusters = bidirectional_entailment_clustering(model, tokenizer, question_context, generated_texts, self.method_for_similarity, entailment_prompt= self.prompt_for_entailment, system_prompt=self.system_prompt_for_entailment)
-        entropy = 0
-        for cluster in clusters:
-            entropy -= len(cluster)/self.number_of_questions * np.log(len(cluster)/self.number_of_questions)
-        consistency = (len(clusters[0])-1)/(self.number_of_questions - 1)
+        return self._self_detection_output(model, tokenizer, generated_texts, question_context, generated_questions)
 
-        if self.output_type == 'entropy':
-            truth_value = -entropy
-        elif self.output_type == 'consistency':
-            truth_value = consistency
-
-        normalized_truth_value = sigmoid_normalization(truth_value, self.threshold, self.std)
-
-        return {"truth_value": truth_value, 'normalized_truth_value': normalized_truth_value, 'entropy': entropy, "consistency": consistency, 
-        "generated_questions": generated_questions, 'generated_texts': generated_texts, "clusters": clusters}
+        
 
     
-    def completion_forward(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
-        super().completion_forward(model, messages, generated_text, question_context, generation_seed=generation_seed)
+    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
         if model not in AVAILABLE_API_MODELS:
             raise ValueError("This method is not applicable to given model")
         kwargs = copy.deepcopy(kwargs)
@@ -134,24 +136,7 @@ class SelfDetection(TruthMethod):
             generated_texts.append(response.choices[0].message['content'])
 
        
-        if self.method_for_similarity == "semantic":
-            clusters = bidirectional_entailment_clustering(self.model_for_entailment, self.tokenizer_for_entailment, question_context, generated_texts, self.method_for_similarity, entailment_prompt= self.prompt_for_entailment, system_prompt=self.system_prompt_for_entailment)
-        else:
-            clusters = bidirectional_entailment_clustering(model, None ,question_context, generated_texts, self.method_for_similarity, entailment_prompt= self.prompt_for_entailment, system_prompt=self.system_prompt_for_entailment)
-
-        entropy = 0
-        for cluster in clusters:
-            entropy += len(cluster)/self.number_of_questions * np.log(len(cluster)/self.number_of_questions)
-        consistency = (len(clusters[0])-1)/(self.number_of_questions - 1)
-
-        if self.output_type == 'entropy':
-            truth_value = -entropy
-        elif self.output_type == 'consistency':
-            truth_value = consistency
-
-        normalized_truth_value = sigmoid_normalization(truth_value, self.threshold, self.std)
-
-        return {"truth_value": truth_value, 'normalized_truth_value': normalized_truth_value, 'entropy': entropy, "consistency": consistency,  "generated_questions": generated_questions, 'generated_texts': generated_texts, "clusters": clusters}
+        return self._self_detection_output(model, None, generated_texts, question_context, generated_questions)
         
     def __str__(self):
         return "SelfDetection Class with " + str(self.number_of_questions) + " generations"  ". Threshold: " + str(self.threshold) + ". Standard Deviation: " + str(self.std) + ". Model for entailment: " + str(self.model_for_entailment) + ". Tokenizer for entailment: " + str(self.tokenizer_for_entailment)

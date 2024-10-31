@@ -1,7 +1,7 @@
 from .utils import *
 from .scoring_methods import *
 from .truth_methods import *
-from .generation import generate_with_truth_value, completion_with_truth_value
+from .generation import generate_with_truth_value
 from .calibration import calibrate_truth_method
 from .evaluators import *
 from .templates import DEFAULT_USER_PROMPT, DEFAULT_SYSTEM_PROMPT

@@ -204,7 +204,18 @@ def get_L_mat(W, symmetric=True):
         #L = np.linalg.inv(D) @ (D - W)
     return L.copy()
 
-#TODO: give the model as an argument
+
+def check_entailment_one_hot(model_for_entailment: PreTrainedModel, tokenizer_for_entailment: PreTrainedTokenizer, context: str, seq1: str, seq2: str):
+    out_class = check_entailment(model_for_entailment, tokenizer_for_entailment, context, seq1, seq2)
+    one_hot = [0, 0, 0]
+    if out_class == 2:      # Entailment
+        one_hot[0] = 1
+    elif out_class == 1:    # Neutral
+        one_hot[1] = 1
+    elif out_class == 0:    # Contradiction
+        one_hot[2] = 1
+    return one_hot
+
 def calculate_affinity_matrix(texts: list[str], context: str, method_for_similarity: str = 'semantic', model_for_entailment: PreTrainedModel = None,
                  tokenizer_for_entailment: PreTrainedTokenizer = None, temperature: float = 3.0):
     
@@ -227,6 +238,15 @@ def calculate_affinity_matrix(texts: list[str], context: str, method_for_similar
         for i in range(n):
             for j in range(i + 1, n):
                 affinity_matrix[i][j] = affinity_matrix[j][i] = jaccard_score(vectors[i], vectors[j], average='macro')
+
+    elif method_for_similarity == "kernel":
+        w = np.array([1, 0.5, 0])   # Pre-defined
+        for i in range(n):
+            for j in range(i + 1, n):
+                left = check_entailment_one_hot(model_for_entailment, tokenizer_for_entailment, context, texts[i], texts[j])
+                right = check_entailment_one_hot(model_for_entailment, tokenizer_for_entailment, context, texts[j], texts[i])
+                affinity_matrix[i, j] = affinity_matrix[j, i] = np.dot(w, left) + np.dot(w, right)
+            affinity_matrix[i,i] = 2
     
     return affinity_matrix
 
@@ -268,9 +288,47 @@ def calculate_U_ecc(texts: list[str], context: str,  method_for_similarity:str =
     U_ecc = np.linalg.norm(V_prime, axis=1).sum()
     return U_ecc
 
-#TODO: give the model as an argument
+
 def calculate_U_num_set(texts: list[str], context: str ,method_for_similarity: str = 'semantic', model_for_entailment: PreTrainedModel = None, 
                  tokenizer_for_entailment: PreTrainedTokenizer = None):
     
     clusters = bidirectional_entailment_clustering(model_for_entailment, tokenizer_for_entailment, context, texts, method_for_similarity)
     return len(clusters)
+
+def calculate_laplacian(graph: np.ndarray, normalize: bool):
+    degree = get_D_mat(graph)
+    laplacian = degree - graph
+    if normalize: 
+        degree_mp_inv = np.linalg.pinv(degree)
+        sqrt_degree_inv = np.sqrt(degree_mp_inv)
+        laplacian = sqrt_degree_inv @ laplacian @ sqrt_degree_inv
+    return laplacian
+
+def create_kernel(laplacian: np.ndarray, kernel_type='heat', temperature=0.3, smoothness=1, scale=1):
+    # - laplacian: Graph laplacian
+    # - kernel_type: 'heat' or 'matern'
+    # - temperature: temperature paramter of Heat kernel
+    # - smoothness: smoothness parameter of Matern kernel
+    # - scale: scale parameter of Matern kernel
+    
+    if kernel_type == 'heat':
+        kernel = np.exp(-temperature * laplacian)
+    elif kernel_type == 'matern':
+        identity_matrix = np.eye(laplacian.shape[0])
+        kernel = np.linalg.inv((2 * smoothness / scale**2) * identity_matrix + laplacian) ** smoothness
+    else:
+        raise ValueError("Invalid kernel type. Choose 'heat' or 'matern'.")
+    
+    # Converting Kernel into unit trace PSD kernel
+    diag_values = np.diag(kernel)
+    normalization_factors = np.outer(np.sqrt(diag_values), np.sqrt(diag_values))
+    N = kernel.shape[0]
+    density_kernel = kernel / (normalization_factors * N)
+    density_kernel = density_kernel / np.trace(density_kernel)
+    return density_kernel
+
+def calculate_VNE(kernel:np.ndarray):
+    eigenvalues, _ = np.linalg.eigh(kernel)
+    eigenvalues = eigenvalues[eigenvalues > 0]  # use only positive eigenvalues for log calculation
+    vne = -np.sum(eigenvalues * np.log(eigenvalues))    # calculate von neumann entropy
+    return vne

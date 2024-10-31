@@ -1,6 +1,7 @@
 DEFAULT_TEMPLATE = "{context}"
 
 DEFAULT_SYSTEM_PROMPT = 'You are a helpful assistant. Give short and precise answers.'
+
 DEFAULT_SYSTEM_BENCHMARK_PROMPT = 'You are a helpful assistant. Answer the following question in a single brief but complete sentence.'
 
 DEFAULT_USER_PROMPT = 'Question: {question_context} Answer:'
@@ -12,9 +13,9 @@ PTRUE_MODEL_OUTPUT = 'The generated answer is true'
 
 DEFAULT_JUDGE_SYSTEM_PROMPT = '''You are a question answer evaluator.'''
 DEFAULT_JUDGE_PROMPT = '''I will give you a question, all ground truths of the question and a generated answer by a language model. You will only output "correct" if the generated answer is correct regarding question and ground truths. \
-Otherwise, output "false".
+Otherwise, output "false". There may be multiple ground truths.
 Question: {question}, 
-Ground Truth: {ground_truths},
+Ground Truths: {ground_truths},
 Generated Answer: {answer}'''
 
 SELF_DETECTION_QUESTION_PROMPT = "Given a question, paraphrase it to have different words and expressions but have the same meaning as the original question. Please note that you should not answer the question, but rather provide a re-phrased. Question: {question}"

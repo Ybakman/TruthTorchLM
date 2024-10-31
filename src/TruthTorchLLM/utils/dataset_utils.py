@@ -5,7 +5,7 @@ from tqdm import tqdm
 
 
 
-def get_dataset(dataset:Union[str, list], fraction_of_data:float = 1.0, seed:int = 0):
+def get_dataset(dataset:Union[str, list], size_of_data:float = 1.0, seed:int = 0, split = 'test'):
     if type(dataset) != str:
         if len(dataset) == 0:
             raise ValueError("Dataset list is empty.")
@@ -15,23 +15,32 @@ def get_dataset(dataset:Union[str, list], fraction_of_data:float = 1.0, seed:int
     
     if dataset not in AVAILABLE_DATASETS:
         raise ValueError(f"Dataset is not available. Available datasets are: {AVAILABLE_DATASETS}")
+
+    print("Loading dataset from Huggingface Datasets, split:", split, "fraction of data:", size_of_data)
     
     if dataset == "trivia_qa":
-        dataset = get_trivia_qa(fraction_of_data, seed)
+        dataset = get_trivia_qa(size_of_data=size_of_data, seed=seed, split=split)  
     elif dataset == "gsm8k":
-        dataset = get_gsm8k(fraction_of_data, seed)
+        dataset = get_gsm8k(size_of_data=size_of_data, seed=seed, split=split)
     elif dataset == "natural_qa":
-        dataset = get_natural_qa(fraction_of_data, seed)
+        dataset = get_natural_qa(size_of_data=size_of_data, seed=seed, split=split)
     elif dataset == "pop_qa":
-        dataset = get_pop_qa(fraction_of_data, seed)
+        dataset = get_pop_qa(size_of_data=size_of_data, seed=seed, split=split)
     
     return dataset
 
 
-def get_trivia_qa(fraction_of_data:float = 1.0, seed:int = 0):
-    raw_dataset = load_dataset("trivia_qa", "rc.nocontext", split="validation")
-    if fraction_of_data != 1.0:
-        raw_dataset = raw_dataset.train_test_split(test_size=(1 - fraction_of_data), seed=seed)['train']
+def get_trivia_qa(size_of_data:float = 1.0, seed:int = 0, split = 'test'):
+
+    if split == 'test':
+        raw_dataset = load_dataset("trivia_qa", "rc.nocontext", split="validation")
+    elif split == 'train':
+        raw_dataset = load_dataset("trivia_qa", "rc.nocontext", split="train")
+    else:
+        raise ValueError("Split should be either 'test' or 'train'.")
+
+    if size_of_data != 1.0:
+        raw_dataset = raw_dataset.train_test_split(train_size=size_of_data, seed=seed)['train']
     dataset = []
     answers = raw_dataset['answer']
     questions = raw_dataset['question']
@@ -41,10 +50,15 @@ def get_trivia_qa(fraction_of_data:float = 1.0, seed:int = 0):
 
     return dataset
 
-def get_gsm8k(fraction_of_data:float = 1.0, seed:int = 0):
-    raw_dataset = load_dataset("openai/gsm8k", "main", split='test')
-    if fraction_of_data != 1.0:
-        raw_dataset = raw_dataset.train_test_split(test_size=(1 - fraction_of_data), seed=seed)['train']
+def get_gsm8k(size_of_data:float = 1.0, seed:int = 0, split = 'test'):
+    if split == 'test':
+        raw_dataset = load_dataset("openai/gsm8k", "main", split='test')
+    elif split == 'train':
+        raw_dataset = load_dataset("openai/gsm8k", "main", split='train')
+    else:
+        raise ValueError("Split should be either 'test' or 'train'.")
+    if size_of_data != 1.0:
+        raw_dataset = raw_dataset.train_test_split(train_size=size_of_data, seed=seed)['train']
     dataset = []
     answers = raw_dataset['answer']
     questions = raw_dataset['question']
@@ -55,10 +69,15 @@ def get_gsm8k(fraction_of_data:float = 1.0, seed:int = 0):
     return dataset
 
 
-def get_natural_qa(fraction_of_data:float = 1.0, seed:int = 0):
-    raw_dataset = load_dataset("google-research-datasets/nq_open", split="validation")
-    if fraction_of_data != 1.0:
-        raw_dataset = raw_dataset.train_test_split(test_size=(1 - fraction_of_data), seed=seed)['train']
+def get_natural_qa(size_of_data:float = 1.0, seed:int = 0, split = 'test'):
+    if split == 'test':
+        raw_dataset = load_dataset("google-research-datasets/nq_open", split="validation")
+    elif split == 'train':
+        raw_dataset = load_dataset("google-research-datasets/nq_open", split="train")
+    else:
+        raise ValueError("Split should be either 'test' or 'train'.")
+    if size_of_data != 1.0:
+        raw_dataset = raw_dataset.train_test_split(train_size=size_of_data, seed=seed)['train']
     dataset = []
     questions = raw_dataset['question']
     answers = raw_dataset['answer']
@@ -67,10 +86,16 @@ def get_natural_qa(fraction_of_data:float = 1.0, seed:int = 0):
 
     return dataset
 
-def get_pop_qa(fraction_of_data:float = 1.0, seed:int = 0):
-    raw_dataset = load_dataset("akariasai/PopQA", split='test')
-    if fraction_of_data != 1.0:
-        raw_dataset = raw_dataset.train_test_split(test_size=(1 - fraction_of_data), seed=seed)['train']
+def get_pop_qa(size_of_data:float = 1.0, seed:int = 0, split = 'test'):
+    if split == 'test':
+        raw_dataset = load_dataset("akariasai/PopQA", split='test')
+    elif split == 'train':
+        raw_dataset = load_dataset("akariasai/PopQA", split='test')
+        print("Train split is not available for PopQA. Using test split instead.")
+    else:
+        raise ValueError("Split should be either 'test' or 'train'.")
+    if size_of_data != 1.0:
+        raw_dataset = raw_dataset.train_test_split(train_size=size_of_data, seed=seed)['train']
     dataset = []
     questions = raw_dataset['question']
     answers = raw_dataset['possible_answers']

@@ -10,4 +10,4 @@ ACTIVATION_AVAILABLE_API_MODELS = []
 
 AVAILABLE_DATASETS = ['trivia_qa', 'gsm8k', 'natural_qa', 'pop_qa']
 
-AVAILABLE_EVALUATION_METRICS = ['auroc', 'auprc', 'auarc', 'accuracy']
+AVAILABLE_EVALUATION_METRICS = ['auroc', 'auprc', 'auarc', 'accuracy', 'f1', 'precision', 'recall', 'prr']

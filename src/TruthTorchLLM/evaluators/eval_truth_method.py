@@ -11,11 +11,11 @@ import wandb
 
 
 def evaluate_truth_method(dataset: Union[str, list], model:Union[str,PreTrainedModel],  truth_methods: list[TruthMethod], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast]=None, eval_metrics:list[str] = ['auroc'],
-                          correctness_evaluator:CorrectnessEvaluator = ROUGE(0.7), fraction_of_data = 1.0,  previous_context:list =[{'role': 'system', 'content': DEFAULT_SYSTEM_BENCHMARK_PROMPT}], 
+                          correctness_evaluator:CorrectnessEvaluator = ROUGE(0.7), size_of_data = 1.0,  previous_context:list =[{'role': 'system', 'content': DEFAULT_SYSTEM_BENCHMARK_PROMPT}], 
                           user_prompt:str = DEFAULT_USER_PROMPT, seed:int = 0, return_method_details:bool = False, wandb_run = None, wandb_push_method_details:bool = False, 
-                          batch_generation=True,  add_generation_prompt = True, continue_final_message = False,  **kwargs):
+                          batch_generation=True,  add_generation_prompt = True, continue_final_message = False, split='test',  **kwargs):
     
-    dataset = get_dataset(dataset, fraction_of_data=fraction_of_data, seed=seed)
+    dataset = get_dataset(dataset, size_of_data=size_of_data, seed=seed, split = split)
 
     for eval_metric in eval_metrics:
         if eval_metric not in AVAILABLE_EVALUATION_METRICS:
@@ -26,15 +26,13 @@ def evaluate_truth_method(dataset: Union[str, list], model:Union[str,PreTrainedM
                                    wandb_run = wandb_run, wandb_push_method_details= wandb_push_method_details, 
                                    batch_generation=batch_generation, add_generation_prompt=add_generation_prompt, continue_final_message=continue_final_message, **kwargs)
 
-    eval_list = []
-    for i in range(len(truth_methods)):
-        eval_dict = metric_score(eval_metrics, output_dict['generation_correctness'], output_dict[f'truth_method_{i}']['truth_values'], output_dict[f'truth_method_{i}']['normalized_truth_values'], seed=seed)
-        eval_list.append(eval_dict)
+    eval_list = get_metric_scores(output_dict=output_dict, eval_metrics=eval_metrics, seed=seed)
 
-    wandb_run.log({'model_accuracy': sum(output_dict['generation_correctness'])/len(output_dict['generation_correctness'])})
     
-   
     if wandb_run:
+        wandb_run.log({'model_accuracy': sum(output_dict['generation_correctness'])/len(output_dict['generation_correctness'])})
+        
+        eval_dict = eval_list[0]
         for key, _ in eval_dict.items():
             methods = []
             scores = []
@@ -42,7 +40,7 @@ def evaluate_truth_method(dataset: Union[str, list], model:Union[str,PreTrainedM
                 score = cur_eval_dict[key]
                 scores.append(score)
                 methods.append(str(truth_methods[i].__class__.__name__))
-                wandb_run.log({f'{key}_of_method_{i}': score})
+                wandb_run.log({f'{key}_of_method_{i}_{str(truth_methods[i].__class__.__name__)}': score})
 
             data = [[method, score] for (method, score) in zip(methods, scores)]
             table = wandb.Table(data=data, columns = ["methods", "scores"])
@@ -50,3 +48,12 @@ def evaluate_truth_method(dataset: Union[str, list], model:Union[str,PreTrainedM
                             title=f"{key} Scores of Truth Methods")})  
                 
     return {'eval_list': eval_list, 'output_dict': output_dict}
+
+
+def get_metric_scores(output_dict:dict, eval_metrics:list[str], seed:int=0):
+    truth_methods = output_dict['truth_methods']
+    eval_list = []
+    for i in range(len(truth_methods)):
+        eval_dict = metric_score(eval_metrics, output_dict['generation_correctness'], output_dict[f'truth_method_{i}']['truth_values'], output_dict[f'truth_method_{i}']['normalized_truth_values'], seed=seed)
+        eval_list.append(eval_dict)
+    return eval_list
