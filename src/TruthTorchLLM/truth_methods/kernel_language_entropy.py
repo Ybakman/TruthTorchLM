@@ -1,11 +1,9 @@
 import copy
 import torch
 import numpy as np
-import random
-from litellm import completion
 from typing import Union
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast, DebertaForSequenceClassification, DebertaTokenizer
-from TruthTorchLLM.utils import sigmoid_normalization, check_entailment_one_hot, calculate_affinity_matrix, calculate_laplacian, create_kernel, calculate_VNE
+from TruthTorchLLM.utils import calculate_affinity_matrix, calculate_laplacian, create_kernel, calculate_VNE
 from TruthTorchLLM.availability import PROB_AVAILABLE_API_MODELS
 from .truth_method import TruthMethod
 from ..generation import sample_generations_hf_local, sample_generations_api
@@ -80,7 +78,7 @@ class KernelLanguageEntropy(TruthMethod):
         return {'truth_value': -kernel_entropy, 'generated_texts': generated_texts, 'kernel': kernel, 'semantic_graph':semantic_graph}
 
     def __str__(self):
-        return "Kernel Lanugage Entropy Truth Method with " + str(self.number_of_generations) + " generations. Model for checking semantic: " + self.model_for_entailment.config._name_or_path + ". Threshold: " + str(self.threshold) + ". Standard Deviation: " + str(self.std)
+        return "Kernel Language Entropy Truth Method with " + str(self.number_of_generations) + " generations. Model for checking semantic: " + self.model_for_entailment.config._name_or_path + ". Threshold: " + str(self.threshold) + ". Standard Deviation: " + str(self.std)
     
     def calculate_kernel_language_entropy(self, texts: list[str], context:str, method_for_similarity:str, model_for_entailment: PreTrainedModel,
                                         tokenizer_for_entailment: PreTrainedTokenizer, normalize_laplacian: bool, kernel_type: str,

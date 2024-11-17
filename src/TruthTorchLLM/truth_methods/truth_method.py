@@ -1,9 +1,22 @@
-from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
-from typing import Union
-from abc import ABC, abstractmethod
 import torch
 import random
-from TruthTorchLLM.utils import sigmoid_normalization
+import numpy as np
+from typing import Union
+from abc import ABC, abstractmethod
+from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
+from TruthTorchLLM.utils.common_utils import fix_tokenizer_chat
+import litellm
+litellm.drop_params = True
+
+
+def sigmoid_normalization(x: float, threshold: float = 0.0, std: float = 1.0):
+    z = (x - threshold) / std
+    if z >= 0:
+        # For positive z, compute sigmoid as 1 / (1 + exp(-z)) directly
+        return 1 / (1 + np.exp(-z))
+    else:
+        # For negative z, to avoid overflow, use the identity: sigmoid(z) = exp(z) / (1 + exp(z))
+        return np.exp(z) / (1 + np.exp(z))
 
 class TruthMethod(ABC):
 
@@ -26,6 +39,7 @@ class TruthMethod(ABC):
         if isinstance(model, str):
             output_dict = self.forward_api(model=model, messages=messages, generated_text=generated_text, question_context=question_context, generation_seed=generation_seed, sampled_generations_dict=sampled_generations_dict, **kwargs)
         else:
+            tokenizer, messages = fix_tokenizer_chat(tokenizer, messages)
             output_dict = self.forward_hf_local(model=model, input_text=input_text, generated_text=generated_text, question_context=question_context, all_ids=all_ids, 
             tokenizer=tokenizer, generation_seed=generation_seed, sampled_generations_dict=sampled_generations_dict, messages=messages, **kwargs)
         
@@ -46,7 +60,6 @@ class TruthMethod(ABC):
 
     def normalize(self, truth_value:float):
         return sigmoid_normalization(truth_value, self.threshold, self.std)
-        
 
     def get_threshold(self):
         return self.threshold

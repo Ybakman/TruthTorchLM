@@ -25,7 +25,7 @@ class Confidence(TruthMethod):
         input_ids = tokenizer.encode(input_text, return_tensors="pt").to(model.device)
         model_output = all_ids
         tokens = model_output[0][len(input_ids[0]):]
-        tokens_text = [tokenizer.decode(token) for token in tokens]
+        tokens_text = [tokenizer.decode([token]) for token in tokens]
 
         with torch.no_grad():
             outputs = model(model_output)

@@ -1,5 +1,5 @@
 from .truth_method import TruthMethod
-from TruthTorchLLM.utils import sigmoid_normalization
+from TruthTorchLLM.utils import fix_tokenizer_chat
 from TruthTorchLLM.utils.google_search_utils import GoogleSerperAPIWrapper,extract_list_from_string,extract_dict_from_string,type_check
 from litellm import completion
 from typing import Union
@@ -45,8 +45,9 @@ class GoogleSearchCheck(TruthMethod):
     def _google_search_check(self, verification_text:str, evidences:list, query_text:str):
         verification = extract_dict_from_string(verification_text)
         #handle capital cases
-        verification = verification.replace("true", "True")
-        verification = verification.replace("false", "False")
+        if verification != None:
+            verification = verification.replace("true", "True")
+            verification = verification.replace("false", "False")
 
         verification_dict = type_check(verification, dict)
 
@@ -75,11 +76,11 @@ class GoogleSearchCheck(TruthMethod):
         generated_text = tokenizer.decode(tokenizer.encode(generated_text, return_tensors="pt").view(-1).tolist(), skip_special_tokens=True)#remove special tokens
         #first we need to generate search queries
 
-        if self.check_query_system_prompt is None:#for some models there is no system prompt in their chat template such as gemma
-            chat = [{"role": "user", "content": self.check_query_user_prompt.format(question_context = question_context, input = generated_text)}]
-        else:
-            chat = [{"role": "system", "content": self.check_query_system_prompt},
-            {"role": "user", "content": self.check_query_user_prompt.format(question_context = question_context, input = generated_text)}]
+        
+        chat = [{"role": "system", "content": self.check_query_system_prompt},
+        {"role": "user", "content": self.check_query_user_prompt.format(question_context = question_context, input = generated_text)}]
+        tokenizer, chat = fix_tokenizer_chat(tokenizer, chat)
+
 
         prompt = tokenizer.apply_chat_template(chat, tokenize=False)
         input_ids = tokenizer.encode(prompt, return_tensors="pt").to(model.device)
@@ -92,11 +93,10 @@ class GoogleSearchCheck(TruthMethod):
         evidences = self.get_evidences(query_text) 
 
         #Ask model to verify the claim
-        if self.check_verification_system_prompt is None:#for some models there is no system prompt in their chat template such as gemma
-            chat = [{"role": "user", "content": self.check_verification_user_prompt.format(question_context = question_context, claim = generated_text, evidence = evidences)}]
-        else:
-            chat = [{"role": "system", "content": self.check_verification_system_prompt},
-            {"role": "user", "content": self.check_verification_user_prompt.format(question_context = question_context, claim = generated_text, evidence = evidences)}]
+        
+        chat = [{"role": "system", "content": self.check_verification_system_prompt},
+        {"role": "user", "content": self.check_verification_user_prompt.format(question_context = question_context, claim = generated_text, evidence = evidences)}]
+        tokenizer, chat = fix_tokenizer_chat(tokenizer, chat)
         
         prompt = tokenizer.apply_chat_template(chat, tokenize=False)
         input_ids = tokenizer.encode(prompt, return_tensors="pt").to(model.device)

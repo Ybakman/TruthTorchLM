@@ -5,7 +5,7 @@ class FactualDecompositionMethod(ABC):
         pass
 
     @abstractmethod
-    def decompose_facts(self, input_text:str, **kwargs)->dict:
+    def decompose_facts(self, input_text:str)->dict:
         raise NotImplementedError("Subclasses must implement this method")
     
     @abstractmethod

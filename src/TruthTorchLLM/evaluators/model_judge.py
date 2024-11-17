@@ -41,14 +41,16 @@ class ModelJudge(CorrectnessEvaluator):
             tokens = model_output[0][len(input_ids[0]):]
             generated_text = self.tokenizer.decode(tokens, skip_special_tokens = False)
 
-        if 'correct' in generated_text.lower():
-                return 1
-        elif 'false' in generated_text.lower(): 
+        if 'incorrect' in generated_text.lower():
             return 0
+        elif 'correct' in generated_text.lower(): 
+            return 1
+        elif "not_attempted" in generated_text.lower():
+            return -1
         else:
             #output warning
-            print("The output of the judge model is not in the expected format. The output is randomly selected.")
-            return random.choice([0,1])
+            print("The output of the judge model is not in the expected format. Not attempted will be returned.")
+            return -1
 
 
             

@@ -1,5 +1,5 @@
 from .truth_method import TruthMethod
-from TruthTorchLLM.utils import sigmoid_normalization, find_token_indices
+from TruthTorchLLM.utils import find_token_indices, fix_tokenizer_chat
 from litellm import completion
 from typing import Union
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
@@ -37,14 +37,11 @@ class PTrue(TruthMethod):
         ideas = "\n".join(ideas)
 
 
-        if self.system_prompt is None:#for some models there is no system prompt in their chat template such as gemma
-            chat = [
-            {"role": "user", "content": self.user_prompt.format(question_context = question_context, ideas = ideas, generated_text = generated_text)},
-            {"role": "assistant", "content": self.model_output}]
-        else:
-            chat = [{"role": "system", "content": self.system_prompt},
-            {"role": "user", "content": self.user_prompt.format(question_context = question_context, ideas = ideas, generated_text = generated_text)},
-            {"role": "assistant", "content": self.model_output}]
+       
+        chat = [{"role": "system", "content": self.system_prompt},
+        {"role": "user", "content": self.user_prompt.format(question_context = question_context, ideas = ideas, generated_text = generated_text)},
+        {"role": "assistant", "content": self.model_output}]
+        tokenizer, chat = fix_tokenizer_chat(tokenizer, chat)#in case some tokenizers don't have chat template and don't support system prompt
 
         
         prompt = tokenizer.apply_chat_template(chat, tokenize=False)

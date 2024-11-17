@@ -1,7 +1,6 @@
 from tqdm import tqdm
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 from typing import Union
-from TruthTorchLLM.truth_methods import TruthMethod
 from TruthTorchLLM.generation import generate_with_truth_value
 from TruthTorchLLM.templates import DEFAULT_SYSTEM_BENCHMARK_PROMPT, DEFAULT_USER_PROMPT
 import wandb
@@ -53,11 +52,17 @@ def get_random_scores(function, metrics, num_iter=1000, seed=42):
 
 def metric_score(metric_names:list[str], generation_correctness:list, truth_values:list[float], normalized_truth_values:list[float] = [],  seed:int = 0) -> dict:
     eval_dict = {}
-    #replace NaN values with a big number
+    #if generation_correctness is -1, it means that the model didn't attempt to generate an answer, remove those from the evaluation
+    generation_correctness = np.array(generation_correctness)
     truth_values = np.array(truth_values)
-    truth_values[np.isnan(truth_values)] = 1000000
     normalized_truth_values = np.array(normalized_truth_values)
-    normalized_truth_values[np.isnan(normalized_truth_values)] = 1000000
+    truth_values = truth_values[generation_correctness != -1]
+    normalized_truth_values = normalized_truth_values[generation_correctness != -1]
+    generation_correctness = generation_correctness[generation_correctness != -1]
+
+    #replace NaN values with 0
+    truth_values[np.isnan(truth_values)] = 0
+    normalized_truth_values[np.isnan(normalized_truth_values)] = 0
 
     truth_values = list(truth_values) #convert to list
     normalized_truth_values = (normalized_truth_values) #convert to list
@@ -102,7 +107,7 @@ def metric_score(metric_names:list[str], generation_correctness:list, truth_valu
         eval_dict['recall'] = recall
 
     if 'prr' in metric_names:
-        ue_prr = prediction_rejection_curve(normalized_truth_values, generation_correctness)
+        ue_prr = prediction_rejection_curve(truth_values, generation_correctness)
         orc_prr = prediction_rejection_curve(generation_correctness, generation_correctness)
         rand_prr = get_random_scores(prediction_rejection_curve, generation_correctness, seed = seed)
 
@@ -110,12 +115,10 @@ def metric_score(metric_names:list[str], generation_correctness:list, truth_valu
             ue_prr = (ue_prr - rand_prr) / (orc_prr - rand_prr)
         eval_dict['prr'] = ue_prr
 
-        
-    
     return eval_dict
 
 
-def run_over_dataset(dataset: Union[str, list], model:Union[str,PreTrainedModel],  truth_methods: list[TruthMethod], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast]=None,
+def run_over_dataset(dataset: Union[str, list], model:Union[str,PreTrainedModel],  truth_methods: list, tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast]=None,
                           correctness_evaluator = None, previous_context:list =[{'role': 'system', 'content': DEFAULT_SYSTEM_BENCHMARK_PROMPT}], user_prompt:str = DEFAULT_USER_PROMPT, seed:int = 0, return_method_details:bool = False, wandb_run = None, 
                           wandb_push_method_details:bool = False, batch_generation=True,  add_generation_prompt = True, continue_final_message = False, **kwargs):
     output_dict = {}
@@ -130,7 +133,7 @@ def run_over_dataset(dataset: Union[str, list], model:Union[str,PreTrainedModel]
 
     
     for i in range(len(truth_methods)):
-        output_dict['truth_methods'].append(str(truth_methods[i]))
+        output_dict['truth_methods'].append(f'{truth_methods[i].__class__.__name__}')
         output_dict[f'truth_method_{i}'] = {}
         output_dict[f'truth_method_{i}']['name'] = str(truth_methods[i])
         output_dict[f'truth_method_{i}']['truth_values'] = []

@@ -3,6 +3,7 @@ from .truth_method import TruthMethod
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 from transformers import LlamaForCausalLM, LlamaTokenizer
 from TruthTorchLLM.availability import AVAILABLE_API_MODELS
+from TruthTorchLLM.utils import fix_tokenizer_chat
 from litellm import completion
 import copy
 from typing import Union
@@ -72,15 +73,13 @@ class CrossExamination(TruthMethod):
         else:
             text = self.tokenizer_examiner.apply_chat_template(examiner_messages, tokenize = False)
             input_ids = self.tokenizer_examiner.encode(text, return_tensors="pt").to(self.model_examiner.device)
-            model_output = self.model_examiner.generate(input_ids)
+            model_output = self.model_examiner.generate(input_ids, max_new_tokens = 64)#will be changed
             tokens = model_output[0][len(input_ids[0]):]
             generated_text = self.tokenizer_examiner.decode(tokens, skip_special_tokens = False)
             examiner_messages.append({"role":"assistant", "content":generated_text})
             return examiner_messages
 
     def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
-        if model not in AVAILABLE_API_MODELS:
-            raise ValueError("This method is not applicable to given model")
         
         kwargs = copy.deepcopy(kwargs)
         
@@ -126,6 +125,7 @@ class CrossExamination(TruthMethod):
         _, examiner_messages = self.examiner_inference(examiner_messages, messages[-1]['content'], Examiner_Stage.SETUP)
         
         messages.append({"role":"user", "content":EXAMINEE_PROMPT.replace("<questions>",examiner_messages[-1]['content'])})
+        tokenizer, messages = fix_tokenizer_chat(tokenizer, messages)
         text = tokenizer.apply_chat_template(messages, tokenize = False)
         input_ids = tokenizer.encode(text, return_tensors="pt").to(model.device)
         model_output = model.generate(input_ids, **kwargs)
@@ -136,6 +136,7 @@ class CrossExamination(TruthMethod):
             is_it_over, examiner_messages = self.examiner_inference(examiner_messages, messages[-1]['content'], Examiner_Stage.FOLLOWUP)
             if not is_it_over:
                 messages.append({"role":"user", "content":EXAMINEE_PROMPT.replace("<questions>",examiner_messages[-1]['content'])})
+                tokenizer, messages = fix_tokenizer_chat(tokenizer, messages)
                 text = tokenizer.apply_chat_template(messages, tokenize = False)
                 input_ids = tokenizer.encode(text, return_tensors="pt").to(model.device)
                 model_output = model.generate(input_ids, **kwargs)

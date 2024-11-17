@@ -7,14 +7,14 @@ from litellm import completion
 
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 
-from .truth_methods.truth_method import TruthMethod
+#from .truth_methods.truth_method import TruthMethod
 from TruthTorchLLM.availability import AVAILABLE_API_MODELS
-from TruthTorchLLM.utils.common_utils import generate
+from TruthTorchLLM.utils.common_utils import generate, fix_tokenizer_chat
 
 import time
 
 
-def generate_with_truth_value(model:Union[PreTrainedModel, str], messages:list, question_context:str = None, truth_methods: list[TruthMethod] = [], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast]= None,  
+def generate_with_truth_value(model:Union[PreTrainedModel, str], messages:list, question_context:str = None, truth_methods: list = [], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast]= None,  
 generation_seed=None, batch_generation=True, add_generation_prompt = True, continue_final_message = False,  **kwargs)-> dict:
     if type(model) == str:
         return generate_with_truth_value_api(model = model, messages = messages, question_context = question_context, truth_methods = truth_methods, generation_seed = generation_seed, **kwargs)
@@ -26,10 +26,11 @@ generation_seed=None, batch_generation=True, add_generation_prompt = True, conti
 
             
 #TODO: remove number of generations from kwargs if exists
-def generate_with_truth_value_hf_local(model:PreTrainedModel, messages:list, question_context:str = None, truth_methods: list[TruthMethod] = [], 
+def generate_with_truth_value_hf_local(model:PreTrainedModel, messages:list, question_context:str = None, truth_methods: list = [], 
                               tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed=None, batch_generation=True, add_generation_prompt = True, continue_final_message = False,  **kwargs) -> dict:
 
 
+    tokenizer, messages = fix_tokenizer_chat(tokenizer, messages)
     text = tokenizer.apply_chat_template(messages, tokenize = False, add_generation_prompt=add_generation_prompt, continue_final_message=continue_final_message)
     if question_context == None:
         question_context = ''
@@ -73,7 +74,7 @@ def generate_with_truth_value_hf_local(model:PreTrainedModel, messages:list, que
 
 
 #for api-based models, we should write a wrapper function to handle exceptions during the api call
-def generate_with_truth_value_api(model:str, messages:list, question_context:str = None, truth_methods: list[TruthMethod] = [], generation_seed=None, **kwargs) -> dict:
+def generate_with_truth_value_api(model:str, messages:list, question_context:str = None, truth_methods: list = [], generation_seed=None, **kwargs) -> dict:
     # Check if the model is an API model
     if generation_seed is not None:
         random.seed(generation_seed)
@@ -125,7 +126,7 @@ def generate_with_truth_value_api(model:str, messages:list, question_context:str
     return truth_dict
 
 
-def get_sampling_properties(truth_methods: list[TruthMethod]):
+def get_sampling_properties(truth_methods:list):
     number_of_generations = 0
     return_text = False
     return_logits = False
@@ -359,7 +360,7 @@ number_of_generations:int = 0, return_text:bool = False, return_logits:bool = Fa
         seed = kwargs.pop('seed', None) 
         seed = random.randint(0, 1000000)
         kwargs['seed'] = seed
-        
+            
         response = completion(
             model=model,
             messages=messages,

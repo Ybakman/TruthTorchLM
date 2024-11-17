@@ -75,7 +75,7 @@ class SentSAR(TruthMethod):
 
         scores = []
         for i in range(self.number_of_generations):
-            tokens_text = [tokenizer.decode(token) for token in sampled_generations_dict["tokens"][i]]
+            tokens_text = [tokenizer.decode([token]) for token in sampled_generations_dict["tokens"][i]]
             score = self.scoring_function(sampled_generations_dict["logprobs"][i]) 
             scores.append(score) #scores are in log scale
 

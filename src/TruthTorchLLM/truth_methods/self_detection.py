@@ -49,15 +49,10 @@ class SelfDetection(TruthMethod):
 
     def generate_similar_questions(self, input_text: str, prompt_for_generating_question: str = None, system_prompt:str = None, model= None, tokenizer = None, generation_seed = 0):  
         generated_questions = [input_text]
-
-        if self.system_prompt is None:#for some models there is no system prompt in their chat template such as gemma
-            chat = [
+        chat = [{"role": "system", "content": self.system_prompt},
             {"role": "user", "content": self.prompt_for_generating_question.format(question = input_text)}]
-        else:
-            chat = [{"role": "system", "content": self.system_prompt},
-            {"role": "user", "content": self.prompt_for_generating_question.format(question = input_text)}]
-
         if type(model) != str:
+            tokenizer, chat = fix_tokenizer_chat(tokenizer, chat)
             input_text = tokenizer.apply_chat_template(chat, tokenize=False, add_generation_prompt = True)
             sampled_generations_dict = sample_generations_hf_local(model, input_text, tokenizer, number_of_generations=self.number_of_questions, return_text=True, generation_seed=generation_seed, 
             max_new_tokens=self.question_max_new_tokens, temperature=self.question_temperature, batch_generation=self.batch_generation)
@@ -97,11 +92,9 @@ class SelfDetection(TruthMethod):
         generated_questions = self.generate_similar_questions(question_context, self.prompt_for_generating_question, model=model, tokenizer=tokenizer, generation_seed = generation_seed)
 
         for generated_question in generated_questions:
-            if self.system_prompt is None:#for some models there is no system prompt in their chat template such as gemma
-                chat = [
-                {"role": "user", "content": generated_question}]
-            else:
-                chat = [{"role": "system", "content": self.system_prompt}, {"role": "user", "content": generated_question}]
+            
+            chat = [{"role": "system", "content": self.system_prompt}, {"role": "user", "content": generated_question}]
+            tokenizer, chat = fix_tokenizer_chat(tokenizer, chat)
             prompt = tokenizer.apply_chat_template(chat, tokenize=False)
             input_ids = tokenizer.encode(prompt, return_tensors="pt").to(model.device)
             model_output = model.generate(input_ids, num_return_sequences=1, do_sample=True, **kwargs)#do sample?

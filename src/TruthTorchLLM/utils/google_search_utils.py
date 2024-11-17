@@ -73,43 +73,46 @@ class GoogleSerperAPIWrapper():
     
     def _parse_results(self, results):
         snippets = []
+        try:
+            if results.get("answerBox"):
+                answer_box = results.get("answerBox", {})
+                if answer_box.get("answer"):
+                    element = {"content":answer_box.get("answer"),"source":"None"}
+                    return [element]
+                elif answer_box.get("snippet"):
+                    element = {"content":answer_box.get("snippet").replace("\n", " "),"source":"None"}
+                    return [element]
+                elif answer_box.get("snippetHighlighted"):
+                    element = {"content":answer_box.get("snippetHighlighted"),"source":"None"}
+                    return [element]
+                
+            if results.get("knowledgeGraph"):
+                kg = results.get("knowledgeGraph", {})
+                title = kg.get("title")
+                entity_type = kg.get("type")
+                if entity_type:
+                    element = {"content":f"{title}: {entity_type}","source":"None"}
+                    snippets.append(element)
+                description = kg.get("description")
+                if description:
+                    element = {"content":description,"source":"None"}
+                    snippets.append(element)
+                for attribute, value in kg.get("attributes", {}).items():
+                    element = {"content":f"{attribute}: {value}","source":"None"}
+                    snippets.append(element)
 
-        if results.get("answerBox"):
-            answer_box = results.get("answerBox", {})
-            if answer_box.get("answer"):
-                element = {"content":answer_box.get("answer"),"source":"None"}
-                return [element]
-            elif answer_box.get("snippet"):
-                element = {"content":answer_box.get("snippet").replace("\n", " "),"source":"None"}
-                return [element]
-            elif answer_box.get("snippetHighlighted"):
-                element = {"content":answer_box.get("snippetHighlighted"),"source":"None"}
-                return [element]
-            
-        if results.get("knowledgeGraph"):
-            kg = results.get("knowledgeGraph", {})
-            title = kg.get("title")
-            entity_type = kg.get("type")
-            if entity_type:
-                element = {"content":f"{title}: {entity_type}","source":"None"}
-                snippets.append(element)
-            description = kg.get("description")
-            if description:
-                element = {"content":description,"source":"None"}
-                snippets.append(element)
-            for attribute, value in kg.get("attributes", {}).items():
-                element = {"content":f"{attribute}: {value}","source":"None"}
-                snippets.append(element)
+            for result in results["organic"][: self.k]:
+                if "snippet" in result:
+                    element = {"content":result["snippet"],"source":result["link"]}
+                    snippets.append(element)
+                for attribute, value in result.get("attributes", {}).items():
+                    element = {"content":f"{attribute}: {value}","source":result["link"]}
+                    snippets.append(element)
 
-        for result in results["organic"][: self.k]:
-            if "snippet" in result:
-                element = {"content":result["snippet"],"source":result["link"]}
-                snippets.append(element)
-            for attribute, value in result.get("attributes", {}).items():
-                element = {"content":f"{attribute}: {value}","source":result["link"]}
-                snippets.append(element)
-
-        if len(snippets) == 0:
+            if len(snippets) == 0:
+                element = {"content":"No good Google Search Result was found","source":"None"}
+                return [element]
+        except:
             element = {"content":"No good Google Search Result was found","source":"None"}
             return [element]
         

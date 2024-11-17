@@ -6,6 +6,7 @@ from TruthTorchLLM.templates import DEFAULT_SYSTEM_BENCHMARK_PROMPT, DEFAULT_USE
 from TruthTorchLLM.utils.dataset_utils import get_dataset
 from TruthTorchLLM.utils.eval_utils import run_over_dataset
 from TruthTorchLLM.utils.common_utils import find_threshold_std
+import numpy as np
 
 
 def calibrate_truth_method(dataset: Union[str, list], model:Union[str,PreTrainedModel],  truth_methods: list[TruthMethod], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] =None, precision:float = -1, 
@@ -21,6 +22,14 @@ def calibrate_truth_method(dataset: Union[str, list], model:Union[str,PreTrained
     for i, truth_method in enumerate(truth_methods):
         truth_values = output_dict[f'truth_method_{i}']['truth_values']
         correctness = output_dict['generation_correctness']
+        #if generation_correctness is -1, it means that the model didn't attempt to generate an answer, remove those from the evaluation
+        correctness = np.array(correctness)
+        truth_values = np.array(truth_values)
+        truth_values = truth_values[correctness != -1]
+        correctness = correctness[correctness != -1]
+
+        #set nan values to zero
+        truth_values[np.isnan(truth_values)] = 0
         threshold, std = find_threshold_std(correctness, truth_values, precision, recall)
         truth_method.set_threshold(threshold)
         truth_method.set_std(std)
