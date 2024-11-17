@@ -106,7 +106,7 @@ class LARS(TruthMethod):
             input_ids = tokenizer.encode(input_text, return_tensors="pt").to(model.device)
             model_output = all_ids
             tokens = model_output[0][len(input_ids[0]):]
-            tokens_text = [tokenizer.decode(token) for token in tokens]
+            tokens_text = [tokenizer.decode([token]) for token in tokens]
 
             # tokens_text = tokenizer.convert_ids_to_tokens(tokens)
             # tokens_text = [s.replace(space_char, " ") for s in tokens_text]  #requires space_char for each model
@@ -132,7 +132,7 @@ class LARS(TruthMethod):
             generated_texts = sampled_generations_dict["generated_texts"][:self.number_of_generations]
         
             for i in range(self.number_of_generations):
-                tokens_text = [tokenizer.decode(token) for token in sampled_generations_dict["tokens"][i]]
+                tokens_text = [tokenizer.decode([token]) for token in sampled_generations_dict["tokens"][i]]
                 score = torch.log(self._lars(question_context, tokens_text, torch.exp(sampled_generations_dict["logprobs"][i])) )
                 scores.append(score) #scores are in log scale
                 generated_outputs.append((generated_texts[i],score))
@@ -225,7 +225,7 @@ class LARS(TruthMethod):
                     continue
                 train_data[i]['generated_texts'].append(sampled['generated_texts'][j])
                 train_data[i]["probs"].append(np.exp(sampled['logprobs'][j]).tolist())
-                train_data[i]["token_texts"].append([tokenizer.decode(token) for token in sampled['tokens'][j]])
+                train_data[i]["token_texts"].append([tokenizer.decode([token]) for token in sampled['tokens'][j]])
             train_data[i]["labels"] = [correctness_evaluator(train_data[i]['question'], answer, train_data[i]['ground_truths']) for answer in train_data[i]['generated_texts']]
 
         print("Generating answers and labels for validation data...")
@@ -239,7 +239,7 @@ class LARS(TruthMethod):
             
             val_data[i]['generated_text'] = most_likely['generated_texts'][0]
             val_data[i]["probs"] = np.exp(most_likely['logprobs'][0]).tolist() 
-            val_data[i]["token_texts"] = [tokenizer.decode(token) for token in most_likely['tokens'][0]]
+            val_data[i]["token_texts"] = [tokenizer.decode([token]) for token in most_likely['tokens'][0]]
             val_data[i]["label"] = correctness_evaluator(val_data[i]['question'], most_likely['generated_texts'][0], val_data[i]['ground_truths'])
         
         return train_data, val_data
