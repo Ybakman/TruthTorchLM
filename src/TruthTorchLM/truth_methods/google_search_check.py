@@ -14,10 +14,10 @@ import copy
 class GoogleSearchCheck(TruthMethod):
     REQUIRES_NORMALIZATION = False
 
-    def __init__(self, threshold:float = 0.0, std:float = 1.0, number_of_snippets:int = 10, location:str = 'us', language:str = 'en', 
+    def __init__(self, number_of_snippets:int = 10, location:str = 'us', language:str = 'en', 
     check_query_system_prompt:str = GOOGLE_CHECK_QUERY_SYSTEM_PROMPT, check_query_user_prompt:str = GOOGLE_CHECK_QUERY_USER_PROMPT,
     check_verification_system_prompt:str = GOOGLE_CHECK_VERIFICATION_SYSTEM_PROMPT, check_verification_user_prompt:str = GOOGLE_CHECK_VERIFICATION_USER_PROMPT, max_new_tokens = 256) -> None:
-        super().__init__(threshold = threshold, std = std)
+        super().__init__()
         self.number_of_snippets = number_of_snippets
         self.location = location
         self.language = language
@@ -121,7 +121,9 @@ class GoogleSearchCheck(TruthMethod):
             )
         query_text = response.choices[0].message['content']
 
-        evidences = self.get_evidences(query_text)
+        evidences = self.get_evidences(query_text)        
+        print(query_text)
+        print(evidences)
 
         #Ask model to verify the claim
         chat = [{"role": "system", "content": GOOGLE_CHECK_VERIFICATION_SYSTEM_PROMPT},
@@ -133,13 +135,5 @@ class GoogleSearchCheck(TruthMethod):
         verification_text = response.choices[0].message['content']
 
         return self._google_search_check(verification_text, evidences, query_text)
-
-        
-
-    def __str__(self):
-        return f"GoogleSearchCheck with threshold {self.threshold} and std {self.std} and number of snippets {self.number_of_snippets} and location {self.location} and language {self.language}"
-        
-
-    
 
         

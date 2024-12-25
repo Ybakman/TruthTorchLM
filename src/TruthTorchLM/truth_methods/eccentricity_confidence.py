@@ -6,12 +6,12 @@ from typing import Union
 from litellm import completion
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 from transformers import GPT2LMHeadModel, GPT2Tokenizer, DebertaForSequenceClassification, DebertaTokenizer
-from TruthTorchLM.utils import calculate_U_ecc, sigmoid_normalization
+from TruthTorchLM.utils import calculate_C_ecc, sigmoid_normalization
 from .truth_method import TruthMethod
 from ..generation import sample_generations_hf_local, sample_generations_api
 
 
-class EccentricityUncertainty(TruthMethod):
+class EccentricityConfidence(TruthMethod):
     
     REQUIRES_SAMPLED_TEXT = True
 
@@ -41,11 +41,10 @@ class EccentricityUncertainty(TruthMethod):
         self.temperature = temperature #temperature for NLI model
         self.batch_generation = batch_generation
 
-    def _eccentricity_uncertainty(self, sampled_generations_dict:dict, question_context:str):
-        generated_texts = sampled_generations_dict["generated_texts"][:self.number_of_generations]
+    def _eccentricity_confidence(self, generated_texts:list, question_context:str, index =-1):
         output_dict = {}
-        output  = calculate_U_ecc(generated_texts, question_context, method_for_similarity=self.method_for_similarity, temperature = self.temperature, eigen_threshold = self.eigen_threshold, model_for_entailment=self.model_for_entailment, tokenizer_for_entailment=self.tokenizer_for_entailment)
-        output_dict['U_ecc'] = output
+        output  = calculate_C_ecc(generated_texts, question_context, method_for_similarity=self.method_for_similarity, temperature = self.temperature, eigen_threshold = self.eigen_threshold, model_for_entailment=self.model_for_entailment, tokenizer_for_entailment=self.tokenizer_for_entailment)
+        output_dict['C_ecc'] = output
         output_dict['generated_texts'] = generated_texts
         output_dict['truth_value'] = -output
         return output_dict
@@ -55,15 +54,21 @@ class EccentricityUncertainty(TruthMethod):
 
         if sampled_generations_dict is None:
             sampled_generations_dict = sample_generations_hf_local(model = model, input_text = input_text, tokenizer = tokenizer, generation_seed=generation_seed, 
-            number_of_generations=self.number_of_generations, return_text = True, return_logprobs=True, batch_generation = self.batch_generation, **kwargs)
+            number_of_generations=self.number_of_generations-1, return_text = True, return_logprobs=True, batch_generation = self.batch_generation, **kwargs)
+
+        generated_texts = sampled_generations_dict["generated_texts"][:self.number_of_generations - 1]
+        generated_texts.append(generated_text)
             
-        return self._eccentricity_uncertainty(sampled_generations_dict, question_context)
+        return self._eccentricity_confidence(generated_texts, question_context, index = len(generated_texts)-1)
 
     def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
         
         if sampled_generations_dict is None:
             sampled_generations_dict = sample_generations_api(model = model, messages = messages, generation_seed = generation_seed, 
-            number_of_generations=self.number_of_generations, return_text = True, **kwargs)
-            
-        return self._eccentricity_uncertainty(sampled_generations_dict, question_context)
+            number_of_generations=self.number_of_generations-1, return_text = True, **kwargs)
+
+        generated_texts = sampled_generations_dict["generated_texts"][:self.number_of_generations - 1]
+        generated_texts.append(generated_text)
+        
+        return self._eccentricity_confidence(generated_texts, question_context, index = len(generated_texts)-1)
 

@@ -295,6 +295,14 @@ def calculate_U_deg(texts: list[str], context: str,  method_for_similarity:str =
     U_deg = np.trace(m * np.identity(m) - D) / (m ** 2)
     return U_deg
 
+def calculate_C_deg(texts: list[str], context: str, index:int = -1,  method_for_similarity:str = 'semantic',  temperature: float = 3.0, model_for_entailment: PreTrainedModel = None, 
+                 tokenizer_for_entailment: PreTrainedTokenizer = None):
+    W = calculate_affinity_matrix(texts, context, temperature=temperature, model_for_entailment=model_for_entailment, tokenizer_for_entailment=tokenizer_for_entailment, method_for_similarity=method_for_similarity)
+    D = get_D_mat(W)
+    m = len(W)
+    C_deg = D[index, index]/m
+    return C_deg
+
 def calculate_U_ecc(texts: list[str], context: str,  method_for_similarity:str = 'semantic',  temperature: float = 3.0, eigen_threshold: float = 0.9, model_for_entailment: PreTrainedModel = None, 
                  tokenizer_for_entailment: PreTrainedTokenizer = None):
     W = calculate_affinity_matrix(texts, context, model_for_entailment=model_for_entailment, tokenizer_for_entailment=tokenizer_for_entailment , method_for_similarity=method_for_similarity, temperature=temperature)
@@ -306,6 +314,19 @@ def calculate_U_ecc(texts: list[str], context: str,  method_for_similarity:str =
     
     U_ecc = np.linalg.norm(V_prime, axis=1).sum()
     return U_ecc
+
+
+def calculate_C_ecc(texts: list[str], context: str, index:int = -1,  method_for_similarity:str = 'semantic',  temperature: float = 3.0, eigen_threshold: float = 0.9, model_for_entailment: PreTrainedModel = None, 
+                 tokenizer_for_entailment: PreTrainedTokenizer = None):
+    W = calculate_affinity_matrix(texts, context, model_for_entailment=model_for_entailment, tokenizer_for_entailment=tokenizer_for_entailment , method_for_similarity=method_for_similarity, temperature=temperature)
+    L = get_L_mat(W, symmetric=True)
+    eigvals, eigvecs = get_eig(L, thres=eigen_threshold)
+    V = eigvecs
+    V_mean = np.mean(V, axis=0)
+    V_prime = V - V_mean
+    
+    C_ecc = np.linalg.norm(V_prime, axis=1)[index]
+    return C_ecc
 
 
 def calculate_U_num_set(texts: list[str], context: str ,method_for_similarity: str = 'semantic', model_for_entailment: PreTrainedModel = None, 

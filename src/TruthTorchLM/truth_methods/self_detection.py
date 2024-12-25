@@ -17,10 +17,10 @@ from TruthTorchLM.generation import sample_generations_hf_local, sample_generati
 #https://arxiv.org/pdf/2310.17918
 
 class SelfDetection(TruthMethod):
-    def __init__(self, output_type:str = 'entropy',method_for_similarity: str = "semantic", number_of_questions=5, threshold=0.5, std=1.0, model_for_entailment: PreTrainedModel = None, 
+    def __init__(self, output_type:str = 'entropy',method_for_similarity: str = "semantic", number_of_questions=5, model_for_entailment: PreTrainedModel = None, 
     tokenizer_for_entailment: PreTrainedTokenizer = None, prompt_for_generating_question = SELF_DETECTION_QUESTION_PROMPT, 
     system_prompt = SELF_DETECTION_SYSTEM_PROMPT, prompt_for_entailment:str = ENTAILMENT_PROMPT, system_prompt_for_entailment:str = DEFAULT_SYSTEM_PROMPT, batch_generation = True, question_max_new_tokens = 64, question_temperature = 1.0):
-        super().__init__(threshold = threshold, std = std)
+        super().__init__()
 
         self.tokenizer_for_entailment = tokenizer_for_entailment
         self.model_for_entailment = model_for_entailment
@@ -131,7 +131,3 @@ class SelfDetection(TruthMethod):
        
         return self._self_detection_output(model, None, generated_texts, question_context, generated_questions)
         
-    def __str__(self):
-        return "SelfDetection Class with " + str(self.number_of_questions) + " generations"  ". Threshold: " + str(self.threshold) + ". Standard Deviation: " + str(self.std) + ". Model for entailment: " + str(self.model_for_entailment) + ". Tokenizer for entailment: " + str(self.tokenizer_for_entailment)
-
-

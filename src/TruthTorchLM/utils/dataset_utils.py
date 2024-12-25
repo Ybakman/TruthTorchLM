@@ -26,8 +26,11 @@ def get_dataset(dataset:Union[str, list], size_of_data:float = 1.0, seed:int = 0
         dataset = get_natural_qa(size_of_data=size_of_data, seed=seed, split=split)
     elif dataset == "pop_qa":
         dataset = get_pop_qa(size_of_data=size_of_data, seed=seed, split=split)
+    elif dataset == "simple_qa":
+        dataset = get_simple_qa(size_of_data=size_of_data, seed=seed, split=split)
     
     return dataset
+
 
 
 def get_trivia_qa(size_of_data:float = 1.0, seed:int = 0, split = 'test'):
@@ -82,7 +85,7 @@ def get_natural_qa(size_of_data:float = 1.0, seed:int = 0, split = 'test'):
     questions = raw_dataset['question']
     answers = raw_dataset['answer']
     for i in tqdm(range(len(raw_dataset))):
-        dataset.append({'question': questions[i], 'ground_truths': answers[i]})
+        dataset.append({'question': questions[i], 'ground_truths': [answers[i]]})
 
     return dataset
 
@@ -100,6 +103,25 @@ def get_pop_qa(size_of_data:float = 1.0, seed:int = 0, split = 'test'):
     questions = raw_dataset['question']
     answers = raw_dataset['possible_answers']
     for i in tqdm(range(len(raw_dataset))):
-        dataset.append({'question': questions[i], 'ground_truths': answers[i]})
+        dataset.append({'question': questions[i], 'ground_truths': [answers[i]]})
+
+    return dataset
+
+
+def get_simple_qa(size_of_data:float = 1.0, seed:int = 0, split = 'test'):
+    if split == 'test':
+        raw_dataset = load_dataset("basicv8vc/SimpleQA", split='test')
+    elif split == 'train':
+        raw_dataset = load_dataset("basicv8vc/SimpleQA", split='test')
+        print("Train split is not available for PopQA. Using test split instead.")
+    else:
+        raise ValueError("Split should be either 'test' or 'train'.")
+    if size_of_data != 1.0:
+        raw_dataset = raw_dataset.train_test_split(train_size=size_of_data, seed=seed)['train']
+    dataset = []
+    questions = raw_dataset['problem']
+    answers = raw_dataset['answer']
+    for i in tqdm(range(len(raw_dataset))):
+        dataset.append({'question': questions[i], 'ground_truths': [answers[i]]})
 
     return dataset

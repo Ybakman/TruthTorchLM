@@ -155,6 +155,4 @@ class CrossExamination(TruthMethod):
         
         return {"truth_value": score, "generated_text": generated_text, "examiner_messages": examiner_messages, 'messages': messages}
 
-    def __str__(self):
-        return "CrossExamination Truth Method with " + str(self.follow_up_turns_threshold) + " follow-up turns. Model for examiner: " + str(self.model_examiner) + ". Threshold: " + str(self.threshold) + ". Standard Deviation: " + str(self.std)
-        
+   

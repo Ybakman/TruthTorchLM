@@ -22,13 +22,14 @@ from ..evaluators.correctness_evaluator import CorrectnessEvaluator
 from TruthTorchLM.utils.dataset_utils import get_dataset
 from ..generation import sample_generations_hf_local, sample_generations_api, sample_generations_batch_hf_local, sample_generations_sequential_hf_local
 from TruthTorchLM.utils.eval_utils import metric_score
+from TruthTorchLM.utils.common_utils import fix_tokenizer_chat
 
 class LARS(TruthMethod):
-    def __init__(self, threshold:float=0.0, std:float = 1.0, 
+    def __init__(self, 
                         device="cuda", lars_model:PreTrainedModel=None, lars_tokenizer:PreTrainedTokenizer=None, 
-                        ue_type:str="confidence", number_of_generations:int=5,
+                        ue_type:str="confidence", number_of_generations:int=0,
                         model_for_entailment: PreTrainedModel = None, tokenizer_for_entailment: PreTrainedTokenizer = None, entailment_model_device = 'cuda'):
-        super().__init__(threshold = threshold, std = std)
+        super().__init__()
 
         assert ue_type in ["confidence", "semantic_entropy", "se", "entropy"], f"ue_type must be one of ['confidence', 'semantic_entropy', 'se', 'entropy'] but it is {ue_type}."
         self.ue_type = ue_type
@@ -80,7 +81,8 @@ class LARS(TruthMethod):
             return_token_type_ids=True,
             is_split_into_words=False,  #???
             truncation=True,
-            max_length = None
+            max_length = None, 
+            padding='max_length'
         )
         return tokenized_input
 
@@ -104,7 +106,7 @@ class LARS(TruthMethod):
 
         if self.ue_type == "confidence":
             input_ids = tokenizer.encode(input_text, return_tensors="pt").to(model.device)
-            model_output = all_ids
+            model_output = all_ids.to(model.device)
             tokens = model_output[0][len(input_ids[0]):]
             tokens_text = [tokenizer.decode([token]) for token in tokens]
 
@@ -205,10 +207,11 @@ class LARS(TruthMethod):
     def _generate_answers_and_label(train_data:list, val_data:list, model:PreTrainedModel, tokenizer:Union[PreTrainedTokenizer, PreTrainedTokenizerFast], 
                                correctness_evaluator:CorrectnessEvaluator, previous_context:list=[{'role': 'system', 'content': DEFAULT_SYSTEM_BENCHMARK_PROMPT}], 
                                user_prompt:str = DEFAULT_USER_PROMPT, num_gen_per_question:int=5, **kwargs):
-        print("Generating answers and labels for train data...")
+        print("Generating answers and labels for training data...")
         for i in tqdm(range(len(train_data))):
             messages = previous_context.copy()
             messages.append({'role': 'user', 'content': user_prompt.format(question_context = train_data[i]['question'])})
+            tokenizer, messages = fix_tokenizer_chat(tokenizer, messages)
             text = tokenizer.apply_chat_template(messages, tokenize = False, add_generation_prompt=True, continue_final_message=False)
             
             sampled = sample_generations_batch_hf_local(model=model, input_text=text, tokenizer=tokenizer,
@@ -232,6 +235,7 @@ class LARS(TruthMethod):
         for i in tqdm(range(len(val_data))):
             messages = previous_context.copy()
             messages.append({'role': 'user', 'content': user_prompt.format(question_context = val_data[i]['question'])})
+            tokenizer, messages = fix_tokenizer_chat(tokenizer, messages)
             text = tokenizer.apply_chat_template(messages, tokenize = False, add_generation_prompt=True, continue_final_message=False)
 
             most_likely = sample_generations_sequential_hf_local(model, input_text=text, tokenizer=tokenizer,
@@ -241,7 +245,7 @@ class LARS(TruthMethod):
             val_data[i]["probs"] = np.exp(most_likely['logprobs'][0]).tolist() 
             val_data[i]["token_texts"] = [tokenizer.decode([token]) for token in most_likely['tokens'][0]]
             val_data[i]["label"] = correctness_evaluator(val_data[i]['question'], most_likely['generated_texts'][0], val_data[i]['ground_truths'])
-        
+
         return train_data, val_data
     
     @staticmethod
@@ -276,27 +280,29 @@ class LARS(TruthMethod):
         for d in tqdm(train_data):
             question = d["question"]
             for i in range(len(d["probs"])):
-                ans_text = LARS.prepare_answer_text(d["probs"][i], d["token_texts"][i], edges, number_of_bins)
-                tokenized_input = LARS.tokenize_input(tokenizer, question, ans_text)
-                all_data.append(
-                    { "label": d["labels"][i],
-                    'input_ids': tokenized_input["input_ids"], 
-                    'token_type_ids': tokenized_input["token_type_ids"], 
-                    'attention_mask': tokenized_input["attention_mask"],
-                    } 
-                )
+                if d["labels"][i] != -1:
+                    ans_text = LARS.prepare_answer_text(d["probs"][i], d["token_texts"][i], edges, number_of_bins)
+                    tokenized_input = LARS.tokenize_input(tokenizer, question, ans_text)
+                    all_data.append(
+                        { "label": d["labels"][i],
+                        'input_ids': tokenized_input["input_ids"], 
+                        'token_type_ids': tokenized_input["token_type_ids"], 
+                        'attention_mask': tokenized_input["attention_mask"],
+                        } 
+                    )
         print("Preparing validation data for LARS training...")
         all_test_data = []
         for d in tqdm(val_data):
             ans_text = LARS.prepare_answer_text(d["probs"], d["token_texts"], edges, number_of_bins)
             tokenized_input = LARS.tokenize_input(tokenizer, d["question"], ans_text)
-            all_test_data.append(
-                    { "label": d["label"],
-                    'input_ids': tokenized_input["input_ids"], 
-                    'token_type_ids': tokenized_input["token_type_ids"], 
-                    'attention_mask': tokenized_input["attention_mask"],
-                    } 
-            )
+            if d["label"] != -1:
+                all_test_data.append(
+                        { "label": d["label"],
+                        'input_ids': tokenized_input["input_ids"], 
+                        'token_type_ids': tokenized_input["token_type_ids"], 
+                        'attention_mask': tokenized_input["attention_mask"],
+                        } 
+                )
         return Dataset.from_list(all_data), Dataset.from_list(all_test_data)
 
     @staticmethod
@@ -448,7 +454,7 @@ class LARS(TruthMethod):
         #generate answers to the questions and get their labels
         train_data, val_data = LARS._generate_answers_and_label(train_data=train_data, val_data=val_data, model=chat_model, tokenizer=chat_tokenizer, 
                                 correctness_evaluator=correctness_evaluator, previous_context=previous_context,
-                                user_prompt=user_prompt, num_gen_per_question=num_gen_per_question)
+                                user_prompt=user_prompt, num_gen_per_question=num_gen_per_question, pad_token_id=pad_token_id, **kwargs)
 
         del chat_model
         del chat_tokenizer
@@ -478,11 +484,3 @@ class LARS(TruthMethod):
         
 
         return model, tokenizer, train_data, val_data
-
-    def __str__(self):
-        if self.ue_type == "confidence":
-            return "LARS Truth Method with type: " + self.ue_type + " LARS model: " + self.lars_model.config._name_or_path + " number of bins: " + str(self.number_of_bins) + " probability range borders: " + str(self.edges)
-        elif self.ue_type == "entropy":
-            return "LARS Truth Method with type: " + self.ue_type + " number of generations: " + str(self.number_of_generations) + " LARS model: " + self.lars_model.config._name_or_path + " number of bins: " + str(self.number_of_bins) + " probability range borders: " + str(self.edges)
-        elif self.ue_type in ["semantic_entropy", "se"]:
-            return "LARS Truth Method with type: " + self.ue_type + " number of generations: " + str(self.number_of_generations) + " LARS model: " + self.lars_model.config._name_or_path + " number of bins: " + str(self.number_of_bins) + " probability range borders: " + str(self.edges) + " entailment model: " + self.model_for_entailment.config._name_or_path

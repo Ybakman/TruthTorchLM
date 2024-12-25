@@ -30,9 +30,9 @@ class SemanticEntropy(TruthMethod):
     REQUIRES_SAMPLED_TEXT = True
     REQUIRES_SAMPLED_LOGPROBS = True
 
-    def __init__(self, scoring_function : ScoringMethod = LengthNormalizedScoring(), number_of_generations=5, threshold=0.0, std=1.0, 
+    def __init__(self, scoring_function : ScoringMethod = LengthNormalizedScoring(), number_of_generations=5, 
                  model_for_entailment: PreTrainedModel = None, tokenizer_for_entailment: PreTrainedTokenizer = None, entailment_model_device = 'cuda', batch_generation = True):#normalization
-        super().__init__(threshold = threshold, std = std)
+        super().__init__()
 
         if model_for_entailment is None or tokenizer_for_entailment is None:
             model_for_entailment = DebertaForSequenceClassification.from_pretrained('microsoft/deberta-large-mnli').to(entailment_model_device)
@@ -44,9 +44,9 @@ class SemanticEntropy(TruthMethod):
         self.number_of_generations = number_of_generations
         self.batch_generation = batch_generation
 
-    def _semantic_entropy(self, generated_texts:list[str], question_context:str, scores:list[float], sampled_generations_dict:dict, generated_outputs:list):
+    def _semantic_entropy(self, generated_texts:list[str], question_context:str, scores:list[float], generated_outputs:list):
 
-        clusters = bidirectional_entailment_clustering(self.model_for_entailment, self.tokenizer_for_entailment, question_context, sampled_generations_dict["generated_texts"])
+        clusters = bidirectional_entailment_clustering(self.model_for_entailment, self.tokenizer_for_entailment, question_context, generated_texts)
         total_output_for_log = calculate_total_log(generated_outputs,clusters)
 
         return {"truth_value": -total_output_for_log, 'semantic_entropy': total_output_for_log, "score_for_each_generation": scores, 'generated_texts': generated_texts, "clusters": clusters}
@@ -68,7 +68,7 @@ class SemanticEntropy(TruthMethod):
             scores.append(score) #scores are in log scale
             generated_outputs.append((text,score))
 
-        return self._semantic_entropy(generated_texts, question_context, scores, sampled_generations_dict, generated_outputs)
+        return self._semantic_entropy(generated_texts, question_context, scores, generated_outputs)
         
 
     def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
@@ -89,12 +89,5 @@ class SemanticEntropy(TruthMethod):
             scores.append(score) #scores are in log scale
             generated_outputs.append((text,score))
 
-        return self._semantic_entropy(generated_texts, question_context, scores, sampled_generations_dict, generated_outputs)
-
-    def __str__(self):
-        return "Semantic Entropy Truth Method with " + str(self.number_of_generations) + " generations. Model for checking semantic: " + self.model_for_entailment.config._name_or_path + ". Threshold: " + str(self.threshold) + ". Standard Deviation: " + str(self.std)
-
-    
-
-    
+        return self._semantic_entropy(generated_texts, question_context, scores, generated_outputs)
 

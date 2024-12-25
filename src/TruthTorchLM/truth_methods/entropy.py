@@ -18,8 +18,8 @@ class Entropy(TruthMethod):
     REQUIRES_SAMPLED_TEXT = True
     REQUIRES_SAMPLED_LOGPROBS = True
 
-    def __init__(self, scoring_function : ScoringMethod = LengthNormalizedScoring(), number_of_generations: int = 5, threshold:float = 0.0, std:float = 1.0, batch_generation = True):#normalization, 
-        super().__init__(threshold = threshold, std = std)
+    def __init__(self, scoring_function : ScoringMethod = LengthNormalizedScoring(), number_of_generations: int = 5, batch_generation = True):#normalization, 
+        super().__init__()
         self.scoring_function = scoring_function
         self.number_of_generations = number_of_generations
         self.batch_generation = batch_generation
@@ -64,5 +64,3 @@ class Entropy(TruthMethod):
         return self._entropy(generated_texts, question_context, scores)
 
     
-    def __str__(self):
-        return "Entropy Truth Method with " + str(self.number_of_generations) + " generations. Scoring function: " + str(self.scoring_function) + ". Threshold: " + str(self.threshold) + ". Standard Deviation: " + str(self.std)

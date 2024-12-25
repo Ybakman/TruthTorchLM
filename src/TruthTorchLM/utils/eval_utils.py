@@ -172,18 +172,11 @@ def run_over_dataset(dataset: Union[str, list], model:Union[str,PreTrainedModel]
             output_dict[f'truth_method_{j}']['normalized_truth_values'].append(truth_dict['normalized_truth_values'][j])
             if return_method_details:
                 output_dict[f'truth_method_{j}']['method_specific_details'].append(truth_dict['method_specific_outputs'][j])
-            
-            if wandb_push_method_details and wandb_run is not None:
-                columns=['truth_values','normalized_truth_values', 'generation_correctness', 
-            'question_text', 'ground_truths', 'generated_text', 'index', 'method_specific_details']
-
-                data = [str(truth_dict['unnormalized_truth_values']), str(truth_dict['normalized_truth_values']), is_correct, dataset[i]['question'], 
-                    (', ').join(dataset[i]['ground_truths']) , truth_dict['generated_text'], i, str(truth_dict['method_specific_outputs'])]
-            elif wandb_run is not None:
-                columns= ['truth_values','normalized_truth_values', 'generation_correctness', 
-            'question_text', 'ground_truths', 'generated_text', 'index']
-                data = [str(truth_dict['unnormalized_truth_values']), str(truth_dict['normalized_truth_values']), is_correct, dataset[i]['question'], (', ').join(dataset[i]['ground_truths']) , truth_dict['generated_text'], i]
-        if wandb_run is not None and wandb_push_method_details:
+        
+        if wandb_push_method_details and wandb_run is not None:
+            columns=['truth_values','normalized_truth_values', 'generation_correctness', 'question_text', 'ground_truths', 'generated_text', 'index', 'method_specific_details']
+            data = [str(truth_dict['unnormalized_truth_values']), str(truth_dict['normalized_truth_values']), is_correct, dataset[i]['question'], 
+                (', ').join(dataset[i]['ground_truths']) , truth_dict['generated_text'], i, str(truth_dict['method_specific_outputs'])]
             logged_data.extend([data])
             summary_table = wandb.Table(data = logged_data, columns=columns)
             wandb_run.log({
@@ -191,7 +184,6 @@ def run_over_dataset(dataset: Union[str, list], model:Union[str,PreTrainedModel]
                 'index': i,
             })
             wandb.log({"run_summary" : summary_table})
-
 
     return output_dict
     

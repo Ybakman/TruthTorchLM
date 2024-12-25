@@ -16,10 +16,10 @@ class MatrixDegreeUncertainty(TruthMethod):
 
     REQUIRES_SAMPLED_TEXT = True
     
-    def __init__(self, method_for_similarity: str = "semantic", number_of_generations=5, threshold=0.0, std=1.0, model_for_entailment: PreTrainedModel = None, 
+    def __init__(self, method_for_similarity: str = "semantic", number_of_generations=5,  model_for_entailment: PreTrainedModel = None, 
                  tokenizer_for_entailment: PreTrainedTokenizer = None, temperature = 3.0, entailment_model_device = 'cuda', batch_generation = True):
         
-        super().__init__(threshold = threshold, std = std)
+        super().__init__()
 
         if (model_for_entailment is None or tokenizer_for_entailment is None) and method_for_similarity == "semantic":
             model_for_entailment = DebertaForSequenceClassification.from_pretrained('microsoft/deberta-large-mnli').to(entailment_model_device)
@@ -72,8 +72,3 @@ class MatrixDegreeUncertainty(TruthMethod):
         output_dict['truth_value'] = -output
         
         return output_dict
-
-
-    def __str__(self):
-        return f'Matrix Degree Uncertainty with {self.method_for_similarity} similarity method. Model for entailment: {self.model_for_entailment}, Tokenizer for entailment: {self.tokenizer_for_entailment}, Number of generations: {self.number_of_generations}, Threshold: {self.threshold}, Standard Deviation: {self.std}, Temperature: {self.temperature}.'
-    

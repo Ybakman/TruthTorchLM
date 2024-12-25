@@ -13,8 +13,8 @@ class Inside(TruthMethod):
     REQUIRES_SAMPLED_TEXT = True
     REQUIRES_SAMPLED_ACTIVATIONS = True
 
-    def __init__(self, threshold:float=0.0, std:float=1.0, number_of_generations: int = 10, alpha:float = 0.001, batch_generation = True): 
-        super().__init__(threshold = threshold, std = std)
+    def __init__(self, number_of_generations: int = 10, alpha:float = 0.001, batch_generation = True): 
+        super().__init__()
         self.number_of_generations = number_of_generations
         self.alpha = alpha
         self.batch_generation = batch_generation
@@ -46,9 +46,4 @@ class Inside(TruthMethod):
         if not model in ACTIVATION_AVAILABLE_API_MODELS:
             raise ValueError("Inside method cannot be used with black-box API models since it requires access to activations.")
 
-        return {"truth_value": 0, 'normalized_truth_value':0,  'generated_texts_for_inside': []}#this output format should be same for all truth methods
-
-    def __str__(self):
-        return "Inside Truth Method with " + str(self.number_of_generations) + " generations. Threshold: " + str(self.threshold) + ". Standard Deviation: " + str(self.std)
-
-    
+        return {"truth_value": 0, 'generated_texts_for_inside': []}#this output format should be same for all truth methods

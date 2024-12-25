@@ -17,8 +17,8 @@ class PTrue(TruthMethod):
 
     REQUIRES_SAMPLED_TEXT = True
     
-    def __init__(self, number_of_ideas: int = 5, threshold:float = 0.0, std:float = 1.0, system_prompt:str = PTRUE_SYSTEM_PROMPT, user_prompt:str = PTRUE_USER_PROMPT, model_output:str = PTRUE_MODEL_OUTPUT, batch_generation = True):
-        super().__init__(threshold = threshold, std = std)
+    def __init__(self, number_of_ideas: int = 5, system_prompt:str = PTRUE_SYSTEM_PROMPT, user_prompt:str = PTRUE_USER_PROMPT, model_output:str = PTRUE_MODEL_OUTPUT, batch_generation = True):
+        super().__init__()
         self.number_of_ideas= number_of_ideas
         self.system_prompt = system_prompt
         self.user_prompt = user_prompt
@@ -69,7 +69,3 @@ class PTrue(TruthMethod):
     def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
         raise ValueError("PTrue is not applicable to API models. Please use a different truth method.")
 
-    def __str__(self):
-        return f"PTrue with {self.number_of_ideas} ideas and threshold {self.threshold} and std {self.std} and system prompt {self.system_prompt} and user prompt {self.user_prompt} and model output {self.model_output}"
-
-        

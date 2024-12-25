@@ -5,6 +5,7 @@ from typing import Union
 from abc import ABC, abstractmethod
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 from TruthTorchLM.utils.common_utils import fix_tokenizer_chat
+from TruthTorchLM.normalizers import Normalizer, SigmoidNormalizer
 import litellm
 litellm.drop_params = True
 
@@ -27,10 +28,9 @@ class TruthMethod(ABC):
     REQUIRES_SAMPLED_ACTIVATIONS = False
     REQUIRES_NORMALIZATION = True
 
-    def __init__(self, threshold:float=0.0, std:float=1.0):
-        self.threshold = threshold
-        self.std = std
-        
+    def __init__(self):
+        self.normalizer = SigmoidNormalizer(threshold = 0, std = 1.0)#default dummy normalizer
+
     def __call__(self, model:Union[PreTrainedModel, str], input_text:str = '', generated_text:str = '', question_context:str = '', all_ids:Union[list, torch.Tensor] = None, 
     tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, messages:list = [], **kwargs):
         if generation_seed is not None:
@@ -44,7 +44,7 @@ class TruthMethod(ABC):
             tokenizer=tokenizer, generation_seed=generation_seed, sampled_generations_dict=sampled_generations_dict, messages=messages, **kwargs)
         
         if self.REQUIRES_NORMALIZATION:
-            output_dict['normalized_truth_value'] = self.normalize(output_dict['truth_value'])
+            output_dict['normalized_truth_value'] = self.normalizer(output_dict['truth_value'])
         else:
             output_dict['normalized_truth_value'] = output_dict['truth_value']  
         return output_dict
@@ -58,22 +58,14 @@ class TruthMethod(ABC):
     def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
         raise NotImplementedError("Subclasses must implement this method")
 
-    def normalize(self, truth_value:float):
-        return sigmoid_normalization(truth_value, self.threshold, self.std)
-
-    def get_threshold(self):
-        return self.threshold
+    def set_normalizer(self, normalizer:Normalizer):
+        self.normalizer = normalizer
     
-    def get_std(self):
-        return self.std 
-
-    def set_threshold(self, threshold:float):
-        self.threshold = threshold
-    
-    def set_std(self, std:float):
-        self.std = std
+    def get_normalizer(self):
+        return self.normalizer
         
-    @abstractmethod
+    
     def __str__(self):
-        raise NotImplementedError("Subclasses must implement this method")
+        #search over all attributes and print them
+        return f"{self.__class__.__name__} with {str(self.__dict__)}"
     

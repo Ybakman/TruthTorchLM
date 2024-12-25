@@ -15,8 +15,17 @@ from .tokenSAR import TokenSAR
 from .lars import LARS
 from .kernel_language_entropy import KernelLanguageEntropy
 from .cross_examination import CrossExamination
+from .saplma import SAPLMA
+from .verbalized_confidence import VerbalizedConfidence
+from .eccentricity_confidence import EccentricityConfidence
+from .matrix_degree_confidence import MatrixDegreeConfidence
+from .attention_score import AttentionScore
+from .mars import MARS
+from .multi_llm_collab import MultiLLMCollab
 
 
 __all__ = ['Entropy', 'Confidence', 'TruthMethod', 'SemanticEntropy', 'PTrue', 'Inside', 'SentSAR',
 'GoogleSearchCheck', 'EccentricityUncertainty', 'MatrixDegreeUncertainty', 'NumSemanticSetUncertainty', 
-'SumEigenUncertainty', 'SelfDetection', 'TokenSAR', "LARS", 'KernelLanguageEntropy', 'CrossExamination']
+'SumEigenUncertainty', 'SelfDetection', 'TokenSAR', "LARS", 'KernelLanguageEntropy', 'CrossExamination', 
+'SAPLMA', 'VerbalizedConfidence', 'EccentricityConfidence', 'MatrixDegreeConfidence', 'AttentionScore', 
+'MARS', 'MultiLLMCollab']

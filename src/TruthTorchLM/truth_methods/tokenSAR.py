@@ -14,9 +14,8 @@ import random
 
 
 class TokenSAR(TruthMethod):
-    def __init__(self, threshold:float=0.0, std:float = 1.0, tokenizer:PreTrainedTokenizer=None, similarity_model=None, similarity_model_device = 'cuda'): #normalization, 
-        super().__init__(threshold = threshold, std = std)
-
+    def __init__(self, tokenizer:PreTrainedTokenizer=None, similarity_model=None, similarity_model_device = 'cuda'): #normalization, 
+        super().__init__()
         self.tokenizer = tokenizer
         if similarity_model is None:
             self.similarity_model = CrossEncoder('cross-encoder/stsb-roberta-large', device=similarity_model_device)
@@ -86,7 +85,3 @@ class TokenSAR(TruthMethod):
         score =  np.dot(importance_vector, logprobs)
 
         return {"truth_value": score, "generated_text": generated_text}# we shouldn't return generated text. remove it from the output format
-
-
-    def __str__(self):
-        return f"TokenSAR with tokenizer {self.tokenizer} and similarity model {self.similarity_model.config._name_or_path}" + " Threshold: " + str(self.threshold) + " Std: " + str(self.std)

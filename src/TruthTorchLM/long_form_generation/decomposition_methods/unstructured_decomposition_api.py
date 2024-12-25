@@ -14,7 +14,7 @@ def default_output_parser(text:str):
         statements = [statement.strip() for statement in statements if statement.strip()]
         return statements
 
-class FactualDecompositionAPI(FactualDecompositionMethod):
+class UnstructuredDecompositionAPI(FactualDecompositionMethod):
     def __init__(self, model:str, chat_template:list=CHAT, decomposition_depth:int=1, output_parser:Callable[[str],list[str]]=default_output_parser, **kwargs):
         super().__init__()
 
@@ -30,7 +30,8 @@ class FactualDecompositionAPI(FactualDecompositionMethod):
         if "seed" not in kwargs:
             self.kwargs["seed"] = 42
 
-    def _decompose_facts(self, input_text:str):
+    def decompose_facts(self, input_text:str):
+
         messages = deepcopy(self.chat_template)
         for item in messages:
             item["content"] = item["content"].format(TEXT=input_text)
@@ -43,23 +44,7 @@ class FactualDecompositionAPI(FactualDecompositionMethod):
         generated_text = "\n" + response.choices[0].message['content']
         statements = self.output_parser(generated_text)
 
-        return {'statements_text': generated_text, "statements": statements}
-    
-    def decompose_facts(self, input_text:str):
-
-        all_outputs = []
-        first_run_output = self._decompose_facts(input_text)
-        all_outputs.append(first_run_output)
-        statements = first_run_output["statements"]
-        for _ in range(self.decomposition_depth-1):
-            temp_statements = []
-            for statement in statements:
-                new_output = self._decompose_facts(statement)
-                all_outputs.append(new_output)
-                temp_statements.extend(new_output["statements"])
-            statements = temp_statements
-
-        return {'all_outputs': all_outputs, "statements": statements}
+        return statements
         
     def __str__(self):
         return "Factual decomposition by using LLMs method with " + self.model + " model. Chat template is:\n" +  str(self.chat_template) + "\n Sentence seperator is: " + self.sentence_seperator

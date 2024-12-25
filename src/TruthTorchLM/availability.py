@@ -8,6 +8,7 @@ PROB_AVAILABLE_API_MODELS = ['gpt-4o', 'gpt-4o-2024-05-13', 'gpt-4o-2024-08-06',
 
 ACTIVATION_AVAILABLE_API_MODELS = []
 
-AVAILABLE_DATASETS = ['trivia_qa', 'gsm8k', 'natural_qa', 'pop_qa']
+AVAILABLE_DATASETS = ['trivia_qa', 'gsm8k', 'natural_qa', 'pop_qa', 'simple_qa']
+LONG_FORM_AVAILABLE_DATASETS = ['longfact_concepts', 'longfact_objects']
 
 AVAILABLE_EVALUATION_METRICS = ['auroc', 'auprc', 'auarc', 'accuracy', 'f1', 'precision', 'recall', 'prr']

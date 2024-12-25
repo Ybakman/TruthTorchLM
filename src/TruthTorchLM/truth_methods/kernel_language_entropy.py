@@ -13,10 +13,10 @@ class KernelLanguageEntropy(TruthMethod):
     REQUIRES_SAMPLED_TEXT = True
     REQUIRES_SAMPLED_LOGPROBS = False
     
-    def __init__(self, threshold=0.0, std=1.0,number_of_generations=5,
+    def __init__(self, number_of_generations=5,
                  model_for_entailment: PreTrainedModel = None, tokenizer_for_entailment: PreTrainedTokenizer = None, entailment_model_device = 'cuda',
                  kernel_type:str='heat', normalize_laplacian:bool=False, temperature=0.3, smoothness=1., scale=1.):
-        super().__init__(threshold = threshold, std = std)
+        super().__init__()
     
         if model_for_entailment is None or tokenizer_for_entailment is None:
             model_for_entailment = DebertaForSequenceClassification.from_pretrained('microsoft/deberta-large-mnli').to(entailment_model_device)
@@ -77,9 +77,6 @@ class KernelLanguageEntropy(TruthMethod):
 
         return {'truth_value': -kernel_entropy, 'generated_texts': generated_texts, 'kernel': kernel, 'semantic_graph':semantic_graph}
 
-    def __str__(self):
-        return "Kernel Language Entropy Truth Method with " + str(self.number_of_generations) + " generations. Model for checking semantic: " + self.model_for_entailment.config._name_or_path + ". Threshold: " + str(self.threshold) + ". Standard Deviation: " + str(self.std)
-    
     def calculate_kernel_language_entropy(self, texts: list[str], context:str, method_for_similarity:str, model_for_entailment: PreTrainedModel,
                                         tokenizer_for_entailment: PreTrainedTokenizer, normalize_laplacian: bool, kernel_type: str,
                                         temperature:float, smoothness:float, scale:float):

@@ -3,6 +3,8 @@ from sklearn.metrics import precision_recall_curve
 
 
 def f1_picker(correctness: list, truth_values: list):
+    truth_values = np.array(truth_values)
+    truth_values = np.nan_to_num(truth_values)  # Replace NaN with 0
     precisions, recalls, thresholds = precision_recall_curve(correctness, truth_values)
     f1_scores = 2 * (precisions * recalls) / (precisions + recalls)
     # Remove NaN values and find the index of the highest F1 score

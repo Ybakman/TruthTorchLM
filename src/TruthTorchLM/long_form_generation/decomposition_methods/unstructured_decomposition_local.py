@@ -1,8 +1,8 @@
-from TruthTorchLM.decomposition_methods import FactualDecompositionMethod
+from .decomposition_method import FactualDecompositionMethod
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 from typing import Union
 from typing import Callable
-from TruthTorchLM.utils.common_utils import generate
+from TruthTorchLM.utils.common_utils import generate, fix_tokenizer_chat
 
 from copy import deepcopy
 
@@ -14,7 +14,7 @@ def default_output_parser(text:str):
         statements = [statement.strip() for statement in statements if statement.strip()]
         return statements
 
-class FactualDecompositionLocal(FactualDecompositionMethod):
+class UnstructuredDecompositionLocal(FactualDecompositionMethod):
     def __init__(self, model:PreTrainedModel, tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast], chat_template:list=CHAT, decomposition_depth:int=1, 
                  output_parser:Callable[[str],list[str]]=default_output_parser, add_generation_prompt = True, continue_final_message = False, **kwargs):
         super().__init__()
@@ -48,32 +48,18 @@ class FactualDecompositionLocal(FactualDecompositionMethod):
         print(default_kwargs)
         self.kwargs = default_kwargs
 
-    def _decompose_facts(self, input_text:str):
+    def decompose_facts(self, input_text:str):
+
         messages = deepcopy(self.chat_template)
         for item in messages:
             item["content"] = item["content"].format(TEXT=input_text)
+        self.tokenizer, messages = fix_tokenizer_chat(self.tokenizer, messages)
         text = self.tokenizer.apply_chat_template(messages, tokenize = False, add_generation_prompt=self.add_generation_prompt, continue_final_message=self.continue_final_message)
         generated_output = generate(text, self.model, self.tokenizer, **self.kwargs)
         generated_text = "\n" + generated_output["generated_text_skip_specials"].strip()
         statements = self.output_parser(generated_text)
 
-        return {'statements_text': generated_text, "statements": statements}
-    
-    def decompose_facts(self, input_text:str):
-
-        all_outputs = []
-        first_run_output = self._decompose_facts(input_text)
-        all_outputs.append(first_run_output)
-        statements = first_run_output["statements"]
-        for _ in range(self.decomposition_depth-1):
-            temp_statements = []
-            for statement in statements:
-                new_output = self._decompose_facts(statement)
-                all_outputs.append(new_output)
-                temp_statements.extend(new_output["statements"])
-            statements = temp_statements
-
-        return {'all_outputs': all_outputs, "statements": statements}
+        return statements
         
     def __str__(self):
         return "Factual decomposition by using LLMs method with " + self.model + " model. Chat template is:\n" +  str(self.chat_template) + "\n Sentence seperator is: " + self.sentence_seperator

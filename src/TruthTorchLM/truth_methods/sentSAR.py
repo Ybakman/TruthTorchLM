@@ -20,10 +20,9 @@ class SentSAR(TruthMethod):
     REQUIRES_SAMPLED_TEXT = True
     REQUIRES_SAMPLED_LOGPROBS = True
     
-    def __init__(self, scoring_function : ScoringMethod = LengthNormalizedScoring(), number_of_generations=5, t=0.001, threshold=0.0, std=1.0, 
+    def __init__(self, scoring_function : ScoringMethod = LengthNormalizedScoring(), number_of_generations=5, t=0.001, 
                  model_for_similarity=None, similarity_model_device = 'cuda', batch_generation=True):#normalization
-        super().__init__(threshold = threshold, std = std)
-
+        super().__init__()
         if model_for_similarity is None:
             self.model_for_similarity = CrossEncoder('cross-encoder/stsb-roberta-large', num_labels=1, device=similarity_model_device)
         else:
@@ -100,11 +99,3 @@ class SentSAR(TruthMethod):
             scores.append(score) #scores are in log scale
 
         return self._sentsar(generated_texts, question_context, scores, sampled_generations_dict)
-
-    def __str__(self):
-        return "SentSAR Truth Method with " + str(self.number_of_generations) + " generations and t="+ str(self.t)+". Model for checking sentence similarity: " + self.model_for_similarity.config._name_or_path + ". Threshold: " + str(self.threshold) + ". Standard Deviation: " + str(self.std)
-
-    
-
-    
-

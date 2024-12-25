@@ -249,7 +249,7 @@ number_of_generations:int = 0, return_text:bool = False, return_logits:bool = Fa
                 activations_list.append(acts)
             model_output.hidden_states = None
         if return_attentions:
-            attentions_list = []
+            attentions_list = model_output.attentions
             for i in range(number_of_generations): #generation id
                 atts = []
                 for j in range(indices[i]+1): #token id 

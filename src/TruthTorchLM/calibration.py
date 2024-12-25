@@ -5,12 +5,11 @@ from TruthTorchLM.evaluators import CorrectnessEvaluator, ROUGE
 from TruthTorchLM.templates import DEFAULT_SYSTEM_BENCHMARK_PROMPT, DEFAULT_USER_PROMPT 
 from TruthTorchLM.utils.dataset_utils import get_dataset
 from TruthTorchLM.utils.eval_utils import run_over_dataset
-from TruthTorchLM.utils.calibration_utils import f1_picker, precision_picker, recall_picker, accuracy_picker
 import numpy as np
 
 
 
-def calibrate_truth_method(dataset: Union[str, list], model:Union[str,PreTrainedModel],  truth_methods: list[TruthMethod], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] =None, threshold_picker:'function' = f1_picker,
+def calibrate_truth_method(dataset: Union[str, list], model:Union[str,PreTrainedModel],  truth_methods: list[TruthMethod], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] =None,
 correctness_evaluator:CorrectnessEvaluator = ROUGE(0.7), size_of_data:float = 1.0, previous_context:list =[{'role': 'system', 'content': DEFAULT_SYSTEM_BENCHMARK_PROMPT}], 
  user_prompt:str = DEFAULT_USER_PROMPT, seed:int = 0, wandb_run = None, return_method_details:bool = False, wandb_push_method_details:bool = False, split = 'train', **kwargs):
     
@@ -22,24 +21,11 @@ correctness_evaluator:CorrectnessEvaluator = ROUGE(0.7), size_of_data:float = 1.
 
     for i, truth_method in enumerate(truth_methods):
         truth_values = output_dict[f'truth_method_{i}']['truth_values']
+        truth_values = np.array(truth_values)
+        truth_values[np.isnan(truth_values)] = 0
         correctness = output_dict['generation_correctness']
         #if generation_correctness is -1, it means that the model didn't attempt to generate an answer, remove those from the evaluation
-        correctness = np.array(correctness)
-        truth_values = np.array(truth_values)
-        truth_values = truth_values[correctness != -1]
-        correctness = correctness[correctness != -1]
-
-        #set nan values to zero
-        truth_values[np.isnan(truth_values)] = 0
-        std = np.std(truth_values)
-        threshold = threshold_picker(correctness, truth_values)
-        truth_method.set_threshold(threshold)
-        truth_method.set_std(std)
-        print(f'Truth method_{i} is calibrated with the following parameters: threshold =', threshold, 'std =', std)
-        if wandb_run is not None:
-            wandb_run.log({f'threshold_of_method_{i}': threshold})
-            wandb_run.log({f'std_of_method_{i}': std})
-
+        truth_method.normalizer.calibrate(generation_performance_scores=correctness, truth_values=truth_values)
     return output_dict 
 
 

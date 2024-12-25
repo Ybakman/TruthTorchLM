@@ -14,8 +14,8 @@ import random
 
 
 class Confidence(TruthMethod):
-    def __init__(self, scoring_function : ScoringMethod = LengthNormalizedScoring(),threshold:float=0.0, std:float = 1.0):#normalization, 
-        super().__init__(threshold = threshold, std = std)
+    def __init__(self, scoring_function : ScoringMethod = LengthNormalizedScoring()):#normalization, 
+        super().__init__()
         self.scoring_function = scoring_function
 
 
@@ -23,9 +23,7 @@ class Confidence(TruthMethod):
     tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, messages:list = [], **kwargs):
 
         input_ids = tokenizer.encode(input_text, return_tensors="pt").to(model.device)
-        model_output = all_ids
-        tokens = model_output[0][len(input_ids[0]):]
-        tokens_text = [tokenizer.decode([token]) for token in tokens]
+        model_output = all_ids.to(model.device)
 
         with torch.no_grad():
             outputs = model(model_output)
@@ -60,17 +58,11 @@ class Confidence(TruthMethod):
             )
             
         logprobs = [token['logprob'] for token in response.choices[0].logprobs['content']]
-        tokens = [token['token'] for token in response.choices[0].logprobs['content']]
         generated_text = response.choices[0].message['content']
         score = self.scoring_function(logprobs)
-
-        normalized_truth_value = sigmoid_normalization(score, self.threshold, self.std)
 
         return {"truth_value": score, "generated_text": generated_text}# we shouldn't return generated text. remove it from the output format
 
 
 
 
-
-    def __str__(self):
-        return "Confidence Truth Method with " + str(self.scoring_function) + " scoring function." + " Threshold: " + str(self.threshold) + " Std: " + str(self.std)
