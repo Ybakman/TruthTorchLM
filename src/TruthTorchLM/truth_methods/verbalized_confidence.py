@@ -63,7 +63,7 @@ class VerbalizedConfidence(TruthMethod):
 
         return {"truth_value": confidence, "confidence_text": confidence_text}
 
-    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
+    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None,  logprobs:list=None, generated_tokens:list=None, **kwargs):
         chat = [{"role": "system", "content": self.system_prompt},
         {"role": "user", "content": self.user_prompt.format(question_context = question_context, generated_text = generated_text)}]
 

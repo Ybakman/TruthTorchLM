@@ -36,7 +36,7 @@ class KernelLanguageEntropy(TruthMethod):
 
         if sampled_generations_dict is None:
             sampled_generations_dict = sample_generations_hf_local(model = model, input_text = input_text, tokenizer = tokenizer, generation_seed=generation_seed, 
-            number_of_generations=self.number_of_generations, return_text = True, return_logprobs=True, **kwargs)
+            number_of_generations=self.number_of_generations, return_text = True, return_logprobs=False, **kwargs)
 
         generated_texts = sampled_generations_dict["generated_texts"][:self.number_of_generations]
         
@@ -54,20 +54,13 @@ class KernelLanguageEntropy(TruthMethod):
         return {'truth_value': -kernel_entropy, 'generated_texts': generated_texts, 'kernel': kernel, 'semantic_graph':semantic_graph}
 
 
-    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
-       
-        if model not in PROB_AVAILABLE_API_MODELS:
-            raise ValueError("Semantic Entropy method is not applicable to given model")
+    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):
         
         if sampled_generations_dict is None:
             sampled_generations_dict = sample_generations_api(model = model, messages = messages, generation_seed = generation_seed, 
-            number_of_generations=self.number_of_generations, return_text = True, return_logprobs=True, **kwargs)
+            number_of_generations=self.number_of_generations, return_text = True, return_logprobs=False, **kwargs)
             
         generated_texts = sampled_generations_dict["generated_texts"][:self.number_of_generations]
-
-
-        # for i in range(self.number_of_generations):
-        #     text = generated_texts[i]
 
         # # KLE part
         semantic_graph, kernel, kernel_entropy = self.calculate_kernel_language_entropy(texts=generated_texts, context=question_context, method_for_similarity='kernel',

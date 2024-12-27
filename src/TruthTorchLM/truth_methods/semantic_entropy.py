@@ -71,7 +71,7 @@ class SemanticEntropy(TruthMethod):
         return self._semantic_entropy(generated_texts, question_context, scores, generated_outputs)
         
 
-    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
+    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):
         if model not in PROB_AVAILABLE_API_MODELS:
             raise ValueError("Semantic Entropy method is not applicable to given model")
         

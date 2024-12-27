@@ -46,7 +46,7 @@ class Entropy(TruthMethod):
 
         return self._entropy(generated_texts, question_context, scores)
 
-    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
+    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):
         if not model in PROB_AVAILABLE_API_MODELS:
             raise ValueError("Entropy method is not applicable to given model")
         

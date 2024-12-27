@@ -18,6 +18,9 @@ import re
 
 
 class MARS(TruthMethod):
+
+    REQUIRES_LOGPROBS = True
+
     def __init__(self, mars_temperature:float = 0.1, mars_model=None, mars_tokenizer = None, device = 'cuda'):
         super().__init__()
         self.mars_temperature = mars_temperature
@@ -94,6 +97,12 @@ class MARS(TruthMethod):
             real_phrases.append(answer[i:last_token_place ].strip())
             i = last_token_place
             phrase_ind += 1
+
+            if i < len(answer) and phrase_ind == len(phrases):
+                print('Error in importance vector')
+                print(phrases)
+                print(answer)
+                return np.ones(len(words))/ len(words) , words
             
         return np.array(importance_scores), real_phrases
 
@@ -124,6 +133,8 @@ class MARS(TruthMethod):
                         break
                 if found == False and k == len(phrases)-i:
                     print('Error')
+                    print(phrases)
+                    print(tokens)
                     return -np.mean(neg_log_likelihoods), np.ones(len(neg_log_likelihoods))/ len(neg_log_likelihoods)
 
         merged_importance_vector = np.array(merged_importance_vector) / self.mars_temperature
@@ -173,27 +184,15 @@ class MARS(TruthMethod):
         return {"truth_value": score,  "generated_text": generated_text, 'phrases': phrases, 'importance_scores': importance_scores, 'probs': probs, 'merged_importance_vector': merged_importance_vector}
     
 
-    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
+    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):
 
         if not model in PROB_AVAILABLE_API_MODELS:
             raise ValueError("MARS method is not applicable to given model")
 
-        kwargs = copy.deepcopy(kwargs)
-           
-        response = completion(
-            model=model,
-            messages=messages,
-            logprobs = True,
-            **kwargs
-            )
-            
-        logprobs = [token['logprob'] for token in response.choices[0].logprobs['content']]
-        logprobs = np.array(logprobs)
-        probs = np.exp(logprobs)
-        tokens = [token['token'] for token in response.choices[0].logprobs['content']]
+        probs = np.exp(np.array(logprobs))
 
         importance_scores, phrases = self.get_importance_vector_MARS(self.mars_model, self.mars_tokenizer, question_context, generated_text)
-        score, merged_importance_vector = self.compute_token_nll_importance_phrase(probs, tokens, importance_scores, phrases)
+        score, merged_importance_vector = self.compute_token_nll_importance_phrase(probs, generated_tokens, importance_scores, phrases)
                 
         return {"truth_value": score,  "generated_text": generated_text, 'phrases': phrases, 'importance_scores': importance_scores, 'probs': probs, 'merged_importance_vector': merged_importance_vector}
     

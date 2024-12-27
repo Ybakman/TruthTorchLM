@@ -54,14 +54,14 @@ class EccentricityConfidence(TruthMethod):
 
         if sampled_generations_dict is None:
             sampled_generations_dict = sample_generations_hf_local(model = model, input_text = input_text, tokenizer = tokenizer, generation_seed=generation_seed, 
-            number_of_generations=self.number_of_generations-1, return_text = True, return_logprobs=True, batch_generation = self.batch_generation, **kwargs)
+            number_of_generations=self.number_of_generations-1, return_text = True, batch_generation = self.batch_generation, **kwargs)
 
         generated_texts = sampled_generations_dict["generated_texts"][:self.number_of_generations - 1]
         generated_texts.append(generated_text)
             
         return self._eccentricity_confidence(generated_texts, question_context, index = len(generated_texts)-1)
 
-    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
+    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):
         
         if sampled_generations_dict is None:
             sampled_generations_dict = sample_generations_api(model = model, messages = messages, generation_seed = generation_seed, 

@@ -51,7 +51,7 @@ class SAPLMA(TruthMethod):
         return {"truth_value": score}
     
 
-    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
+    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None,  logprobs:list=None, generated_tokens:list=None, **kwargs):
 
         if not model in ACTIVATION_AVAILABLE_API_MODELS:
             raise ValueError("SAPLMA method cannot be used with black-box API models since it requires access to activations.")

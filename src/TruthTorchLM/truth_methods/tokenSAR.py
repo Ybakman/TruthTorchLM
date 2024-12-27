@@ -14,6 +14,9 @@ import random
 
 
 class TokenSAR(TruthMethod):
+
+    REQUIRES_LOGPROBS = True
+
     def __init__(self, tokenizer:PreTrainedTokenizer=None, similarity_model=None, similarity_model_device = 'cuda'): #normalization, 
         super().__init__()
         self.tokenizer = tokenizer
@@ -55,28 +58,14 @@ class TokenSAR(TruthMethod):
         return {"truth_value": score,  "generated_text": generated_text}# we shouldn't return generated text. remove it from the output format
     
 
-    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
+    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):
 
         if not model in PROB_AVAILABLE_API_MODELS:
             raise ValueError("TokenSAR method is not applicable to given model")
 
-        kwargs = copy.deepcopy(kwargs)
-           
-        response = completion(
-            model=model,
-            messages=messages,
-            logprobs = True,
-            **kwargs
-            )
-            
-        logprobs = [token['logprob'] for token in response.choices[0].logprobs['content']]
-        tokens = [token['token'] for token in response.choices[0].logprobs['content']]
-        generated_text = response.choices[0].message['content']
-
-
         importance_vector = []
-        for i in range(len(tokens)):
-            removed_answer = "".join(tokens[:i]) + "".join(tokens[i+1:])
+        for i in range(len(generated_tokens)):
+            removed_answer = "".join(generated_tokens[:i]) + "".join(generated_tokens[i+1:])
             score = self.similarity_model.predict([( question_context +" "+removed_answer, question_context + ' ' + generated_text)])
             score = 1 - score[0]
             importance_vector.append(score)

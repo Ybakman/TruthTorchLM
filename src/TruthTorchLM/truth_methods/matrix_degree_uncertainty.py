@@ -52,7 +52,7 @@ class MatrixDegreeUncertainty(TruthMethod):
         output_dict = self._matrix_degree_uncertainty(sampled_generations_dict, question_context)
         return output_dict
 
-    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
+    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):
         
         if sampled_generations_dict is None:
             sampled_generations_dict = sample_generations_api(model = model, messages = messages, generation_seed = generation_seed, 

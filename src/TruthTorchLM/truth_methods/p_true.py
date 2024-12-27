@@ -66,6 +66,6 @@ class PTrue(TruthMethod):
 
         return {"truth_value": prob_true, 'p_true': prob_true,  'generated_ideas': ideas}#this output format should be same for all truth methods
 
-    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
+    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):
         raise ValueError("PTrue is not applicable to API models. Please use a different truth method.")
 

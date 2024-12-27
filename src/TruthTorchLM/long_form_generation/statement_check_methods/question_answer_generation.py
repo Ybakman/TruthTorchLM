@@ -1,7 +1,7 @@
 from .statement_check_method import StatementCheckMethod
 from TruthTorchLM.utils import check_entailment
 from TruthTorchLM.truth_methods import TruthMethod
-from TruthTorchLM.availability import AVAILABLE_API_MODELS
+from TruthTorchLM.availability import AVAILABLE_API_MODELS, PROB_AVAILABLE_API_MODELS
 from TruthTorchLM.utils.common_utils import generate, fix_tokenizer_chat
 from TruthTorchLM.generation import get_sampling_properties, sample_generations_hf_local, sample_generations_api
 
@@ -236,7 +236,7 @@ class QuestionAnswerGeneration(StatementCheckMethod):
         
 
 
-    def _get_truth_value_api(self, truth_methods, model, q_messages, question, answer, generation_seed, **kwargs):
+    def _get_truth_value_api(self, truth_methods, model, q_messages, question, answer, generation_seed, logprobs, generated_tokens, **kwargs):
 
         #Get sampled generations to be used in truth methods
         number_of_generations, return_text, return_logits, return_logprobs, return_attentions, return_activations = get_sampling_properties(truth_methods)
@@ -247,7 +247,8 @@ class QuestionAnswerGeneration(StatementCheckMethod):
         unnormalized_truth_values = []
         method_spec_outputs = []
         for truth_method in truth_methods:
-            truth_values = truth_method(model=model, messages=q_messages, generated_text=answer, question_context=question, generation_seed=generation_seed, sampled_generations_dict=sampled_gen_dict, **kwargs)
+            truth_values = truth_method(model=model, messages=q_messages, generated_text=answer, question_context=question, generation_seed=generation_seed, 
+                                        sampled_generations_dict=sampled_gen_dict, logprobs=logprobs, generated_tokens=generated_tokens, **kwargs)
             normalized_truth_values.append(truth_values['normalized_truth_value'])
             unnormalized_truth_values.append(truth_values['truth_value'])
             method_spec_outputs.append(truth_values)
@@ -260,9 +261,20 @@ class QuestionAnswerGeneration(StatementCheckMethod):
 
         questions = self._get_questions(question_context=question_context, statement=statement, text_so_far=text_so_far)
 
+        requires_logprobs = False    
+        for truth_method in self.truth_methods:
+            if truth_method.REQUIRES_LOGPROBS:
+                requires_logprobs = True
+
+        if requires_logprobs and not model in PROB_AVAILABLE_API_MODELS:
+            raise ValueError(f"model {model} is not supported for probability requiring truth methods.")
+    
         #Get model answers for each question (generate answers until it entails the statement)
         answers = [None] * len(questions)
+        logprobs = [None] * len(questions)
+        generated_tokens = [None] * len(questions)
         q_messages = deepcopy(self.generate_answer_instruction)
+
         for i, question in enumerate(questions):
             q_messages[1]["content"] = question
 
@@ -271,23 +283,28 @@ class QuestionAnswerGeneration(StatementCheckMethod):
                 response = completion(
                     model=model,
                     messages=q_messages,
+                    logprobs = requires_logprobs,
                     **kwargs
                 )
                 answer = response.choices[0].message['content']
                 if self._does_entail(statement=statement, question=question, answer=answer):
                     answers[i] = answer
+                    if requires_logprobs:
+                        logprobs[i] = [token['logprob'] for token in response.choices[0].logprobs['content']]
+                        generated_tokens[i] = [token['token'] for token in response.choices[0].logprobs['content']]
                     break
 
         #Get truth value for truth method
         normalized_truth_values = []
         unnormalized_truth_values = []
         method_spec_outputs = []
-        for question, answer in zip(questions, answers):
+        for question, answer, logprob, tokens in zip(questions, answers, logprobs, generated_tokens):
             q_messages[1]["content"] = question
             if answer is not None:
                 normalized_truth_value, unnormalized_truth_value, method_spec_output = self._get_truth_value_api(self.truth_methods, model=model, 
                                                                                              q_messages=q_messages, question=question, answer=answer, 
-                                                                                             generation_seed=generation_seed, **kwargs)
+                                                                                             generation_seed=generation_seed, logprobs=logprob, 
+                                                                                             generated_tokens=tokens, **kwargs)
                 normalized_truth_values.append(normalized_truth_value)
                 unnormalized_truth_values.append(unnormalized_truth_value)
                 method_spec_outputs.append(method_spec_output)

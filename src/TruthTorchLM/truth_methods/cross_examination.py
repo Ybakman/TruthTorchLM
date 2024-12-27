@@ -79,7 +79,7 @@ class CrossExamination(TruthMethod):
             examiner_messages.append({"role":"assistant", "content":generated_text})
             return examiner_messages
 
-    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
+    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):
         
         kwargs = copy.deepcopy(kwargs)
         

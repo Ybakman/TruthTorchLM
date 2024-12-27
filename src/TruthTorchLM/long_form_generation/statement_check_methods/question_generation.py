@@ -225,6 +225,14 @@ class QuestionGeneration(StatementCheckMethod):
 
         questions = self._get_questions(question_context=question_context, statement=statement, text_so_far=text_so_far)
 
+        requires_logprobs = False    
+        for truth_method in self.truth_methods:
+            if truth_method.REQUIRES_LOGPROBS:
+                requires_logprobs = True
+
+        if requires_logprobs:
+            raise ValueError(f"Truth methods requiring logprobs cannot be used with QuestionGeneration statement check method.")
+
         #Get model answers for each question (generate answers until it entails the statement)
         answers = [statement] * len(questions)
         q_messages = deepcopy(self.generate_answer_instruction)

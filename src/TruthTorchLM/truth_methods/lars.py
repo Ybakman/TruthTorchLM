@@ -25,6 +25,9 @@ from TruthTorchLM.utils.eval_utils import metric_score
 from TruthTorchLM.utils.common_utils import fix_tokenizer_chat
 
 class LARS(TruthMethod):
+
+    REQUIRES_LOGPROBS = True
+
     def __init__(self, 
                         device="cuda", lars_model:PreTrainedModel=None, lars_tokenizer:PreTrainedTokenizer=None, 
                         ue_type:str="confidence", number_of_generations:int=0,
@@ -51,6 +54,7 @@ class LARS(TruthMethod):
         if (ue_type == "se" or ue_type == "semantic_entropy") and (model_for_entailment is None or tokenizer_for_entailment is None):
             model_for_entailment = DebertaForSequenceClassification.from_pretrained('microsoft/deberta-large-mnli').to(entailment_model_device)
             tokenizer_for_entailment = DebertaTokenizer.from_pretrained('microsoft/deberta-large-mnli')
+
         self.model_for_entailment = model_for_entailment
         self.tokenizer_for_entailment = tokenizer_for_entailment
 
@@ -150,24 +154,13 @@ class LARS(TruthMethod):
         return {"truth_value": lars_score,  "generated_text": generated_text}# we shouldn't return generated text. remove it from the output format
     
 
-    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
+    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):
 
         if not model in PROB_AVAILABLE_API_MODELS:
             raise ValueError("LARS method is not applicable to given model")
 
         if self.ue_type == "confidence":
-            kwargs = copy.deepcopy(kwargs)
-            response = completion(
-                model=model,
-                messages=messages,
-                logprobs = True,
-                **kwargs
-                )
-                
-            logprobs = [token['logprob'] for token in response.choices[0].logprobs['content']]
-            tokens = [token['token'] for token in response.choices[0].logprobs['content']]
-            generated_text = response.choices[0].message['content']
-            lars_score = self._lars(question_context, tokens, torch.exp(torch.tensor(logprobs)))
+            lars_score = self._lars(question_context, generated_tokens, torch.exp(torch.tensor(logprobs)))
 
         elif self.ue_type in ["semantic_entropy", "se", "entropy"]:
             if sampled_generations_dict is None:

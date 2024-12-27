@@ -107,7 +107,7 @@ class SelfDetection(TruthMethod):
         
 
     
-    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
+    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):
         if model not in AVAILABLE_API_MODELS:
             raise ValueError("This method is not applicable to given model")
         kwargs = copy.deepcopy(kwargs)

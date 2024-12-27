@@ -27,17 +27,19 @@ class TruthMethod(ABC):
     REQUIRES_SAMPLED_ATTENTIONS = False
     REQUIRES_SAMPLED_ACTIVATIONS = False
     REQUIRES_NORMALIZATION = True
+    REQUIRES_LOGPROBS = False
 
     def __init__(self):
         self.normalizer = SigmoidNormalizer(threshold = 0, std = 1.0)#default dummy normalizer
 
     def __call__(self, model:Union[PreTrainedModel, str], input_text:str = '', generated_text:str = '', question_context:str = '', all_ids:Union[list, torch.Tensor] = None, 
-    tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, messages:list = [], **kwargs):
+    tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, messages:list = [], logprobs:list=None, generated_tokens:list=None, **kwargs):
         if generation_seed is not None:
             torch.manual_seed(generation_seed)
             random.seed(generation_seed)
         if isinstance(model, str):
-            output_dict = self.forward_api(model=model, messages=messages, generated_text=generated_text, question_context=question_context, generation_seed=generation_seed, sampled_generations_dict=sampled_generations_dict, **kwargs)
+            output_dict = self.forward_api(model=model, messages=messages, generated_text=generated_text, question_context=question_context, 
+            generation_seed=generation_seed, sampled_generations_dict=sampled_generations_dict, logprobs=logprobs, generated_tokens=generated_tokens, **kwargs)
         else:
             tokenizer, messages = fix_tokenizer_chat(tokenizer, messages)
             output_dict = self.forward_hf_local(model=model, input_text=input_text, generated_text=generated_text, question_context=question_context, all_ids=all_ids, 
@@ -55,7 +57,7 @@ class TruthMethod(ABC):
         raise NotImplementedError("Subclasses must implement this method")
     
     @abstractmethod
-    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
+    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):
         raise NotImplementedError("Subclasses must implement this method")
 
     def set_normalizer(self, normalizer:Normalizer):

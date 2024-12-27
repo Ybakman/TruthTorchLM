@@ -109,7 +109,7 @@ class GoogleSearchCheck(TruthMethod):
         return self._google_search_check(verification_text, evidences, query_text)
 
 
-    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
+    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):
         kwargs = copy.deepcopy(kwargs)
         #first we need to generate search queries
         chat = [{"role": "system", "content": GOOGLE_CHECK_QUERY_SYSTEM_PROMPT},

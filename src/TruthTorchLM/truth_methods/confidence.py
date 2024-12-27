@@ -14,6 +14,9 @@ import random
 
 
 class Confidence(TruthMethod):
+
+    REQUIRES_LOGPROBS = True
+
     def __init__(self, scoring_function : ScoringMethod = LengthNormalizedScoring()):#normalization, 
         super().__init__()
         self.scoring_function = scoring_function
@@ -42,23 +45,11 @@ class Confidence(TruthMethod):
         return {"truth_value": score,  "generated_text": generated_text}# we shouldn't return generated text. remove it from the output format
     
 
-    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
+    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):
 
         if not model in PROB_AVAILABLE_API_MODELS:
             raise ValueError("Confidence method is not applicable to given model")
 
-        kwargs = copy.deepcopy(kwargs)
-        
-           
-        response = completion(
-            model=model,
-            messages=messages,
-            logprobs = True,
-            **kwargs
-            )
-            
-        logprobs = [token['logprob'] for token in response.choices[0].logprobs['content']]
-        generated_text = response.choices[0].message['content']
         score = self.scoring_function(logprobs)
 
         return {"truth_value": score, "generated_text": generated_text}# we shouldn't return generated text. remove it from the output format

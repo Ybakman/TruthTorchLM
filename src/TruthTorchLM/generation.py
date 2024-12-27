@@ -8,7 +8,7 @@ from litellm import completion
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 
 #from .truth_methods.truth_method import TruthMethod
-from TruthTorchLM.availability import AVAILABLE_API_MODELS
+from TruthTorchLM.availability import AVAILABLE_API_MODELS, PROB_AVAILABLE_API_MODELS
 from TruthTorchLM.utils.common_utils import generate, fix_tokenizer_chat
 
 import time
@@ -82,6 +82,14 @@ def generate_with_truth_value_api(model:str, messages:list, question_context:str
     if type(model) == str and not model in AVAILABLE_API_MODELS:
         raise ValueError(f"model {model} is not supported.")
 
+    requires_logprobs = False    
+    for truth_method in truth_methods:
+        if truth_method.REQUIRES_LOGPROBS:
+            requires_logprobs = True
+
+    if requires_logprobs and not model in PROB_AVAILABLE_API_MODELS:
+        raise ValueError(f"model {model} is not supported for probability requiring truth methods.")
+    
     if question_context == None:
         question_context = ''
         #search over last user message if exists
@@ -89,8 +97,8 @@ def generate_with_truth_value_api(model:str, messages:list, question_context:str
             if message['role'] == 'user':
                 question_context = message['content']
                 break
+
     # Generate the main output
-    
     seed = kwargs.pop('seed', None)
     if seed == None:
         seed = random.randint(0, 1000000)
@@ -99,9 +107,13 @@ def generate_with_truth_value_api(model:str, messages:list, question_context:str
     response = completion(
         model=model,
         messages=messages,
+        logprobs = requires_logprobs,
         **kwargs
     )
     generated_text = response.choices[0].message['content']
+
+    logprobs = [token['logprob'] for token in response.choices[0].logprobs['content']] if requires_logprobs else None
+    generated_tokens = [token['token'] for token in response.choices[0].logprobs['content']] if requires_logprobs else None
     
     #Get sampled generations to be used in truth methods
     number_of_generations, return_text, return_logits, return_logprobs, return_attentions, return_activations = get_sampling_properties(truth_methods)
@@ -114,7 +126,7 @@ def generate_with_truth_value_api(model:str, messages:list, question_context:str
     method_spec_outputs = []
     
     for truth_method in truth_methods:
-        truth_values = truth_method(model=model, messages=messages, generated_text=generated_text, question_context=question_context, generation_seed=generation_seed, sampled_generations_dict=sampled_gen_dict, **kwargs)
+        truth_values = truth_method(model=model, messages=messages, generated_text=generated_text, question_context=question_context, generation_seed=generation_seed, sampled_generations_dict=sampled_gen_dict, logprobs=logprobs, generated_tokens=generated_tokens, **kwargs)
         normalized_truth_values.append(truth_values['normalized_truth_value'])
         unnormalized_truth_values.append(truth_values['truth_value'])
         method_spec_outputs.append(truth_values)
