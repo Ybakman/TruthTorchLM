@@ -48,7 +48,7 @@ def evaluate_truth_method_long_form(dataset: Union[str, list], model:Union[str,P
 
     label_name_mapping = {}
     for i in range(len(stmt_check_methods)):
-        if output_dict[f'stmt_check_methods_{i}']['truth_methods']:
+        if 'truth_methods' in output_dict[f'stmt_check_methods_{i}']:
             for j in range(len(output_dict[f'stmt_check_methods_{i}']['truth_methods'])):
                 label_name_mapping[f'stmt_check_methods_{i}_truth_method_{j}'] = str(stmt_check_methods[i].__class__.__name__) +"-"+ str(stmt_check_methods[i].truth_methods[j].__class__.__name__)
         else:
@@ -96,7 +96,7 @@ def get_metric_scores_sample_level(output_dict:dict, eval_metrics:list[str], see
         output_dict['statement_correctness'][k] = np.array(output_dict['statement_correctness'][k])
     eval_result = {}
     for i in range(len(stmt_check_methods)): #statement check method index
-        if output_dict[f'stmt_check_methods_{i}']['truth_methods']:
+        if 'truth_methods' in output_dict[f'stmt_check_methods_{i}']:
             for j in range(len(output_dict[f'stmt_check_methods_{i}']['truth_methods'])): #truth method index of the statement check method
                 eval_result[f'stmt_check_methods_{i}_truth_method_{j}']={}
                 for metric in eval_metrics: 
@@ -137,7 +137,7 @@ def get_metric_scores_dataset_level(output_dict:dict, eval_metrics:list[str], se
         labels.extend(np.array(output_dict['statement_correctness'][k])[np.where(output_dict['statement_correctness'][k] != -1)[0]])
     eval_result = {}
     for i in range(len(stmt_check_methods)):  #statement check method index
-        if output_dict[f'stmt_check_methods_{i}']['truth_methods']:
+        if 'truth_methods' in output_dict[f'stmt_check_methods_{i}']:
             for j in range(len(output_dict[f'stmt_check_methods_{i}']['truth_methods'])): #truth method index of the statement check method
                 predictions = []
                 predictions_normalized = []

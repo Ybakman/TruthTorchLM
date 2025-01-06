@@ -32,9 +32,9 @@ JUDGE_COMPETE = "Answer only 'Same' or 'Different'. The two given answers are: "
 class MultiLLMCollab(TruthMethod):
     REQUIRES_NORMALIZATION = False
 
-    def __init__(self, collaborate_mode:str, qa_model:Union[str,PreTrainedModel], feedback_models:list[Union[str, PreTrainedModel]],
-                 qa_tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast]=None, feedback_tokenizers:list[Union[PreTrainedTokenizer, PreTrainedTokenizerFast]]=None,
-                 question_form: str='free_form', max_length=1024, temperature=1.0, top_k=50, num_beams=1):
+    def __init__(self, collaborate_mode:str, feedback_models:list[Union[str, PreTrainedModel]],
+                feedback_tokenizers:list[Union[PreTrainedTokenizer, PreTrainedTokenizerFast]]=None,
+                 question_form: str='free_form', max_new_tokens=1024, temperature=1.0, top_k=50, num_beams=1, **generation_kwargs):
         super().__init__()
         
         if collaborate_mode not in ['coop_self', 'coop_others', 'compete']:
@@ -46,21 +46,6 @@ class MultiLLMCollab(TruthMethod):
             raise ValueError("Question form should be one of 'multiple_choice', 'free_form'")
         else:
             self.question_form = question_form
-            
-        # Set default QA model to GPT-4 if not provided
-        if qa_model is None:
-            print("No QA model provided. Using GPT-4 as the default model.")
-            self.qa_model = AVAILABLE_API_MODELS.get("gpt-4o", None)
-            if self.qa_model is None:
-                raise ValueError("GPT-4 is not available in AVAILABLE_API_MODELS.")
-            print("Setting QA tokenizer to GPT-4's default tokenizer.")
-            self.qa_tokenizer = LlamaTokenizer.from_pretrained("gpt-4o")
-        else:
-            # User-defined qa_model and qa_tokenizer
-            self.qa_model = qa_model
-            if not isinstance(self.qa_model, str) and qa_tokenizer is None:
-                raise ValueError("QA tokenizer must be provided when a QA model is specified.")
-            self.qa_tokenizer = qa_tokenizer
 
         # Validate feedback models and tokenizers
         if collaborate_mode != 'coop_self':
@@ -69,22 +54,18 @@ class MultiLLMCollab(TruthMethod):
         self.feedback_models = feedback_models
         self.feedback_tokenizers = feedback_tokenizers
 
-        # Check QA model is not in feedback models
-        if any(model == self.qa_model for model in self.feedback_models):
-            raise ValueError("Feedback models must be different from the QA model.")
-
         # Additional debug output for clarity
         print(f"Collaboration mode: {self.collaborate_mode}")
-        print(f"QA model set to: {self.qa_model}")
-        print(f"Number of feedback models: {len(self.feedback_models)}")
         
         self.feedback_models = feedback_models
         self.feedback_tokenizers = feedback_tokenizers 
-        self.max_length = max_length
+        self.max_new_tokens = max_new_tokens
         self.temperature = temperature
         self.top_k = top_k
         self.num_beams = num_beams
-    
+        self.generation_kwargs = generation_kwargs
+        
+
     def forward_hf_local(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], 
                          tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, messages:list = [], **kwargs): 
         kwargs = copy.deepcopy(kwargs)
@@ -93,22 +74,22 @@ class MultiLLMCollab(TruthMethod):
         if self.collaborate_mode == 'coop_self':
             generated_answer, abstain, _, feedbacks = self.coop_self_hf_local(question_context=question_context, generated_answer=generated_text,
                                                                       model=model, tokenizer=tokenizer,
-                                                                      max_length=self.max_length, temperature=self.temperature, 
-                                                                      top_k=self.top_k, num_beams=self.num_beams, **kwargs)
+                                                                      max_new_tokens=self.max_new_tokens, temperature=self.temperature, 
+                                                                      top_k=self.top_k, num_beams=self.num_beams, **self.generation_kwargs)
         elif self.collaborate_mode == 'coop_others':
             generated_answer, abstain, feedbacks = self.coop_others_hf_local(question_context=question_context, generated_answer=generated_text,
                                                                      qa_model=model, qa_tokenizer=tokenizer, feedback_models=self.feedback_models,
                                                                      feedback_tokenizers=self.feedback_tokenizers,
-                                                                     max_length=self.max_length, temperature=self.temperature,
-                                                                     top_k=self.top_k, num_beams=self.num_beams, **kwargs)
+                                                                     max_new_tokens=self.max_new_tokens, temperature=self.temperature,
+                                                                     top_k=self.top_k, num_beams=self.num_beams, **self.generation_kwargs)
         elif self.collaborate_mode == 'compete':
             generated_answer, abstain, _, feedbacks = self.compete_hf_local(question_context=question_context, generated_answer=generated_text,
                                                                     feedback_models=self.feedback_models, feedback_tokenizers=self.feedback_tokenizers,
-                                                                    question_form=self.question_form, max_length=self.max_length, temperature=self.temperature, top_k=self.top_k, num_beams=self.num_beams, **kwargs)
+                                                                    question_form=self.question_form, max_new_tokens=self.max_new_tokens, temperature=self.temperature, top_k=self.top_k, num_beams=self.num_beams, **self.generation_kwargs)
         return {"truth_value": 1.-float(abstain), "generated_text": generated_answer, "feedbacks": feedbacks}
 
 
-    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):
+    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
         if model not in AVAILABLE_API_MODELS:
             raise ValueError("This method is not applicable to given model")
         kwargs = copy.deepcopy(kwargs)
@@ -116,27 +97,27 @@ class MultiLLMCollab(TruthMethod):
         # Get Decision - abstain or not
         if self.collaborate_mode == 'coop_self':
             generated_answer, abstain, _, feedbacks = self.coop_self_api(question_context=question_context, generated_answer=generated_text,
-                                                                      model=model, max_length=self.max_length, temperature=self.temperature, 
-                                                                      top_k=self.top_k, num_beams=self.num_beams, **kwargs)
+                                                                      model=model, temperature=self.temperature)
         elif self.collaborate_mode == 'coop_others':
             generated_answer, abstain, feedbacks = self.coop_others_api(question_context=question_context, generated_answer=generated_text,
                                                                      qa_model=model, feedback_models=self.feedback_models,
-                                                                     max_length=self.max_length, temperature=self.temperature, top_k=self.top_k, 
-                                                                     num_beams=self.num_beams, **kwargs)
+                                                                     temperature=self.temperature)
         elif self.collaborate_mode == 'compete':
             generated_answer, abstain, _, feedbacks = self.compete_api(question_context=question_context, generated_answer=generated_text,
                                                                     feedback_models=self.feedback_models,
-                                                                    question_form=self.question_form, max_length=self.max_length, temperature=self.temperature, 
-                                                                    top_k=self.top_k, num_beams=self.num_beams, **kwargs)
+                                                                    question_form=self.question_form, temperature=self.temperature)
         return {"truth_value": 1.-float(abstain), "generated_text": generated_answer, "feedbacks": feedbacks}
 
+    def __str__(self):
+        return f"Multi-LLM Collaboration Truth Method by {self.collaborate_mode}"
     
 
     # Coop-self method
-    def coop_self_hf_local(self, question_context, generated_answer, model, tokenizer, max_length, temperature, top_k, num_beams, **kwargs):
+    def coop_self_hf_local(self, question_context, generated_answer, model, tokenizer, max_new_tokens, temperature, top_k, num_beams, **kwargs):
         knolwedge_passages = []
         feedbacks = []
         abstain = True
+        tokenizer.pad_token = tokenizer.eos_token
 
         # Generate knowledge passage and Feedback
         for domain in DOMAINS:
@@ -146,8 +127,19 @@ class MultiLLMCollab(TruthMethod):
 
             # Generate knowledge passage
             text = tokenizer.apply_chat_template(expert_prompt, tokenize=False)
-            input_ids = tokenizer.encode(text, return_tensors="pt").to(model.device)
-            model_output = model.generate(input_ids, max_length=max_length, temperature=temperature, top_k=top_k, num_beams=num_beams, **kwargs)
+            inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+            input_ids = inputs['input_ids'].to(model.device)
+            attention_mask = inputs['attention_mask'].to(model.device)
+            model_output = model.generate(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                max_new_tokens=max_new_tokens,
+                temperature=temperature,
+                top_k=top_k,
+                num_beams=num_beams,
+                pad_token_id=tokenizer.pad_token_id,
+                **kwargs
+            )
             tokens = model_output[0][len(input_ids[0]):]
             generated_knowledge_passage = tokenizer.decode(tokens, skip_special_tokens=False)
             knolwedge_passages.append(generated_knowledge_passage)
@@ -159,8 +151,19 @@ class MultiLLMCollab(TruthMethod):
 
             expert_prompt = [{"role": "user", "content": expert_content}]
             text = tokenizer.apply_chat_template(expert_prompt, tokenize=False)
-            input_ids = tokenizer.encode(text, return_tensors="pt").to(model.device)
-            model_output = model.generate(input_ids, max_length=max_length, temperature=temperature, top_k=top_k, num_beams=num_beams, **kwargs)
+            inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+            input_ids = inputs['input_ids'].to(model.device)
+            attention_mask = inputs['attention_mask'].to(model.device)
+            model_output = model.generate(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                max_new_tokens=max_new_tokens,
+                temperature=temperature,
+                top_k=top_k,
+                num_beams=num_beams,
+                pad_token_id=tokenizer.pad_token_id,
+                **kwargs
+            )
             tokens = model_output[0][len(input_ids[0]):]
             generated_feedback = tokenizer.decode(tokens, skip_special_tokens=False)
             feedbacks.append(generated_feedback)
@@ -176,8 +179,19 @@ class MultiLLMCollab(TruthMethod):
         # Judge prompt
         judge_prompt = [{"role": "user", "content": judge_content}]
         text = tokenizer.apply_chat_template(judge_prompt, tokenize=False)
-        input_ids = tokenizer.encode(text, return_tensors="pt").to(model.device)
-        model_output = model.generate(input_ids, max_length=max_length, temperature=temperature, top_k=top_k, num_beams=num_beams, **kwargs)
+        inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+        input_ids = inputs['input_ids'].to(model.device)
+        attention_mask = inputs['attention_mask'].to(model.device)
+        model_output = model.generate(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            max_new_tokens=max_new_tokens,
+            temperature=temperature,
+            top_k=top_k,
+            num_beams=num_beams,
+            pad_token_id=tokenizer.pad_token_id,
+            **kwargs
+        )
         tokens = model_output[0][len(input_ids[0]):]
         generated_final_answer = tokenizer.decode(tokens, skip_special_tokens=False)
         if "True" in generated_final_answer:
@@ -186,7 +200,7 @@ class MultiLLMCollab(TruthMethod):
             abstain = True
         return generated_answer, abstain, knolwedge_passages, feedbacks
 
-    def coop_self_api(self, question_context, generated_answer, model, temperature, **kwargs):
+    def coop_self_api(self, question_context, generated_answer, model, temperature):
         knolwedge_passages = []
         feedbacks = []
         abstain = True
@@ -232,11 +246,14 @@ class MultiLLMCollab(TruthMethod):
 
 
     # Coop-others method
-    def coop_others_hf_local(self, question_context, generated_answer, qa_model, qa_tokenizer, feedback_models, feedback_tokenizers, max_length, temperature, top_k, num_beams, **kwargs):
+    def coop_others_hf_local(self, question_context, generated_answer, qa_model, qa_tokenizer, feedback_models, feedback_tokenizers, max_new_tokens, temperature, top_k, num_beams, **kwargs):
         feedback_content = EXPERT_SYSTEM_PROMPT
         judge_content = JUDGE_SYSTEM_PROMPT
         feedbacks = []
         abstain = True
+        qa_tokenizer.pad_token = qa_tokenizer.eos_token
+        for tokenizer in feedback_tokenizers:
+            tokenizer.pad_token = tokenizer.eos_token
         
         for i in range(len(feedback_models)):
             model = feedback_models[i]
@@ -249,12 +266,23 @@ class MultiLLMCollab(TruthMethod):
             expert_content += FEEDBACK_COOP_OTHERS
             expert_prompt = [{"role":"user", "content": expert_content}]
             text = tokenizer.apply_chat_template(expert_prompt, tokenize = False)
-            input_ids = tokenizer.encode(text, return_tensors="pt").to(model.device)
-            model_output = model.generate(input_ids, max_length=max_length, temperature=temperature, top_k=top_k, num_beams=num_beams, **kwargs)
+            inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+            input_ids = inputs['input_ids'].to(model.device)
+            attention_mask = inputs['attention_mask'].to(model.device)
+            model_output = model.generate(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                max_new_tokens=max_new_tokens,
+                temperature=temperature,
+                top_k=top_k,
+                num_beams=num_beams,
+                pad_token_id=tokenizer.pad_token_id,
+                **kwargs
+            )
             tokens = model_output[0][len(input_ids[0]):]
             generated_feedback = tokenizer.decode(tokens, skip_special_tokens = False)
             feedbacks.append(generated_feedback)
-
+            
         # Judging process
         model = qa_model
         tokenizer = qa_tokenizer
@@ -265,8 +293,19 @@ class MultiLLMCollab(TruthMethod):
         judge_content += JUDGE_COOP
         judge_prompt = [{"role":"user", "content":judge_content}]
         text = tokenizer.apply_chat_template(judge_prompt, tokenize = False)
-        input_ids = tokenizer.encode(text, return_tensors="pt").to(model.device)
-        model_output = model.generate(input_ids, max_length=max_length, temperature=temperature, top_k=top_k, num_beams=num_beams, **kwargs)
+        inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+        input_ids = inputs['input_ids'].to(model.device)
+        attention_mask = inputs['attention_mask'].to(model.device)
+        model_output = model.generate(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            max_new_tokens=max_new_tokens,
+            temperature=temperature,
+            top_k=top_k,
+            num_beams=num_beams,
+            pad_token_id=tokenizer.pad_token_id,
+            **kwargs
+        )
         tokens = model_output[0][len(input_ids[0]):]
         generated_final_answer = tokenizer.decode(tokens, skip_special_tokens = False)
         if "True" in generated_final_answer:
@@ -275,7 +314,7 @@ class MultiLLMCollab(TruthMethod):
             abstain = True
         return generated_answer, abstain, feedbacks
     
-    def coop_others_api(self, question_context, generated_answer, qa_model, feedback_models, temperature, **kwargs):
+    def coop_others_api(self, question_context, generated_answer, qa_model, feedback_models, temperature):
         feedback_content = EXPERT_SYSTEM_PROMPT
         judge_content = JUDGE_SYSTEM_PROMPT
         feedbacks = []
@@ -318,12 +357,15 @@ class MultiLLMCollab(TruthMethod):
             decision = True
         return decision  
         
-    def compete_hf_local(self, question_context, generated_answer, feedback_models, feedback_tokenizers, question_form, max_length, temperature, top_k, num_beams, **kwargs):
+    def compete_hf_local(self, question_context, generated_answer, feedback_models, feedback_tokenizers, question_form, max_new_tokens, temperature, top_k, num_beams, **kwargs):
         system_prompt_content = ALTERNATIVE_ANSWER_SYSTEM_PROMPT
         alternative_answers = []
         knowledge_passages = []
         new_answers = []
         decisions = []
+        for tokenizer in feedback_tokenizers:
+            tokenizer.pad_token = tokenizer.eos_token
+            tokenizer.pad_token_id = tokenizer.eos_token_id
         
         for i in range(len(feedback_models)):
             model = feedback_models[i]
@@ -336,8 +378,19 @@ class MultiLLMCollab(TruthMethod):
             prompt_content += ALTERNATIVE_COMPETE
             prompt = [{"role":"user", "content":prompt_content}]
             text = tokenizer.apply_chat_template(prompt, tokenize = False)
-            input_ids = tokenizer.encode(text, return_tensors="pt").to(model.device)
-            model_output = model.generate(input_ids, max_length=max_length, temperature=temperature, top_k=top_k, num_beams=num_beams, **kwargs)
+            inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+            input_ids = inputs['input_ids'].to(model.device)
+            attention_mask = inputs['attention_mask'].to(model.device)
+            model_output = model.generate(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                max_new_tokens=max_new_tokens,
+                temperature=temperature,
+                top_k=top_k,
+                num_beams=num_beams,
+                pad_token_id=tokenizer.pad_token_id,
+                **kwargs
+            )
             tokens = model_output[0][len(input_ids[0]):]
             alternative_answer = tokenizer.decode(tokens, skip_special_tokens = False)
             alternative_answers.append(alternative_answer)
@@ -347,8 +400,19 @@ class MultiLLMCollab(TruthMethod):
             prompt_content += KNOWLEDGE_COMPETE.replace('<alternative answer>', alternative_answer)
             prompt = [{"role":"user", "content":prompt_content}]
             text = tokenizer.apply_chat_template(prompt, tokenize = False)
-            input_ids = tokenizer.encode(text, return_tensors="pt").to(model.device)
-            model_output = model.generate(input_ids, max_length=max_length, temperature=temperature, top_k=top_k, num_beams=num_beams, **kwargs)
+            inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+            input_ids = inputs['input_ids'].to(model.device)
+            attention_mask = inputs['attention_mask'].to(model.device)
+            model_output = model.generate(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                max_new_tokens=max_new_tokens,
+                temperature=temperature,
+                top_k=top_k,
+                num_beams=num_beams,
+                pad_token_id=tokenizer.pad_token_id,
+                **kwargs
+            )
             tokens = model_output[0][len(input_ids[0]):]
             knowledge_passage = tokenizer.decode(tokens, skip_special_tokens = False)
             knowledge_passages.append(knowledge_passage)
@@ -360,8 +424,19 @@ class MultiLLMCollab(TruthMethod):
             prompt_content += ANSWER.replace('<answer>', alternative_answer)
             prompt =[{"role":"user", "content":prompt_content}]
             text = tokenizer.apply_chat_template(prompt, tokenize = False)
-            input_ids = tokenizer.encode(text, return_tensors="pt").to(model.device)
-            model_output = model.generate(input_ids, max_length=max_length, temperature=temperature, top_k=top_k, num_beams=num_beams, **kwargs)
+            inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+            input_ids = inputs['input_ids'].to(model.device)
+            attention_mask = inputs['attention_mask'].to(model.device)
+            model_output = model.generate(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                max_new_tokens=max_new_tokens,
+                temperature=temperature,
+                top_k=top_k,
+                num_beams=num_beams,
+                pad_token_id=tokenizer.pad_token_id,
+                **kwargs
+            )
             tokens = model_output[0][len(input_ids[0]):]
             new_answer = tokenizer.decode(tokens, skip_special_tokens = False)
             new_answers.append(new_answer)
@@ -380,8 +455,19 @@ class MultiLLMCollab(TruthMethod):
                 judge_prompt += ANSWER.replace('<answer>', new_answer)
                 prompt = [{"role":"user", "content":judge_prompt}]
                 text = tokenizer.apply_chat_template(prompt, tokenize = False)
-                input_ids = tokenizer.encode(text, return_tensors="pt").to(model.device)
-                model_output = model.generate(input_ids, max_length=max_length, temperature=temperature, top_k=top_k, num_beams=num_beams, **kwargs)
+                inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+                input_ids = inputs['input_ids'].to(model.device)
+                attention_mask = inputs['attention_mask'].to(model.device)
+                model_output = model.generate(
+                    input_ids=input_ids,
+                    attention_mask=attention_mask,
+                    max_new_tokens=max_new_tokens,
+                    temperature=temperature,
+                    top_k=top_k,
+                    num_beams=num_beams,
+                    pad_token_id=tokenizer.pad_token_id,
+                    **kwargs
+                )
                 tokens = model_output[0][len(input_ids[0]):]
                 decision = tokenizer.decode(tokens, skip_special_tokens = False)
                 abstain = False if "Same" in decision else True
@@ -390,7 +476,7 @@ class MultiLLMCollab(TruthMethod):
         return generated_answer, final_decision, new_answers, knowledge_passages
     
     
-    def compete_api(self, question_context, generated_answer, feedback_models, question_form, temperature, **kwargs):
+    def compete_api(self, question_context, generated_answer, feedback_models, question_form, temperature):
         system_prompt_content = ALTERNATIVE_ANSWER_SYSTEM_PROMPT
         alternative_answers = []
         knowledge_passages = []

@@ -31,10 +31,12 @@ Your confidence score:'''
 class VerbalizedConfidence(TruthMethod):
 
     
-    def __init__(self, system_prompt:str = VC_SYSTEM_PROMPT, user_prompt:str = VC_USER_PROMPT):
+    def __init__(self, system_prompt:str = VC_SYSTEM_PROMPT, user_prompt:str = VC_USER_PROMPT, max_new_tokens=1024, **generation_kwargs):
         super().__init__()
         self.system_prompt = system_prompt
         self.user_prompt = user_prompt
+        self.max_new_tokens = max_new_tokens
+        self.generation_kwargs = generation_kwargs
 
     def extract_confidence(self, confidence_text):
         '''Extracts the confidence value from the confidence text. The text may include non-numeric characters.'''
@@ -56,7 +58,7 @@ class VerbalizedConfidence(TruthMethod):
 
         kwargs = copy.deepcopy(kwargs)
         kwargs.pop('do_sample', None)
-        generation_dict = generate(prompt, model, tokenizer, do_sample = True, **kwargs)
+        generation_dict = generate(prompt, model, tokenizer, do_sample = False, max_new_tokens=self.max_new_tokens, **self.generation_kwargs)
         confidence_text = generation_dict['generated_text_skip_specials']
         confidence = self.extract_confidence(confidence_text)
         confidence = confidence/100.0

@@ -25,18 +25,24 @@ class Examiner_Stage(Enum):
 class CrossExamination(TruthMethod):
     REQUIRES_NORMALIZATION = False
 
-    def __init__(self, model_examiner = None,  tokenizer_examiner: PreTrainedTokenizer = None, follow_up_turns_threshold:int=2):
+    def __init__(self, model_examiner = None,  tokenizer_examiner: PreTrainedTokenizer = None, follow_up_turns_threshold:int=2, 
+    max_new_tokens=1024, temperature=1.0, top_k=50, num_beams=1, **generation_kwargs):
         super().__init__()
         if model_examiner == None:
             print("No examiner model is provided. Defaulting to GPT-4o-mini.")
             self.model_examiner = "gpt-4o-mini"
         
-        if type(model_examiner) != str and tokenizer_examiner == None:
+        if type(model_examiner) != str and model_examiner != None and tokenizer_examiner == None:
             raise ValueError("tokenizer_examiner is not provided.")
         
         self.model_examiner = model_examiner
         self.tokenizer_examiner = tokenizer_examiner
         self.follow_up_turns_threshold = follow_up_turns_threshold
+        self.max_new_tokens = max_new_tokens
+        self.temperature = temperature
+        self.top_k = top_k
+        self.num_beams = num_beams
+        self.generation_kwargs = generation_kwargs
 
 
     def examiner_inference(self, examiner_messages, output_from_examinee:str, examiner_stage:Examiner_Stage):
@@ -73,7 +79,7 @@ class CrossExamination(TruthMethod):
         else:
             text = self.tokenizer_examiner.apply_chat_template(examiner_messages, tokenize = False)
             input_ids = self.tokenizer_examiner.encode(text, return_tensors="pt").to(self.model_examiner.device)
-            model_output = self.model_examiner.generate(input_ids, max_new_tokens = 64)#will be changed
+            model_output = self.model_examiner.generate(input_ids, max_new_tokens=self.max_new_tokens, temperature = self.temperature, top_k = self.top_k, num_beams = self.num_beams, **self.generation_kwargs)
             tokens = model_output[0][len(input_ids[0]):]
             generated_text = self.tokenizer_examiner.decode(tokens, skip_special_tokens = False)
             examiner_messages.append({"role":"assistant", "content":generated_text})
@@ -128,7 +134,7 @@ class CrossExamination(TruthMethod):
         tokenizer, messages = fix_tokenizer_chat(tokenizer, messages)
         text = tokenizer.apply_chat_template(messages, tokenize = False)
         input_ids = tokenizer.encode(text, return_tensors="pt").to(model.device)
-        model_output = model.generate(input_ids, **kwargs)
+        model_output = model.generate(input_ids, max_new_tokens=self.max_new_tokens, temperature = self.temperature, top_k = self.top_k, num_beams = self.num_beams, **self.generation_kwargs)
         tokens = model_output[0][len(input_ids[0]):]
         generated_text = tokenizer.decode(tokens, skip_special_tokens = False)
         messages.append({"role":"assistant", "content":generated_text})
@@ -139,7 +145,7 @@ class CrossExamination(TruthMethod):
                 tokenizer, messages = fix_tokenizer_chat(tokenizer, messages)
                 text = tokenizer.apply_chat_template(messages, tokenize = False)
                 input_ids = tokenizer.encode(text, return_tensors="pt").to(model.device)
-                model_output = model.generate(input_ids, **kwargs)
+                model_output = model.generate(input_ids, max_new_tokens=self.max_new_tokens, temperature = self.temperature, top_k = self.top_k, num_beams = self.num_beams, **self.generation_kwargs)
                 tokens = model_output[0][len(input_ids[0]):]
                 generated_text = tokenizer.decode(tokens, skip_special_tokens = False)
                 messages.append({"role":"assistant", "content":generated_text})

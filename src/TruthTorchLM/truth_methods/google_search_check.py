@@ -16,7 +16,8 @@ class GoogleSearchCheck(TruthMethod):
 
     def __init__(self, number_of_snippets:int = 10, location:str = 'us', language:str = 'en', 
     check_query_system_prompt:str = GOOGLE_CHECK_QUERY_SYSTEM_PROMPT, check_query_user_prompt:str = GOOGLE_CHECK_QUERY_USER_PROMPT,
-    check_verification_system_prompt:str = GOOGLE_CHECK_VERIFICATION_SYSTEM_PROMPT, check_verification_user_prompt:str = GOOGLE_CHECK_VERIFICATION_USER_PROMPT, max_new_tokens = 256) -> None:
+    check_verification_system_prompt:str = GOOGLE_CHECK_VERIFICATION_SYSTEM_PROMPT, check_verification_user_prompt:str = GOOGLE_CHECK_VERIFICATION_USER_PROMPT, 
+    max_new_tokens=1024, temperature=1.0, top_k=50, num_beams=1, **generation_kwargs) -> None:
         super().__init__()
         self.number_of_snippets = number_of_snippets
         self.location = location
@@ -27,6 +28,10 @@ class GoogleSearchCheck(TruthMethod):
         self.check_verification_system_prompt = check_verification_system_prompt
         self.check_verification_user_prompt = check_verification_user_prompt
         self.max_new_tokens = max_new_tokens
+        self.temperature = temperature
+        self.top_k = top_k
+        self.num_beams = num_beams
+        self.generation_kwargs = generation_kwargs
 
 
     def get_evidences(self, query_text:str):
@@ -85,7 +90,7 @@ class GoogleSearchCheck(TruthMethod):
         prompt = tokenizer.apply_chat_template(chat, tokenize=False)
         input_ids = tokenizer.encode(prompt, return_tensors="pt").to(model.device)
         
-        model_output = model.generate(input_ids, max_new_tokens = self.max_new_tokens)
+        model_output = model.generate(input_ids, max_new_tokens = self.max_new_tokens, temperature = self.temperature, top_k = self.top_k, num_beams = self.num_beams, **self.generation_kwargs)
         
         tokens = model_output[0][len(input_ids[0]):]
         query_text = tokenizer.decode(tokens, skip_special_tokens=True)
@@ -101,7 +106,7 @@ class GoogleSearchCheck(TruthMethod):
         prompt = tokenizer.apply_chat_template(chat, tokenize=False)
         input_ids = tokenizer.encode(prompt, return_tensors="pt").to(model.device)
        
-        model_output = model.generate(input_ids, max_new_tokens = self.max_new_tokens)
+        model_output = model.generate(input_ids, max_new_tokens = self.max_new_tokens, temperature = self.temperature, top_k = self.top_k, num_beams = self.num_beams, **self.generation_kwargs)
         
         tokens = model_output[0][len(input_ids[0]):]
         verification_text = tokenizer.decode(tokens, skip_special_tokens=True)
@@ -118,12 +123,12 @@ class GoogleSearchCheck(TruthMethod):
         response = completion(
                 model=model,
                 messages=chat,
+
             )
         query_text = response.choices[0].message['content']
 
         evidences = self.get_evidences(query_text)        
-        print(query_text)
-        print(evidences)
+      
 
         #Ask model to verify the claim
         chat = [{"role": "system", "content": GOOGLE_CHECK_VERIFICATION_SYSTEM_PROMPT},

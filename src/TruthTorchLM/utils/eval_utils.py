@@ -10,13 +10,38 @@ import numpy as np
 
 
 
+
 def area_under_accuracy_coverage_curve(t_s, acc):
+    """
+    Calculates the area under the accuracy-coverage curve.
+
+    The accuracy-coverage curve shows how model accuracy changes as we include more predictions,
+    ordered by their truth scores. This function computes the area under this curve as a 
+    single metric for evaluating truth value estimation quality.
+
+    Args:
+        t_s (array-like): Array of truth scores for each prediction
+        acc (array-like): Array of accuracy values (0 or 1) for each prediction
+
+    Returns:
+        float: Area under the accuracy-coverage curve. Higher values indicate better 
+              correlation between truth scores and actual accuracy.
+    """
     # area under the rejection-VALUE curve, where VALUE could be accuracy, etc.
     df = pd.DataFrame({"t_s": t_s, 'acc': acc}).sort_values('t_s', ascending=False)#that should be false in case of truth values
     df['acc_mean'] = df['acc'].expanding().mean()
     return auc(np.linspace(0,1,len(df)), df['acc_mean'])
 
 def normalize(target):
+    """
+    Normalizes an array of values to the range [0,1].
+
+    Args:
+        target (array-like): Array of values to normalize
+
+    Returns:
+        array: Normalized values between 0 and 1
+    """
     min_t, max_t = np.min(target), np.max(target)
     if np.isclose(min_t, max_t):
         min_t -= 1
@@ -25,6 +50,19 @@ def normalize(target):
     return target
 
 def prediction_rejection_curve(estimator, target):
+    """
+    Calculates the prediction rejection curve score.
+    
+    The prediction rejection curve shows how model performance changes as we reject predictions
+    based on their uncertainty estimates.
+
+    Args:
+        estimator (array-like): Array of uncertainty estimates for each prediction
+        target (array-like): Array of true values/labels
+
+    Returns:
+        float: Prediction rejection curve score
+    """
     target = normalize(target) #higher is correct
     # estimator: lower is more uncertain
     ue = np.array(estimator)
@@ -40,6 +78,18 @@ def prediction_rejection_curve(estimator, target):
     return prr_score
 
 def get_random_scores(function, metrics, num_iter=1000, seed=42):
+    """
+    Calculates random baseline scores for a given metric function.
+
+    Args:
+        function (callable): Metric function to calculate scores
+        metrics (array-like): Array of true metrics/labels
+        num_iter (int, optional): Number of random iterations. Defaults to 1000.
+        seed (int, optional): Random seed for reproducibility. Defaults to 42.
+
+    Returns:
+        float: Average random baseline score
+    """
     np.random.seed(seed)
     rand_scores = np.arange(len(metrics))
 
@@ -51,6 +101,19 @@ def get_random_scores(function, metrics, num_iter=1000, seed=42):
     return np.mean(value)
 
 def metric_score(metric_names:list[str], generation_correctness:list, truth_values:list[float], normalized_truth_values:list[float] = [],  seed:int = 0) -> dict:
+    """
+    Calculates various evaluation metrics for truth value estimation.
+
+    Args:
+        metric_names (list[str]): List of metric names to calculate
+        generation_correctness (list): Binary list indicating if each generation was correct
+        truth_values (list[float]): Raw truth values from the model
+        normalized_truth_values (list[float], optional): Normalized truth values. Defaults to [].
+        seed (int, optional): Random seed for reproducibility. Defaults to 0.
+
+    Returns:
+        dict: Dictionary containing calculated metrics
+    """
     eval_dict = {}
     #if generation_correctness is -1, it means that the model didn't attempt to generate an answer, remove those from the evaluation
     generation_correctness = np.array(generation_correctness)
@@ -128,6 +191,28 @@ def metric_score(metric_names:list[str], generation_correctness:list, truth_valu
 def run_over_dataset(dataset: Union[str, list], model:Union[str,PreTrainedModel],  truth_methods: list, tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast]=None,
                           correctness_evaluator = None, previous_context:list =[{'role': 'system', 'content': DEFAULT_SYSTEM_BENCHMARK_PROMPT}], user_prompt:str = DEFAULT_USER_PROMPT, seed:int = 0, return_method_details:bool = False, wandb_run = None, 
                           wandb_push_method_details:bool = False, batch_generation=True,  add_generation_prompt = True, continue_final_message = False, **kwargs):
+    """
+    Runs truth value estimation over a dataset and collects results.
+
+    Args:
+        dataset (Union[str, list]): Dataset to evaluate on
+        model (Union[str,PreTrainedModel]): Model to use for generation
+        truth_methods (list): List of truth value estimation methods to evaluate
+        tokenizer (Union[PreTrainedTokenizer, PreTrainedTokenizerFast], optional): Tokenizer for the model. Defaults to None.
+        correctness_evaluator (callable, optional): Function to evaluate correctness of generations. Defaults to None.
+        previous_context (list, optional): Previous conversation context. Defaults to system prompt.
+        user_prompt (str, optional): Template for user prompts. Defaults to DEFAULT_USER_PROMPT.
+        seed (int, optional): Random seed. Defaults to 0.
+        return_method_details (bool, optional): Whether to return detailed method outputs. Defaults to False.
+        wandb_run (optional): Weights & Biases run for logging. Defaults to None.
+        wandb_push_method_details (bool, optional): Whether to log detailed method outputs to W&B. Defaults to False.
+        batch_generation (bool, optional): Whether to use batch generation. Defaults to True.
+        add_generation_prompt (bool, optional): Whether to add generation prompt. Defaults to True.
+        continue_final_message (bool, optional): Whether to continue from final message. Defaults to False.
+
+    Returns:
+        dict: Dictionary containing all evaluation results and generations
+    """
     output_dict = {}
     output_dict['previous_context'] = previous_context
     output_dict['user_prompt'] = user_prompt
@@ -193,8 +278,3 @@ def run_over_dataset(dataset: Union[str, list], model:Union[str,PreTrainedModel]
             wandb.log({"run_summary" : summary_table})
 
     return output_dict
-    
-    
-
-    
-   

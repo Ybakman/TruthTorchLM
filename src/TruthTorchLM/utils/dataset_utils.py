@@ -85,7 +85,7 @@ def get_natural_qa(size_of_data:float = 1.0, seed:int = 0, split = 'test'):
     questions = raw_dataset['question']
     answers = raw_dataset['answer']
     for i in tqdm(range(len(raw_dataset))):
-        dataset.append({'question': questions[i], 'ground_truths': [answers[i]]})
+        dataset.append({'question': questions[i], 'ground_truths': answers[i]})
 
     return dataset
 

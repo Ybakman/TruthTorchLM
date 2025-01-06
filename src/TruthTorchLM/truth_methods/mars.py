@@ -12,8 +12,6 @@ from TruthTorchLM.availability import PROB_AVAILABLE_API_MODELS
 from scipy.special import softmax
 import torch
 import numpy as np
-import copy
-import random
 import re
 
 
