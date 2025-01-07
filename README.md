@@ -1,24 +1,26 @@
-# TruthTorchLM: A Comprehensive Library for Hallucination Detection in LLMs 
+Here’s an enhanced version of the README with a citation and improved formatting:  
 
+```markdown
+# TruthTorchLM: A Comprehensive Library for Hallucination Detection in LLMs  
 
-**TruthTorchLM** is an open-source library for hallucination detection in text generation models. It integrates state-of-the-art methods, provides benchmarking tools across various tasks, and facilitates seamless integration with popular frameworks like Huggingface and LiteLLM.
-
----
-
-## Features
-
-- **State-of-the-Art Methods**: Implementations of cutting-edge hallucination detection techniques.
-- **Evaluation Tools**: Benchmark hallucination detection methods with various metrics.
-- **Calibration**: Normalize and calibrate truth values for interpretable and comparable hallucination scores.
-- **Integration**: Works seamlessly with Huggingface and LiteLLM for model interfacing.
-- **Long Form Generation**: Adapts hallucination detection methods to long-form generations.
-- **New Hallucination Detection Methods**: It provides an easy-to-use interface for the implementation of new hallucination detection methods.
+**TruthTorchLM** is an open-source library designed to detect and mitigate hallucinations in text generation models. The library integrates state-of-the-art methods, offers comprehensive benchmarking tools across various tasks, and enables seamless integration with popular frameworks like Huggingface and LiteLLM.
 
 ---
 
-## Installation
+## Features  
 
-Install TruthTorchLM using pip:
+- **State-of-the-Art Methods**: Implementations of advanced hallucination detection techniques.  
+- **Evaluation Tools**: Benchmark hallucination detection methods using various metrics like AUROC, PRR, and Accuracy.  
+- **Calibration**: Normalize and calibrate truth values for interpretable and comparable hallucination scores.  
+- **Integration**: Seamlessly works with Huggingface and LiteLLM.  
+- **Long-Form Generation**: Adapts detection methods to handle long-form text generations effectively.  
+- **Extendability**: Provides an intuitive interface for implementing new hallucination detection methods.  
+
+---
+
+## Installation  
+
+Install TruthTorchLM using pip:  
 
 ```bash
 pip install TruthTorchLM
@@ -26,11 +28,11 @@ pip install TruthTorchLM
 
 ---
 
-## Simple Usage
+## Quick Start  
 
-### Setting Up a Model
+### Setting Up a Model  
 
-Define your model and tokenizer using Huggingface or specify an API-based model:
+You can define your model and tokenizer using Huggingface or specify an API-based model:  
 
 ```python
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -48,9 +50,9 @@ tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-2-7b-chat-hf", use_f
 api_model = "gpt-4o-mini"
 ```
 
-### Generating Text with Truth Values
+### Generating Text with Truth Values  
 
-Generate text from a model with truth values using built-in detection methods:
+Generate text with truth values using pre-built detection methods:  
 
 ```python
 # Define truth methods
@@ -59,14 +61,11 @@ confidence = ttlm.truth_methods.Confidence()
 self_detection = ttlm.truth_methods.SelfDetection(number_of_questions=5)
 
 truth_methods = [lars, confidence, self_detection]
-```
 
-```python
 # Define a chat history
 chat = [{"role": "system", "content": "You are a helpful assistant. Give short and precise answers."},
         {"role": "user", "content": "What is the capital city of France?"}]
-```
-```python
+
 # Generate text with truth values (Huggingface model)
 output_hf_model = ttlm.generate_with_truth_value(
     model=model,
@@ -83,11 +82,14 @@ output_api_model = ttlm.generate_with_truth_value(
     messages=chat,
     truth_methods=truth_methods
 )
+
+print(output_hf_model)
+print(output_api_model)
 ```
 
-### Calibrating Truth Methods
+### Calibrating Truth Methods  
 
-Normalize truth values across different methods for consistent evaluation:
+Normalize truth values for consistent evaluation across methods:  
 
 ```python
 model_judge = ttlm.evaluators.ModelJudge('gpt-4o-mini')
@@ -102,9 +104,9 @@ calibration_results = ttlm.calibrate_truth_method(
 )
 ```
 
-### Evaluating Truth Methods
+### Evaluating Truth Methods  
 
-Evaluate truth methods with metrics like AUROC, PRR:
+Evaluate the performance of hallucination detection methods with metrics like AUROC and PRR:  
 
 ```python
 results = ttlm.evaluate_truth_method(
@@ -117,31 +119,53 @@ results = ttlm.evaluate_truth_method(
     correctness_evaluator=model_judge,
     max_new_tokens=64
 )
+
+# Display evaluation results
+for i, method in enumerate(results['output_dict']['truth_methods']):
+    print(f"{method}: {results['eval_list'][i]}")
 ```
 
 ---
 
-## Implemented Hallucination Detection Methods
+## Implemented Hallucination Detection Methods  
 
-- **LARS**: Learnable Response Scoring ([paper](https://arxiv.org/pdf/2406.11278)).
-- **Confidence**: Average log probability of generated text.
-- **SelfDetection**: Measures consistency by generating rephrased questions.
-
----
-
-## Main Contributors 
-
-Yavuz Faruk Bakman (ybakman@usc.edu)
-Duygu Nur Yaldiz (yaldiz@usc.edu)
-Sungmin Kang (kangsung@usc.edu)
-Hayrettin Eren Yildiz (hayereyil@gmail.com)
-Alperen Ozis (alperenozis@gmail.com)
-
+- **LARS**: Learnable Response Scoring ([paper](https://arxiv.org/pdf/2406.11278)).  
+- **Confidence**: Measures the average log probability of the generated text.  
+- **SelfDetection**: Assesses consistency by generating rephrased questions.  
 
 ---
 
-## License
+## Contributors  
 
-TruthTorchLM is released under the [MIT License](LICENSE).
+- **Yavuz Faruk Bakman** (ybakman@usc.edu)  
+- **Duygu Nur Yaldiz** (yaldiz@usc.edu)  
+- **Sungmin Kang** (kangsung@usc.edu)  
+- **Hayrettin Eren Yildiz** (hayereyil@gmail.com)  
+- **Alperen Ozis** (alperenozis@gmail.com)  
 
-For inquiries or support, reach out to the maintainers.
+---
+
+## Citation  
+
+If you use TruthTorchLM in your research, please cite:  
+
+```bibtex
+@misc{truthtorchlm2025,
+  title={TruthTorchLM: A Comprehensive Library for Hallucination Detection in Large Language Models},
+  author={Yavuz Faruk Bakman, Duygu Nur Yaldiz,Sungmin Kang, Hayrettin Eren Yildiz, Alperen Ozis},
+  year={2025},
+  howpublished={GitHub},
+  url={https://github.com/YourRepo/TruthTorchLM}
+}
+```
+
+---
+
+## License  
+
+TruthTorchLM is released under the [MIT License](LICENSE).  
+
+For inquiries or support, feel free to contact the maintainers.
+```
+
+Let me know if you'd like any additional improvements or details!
