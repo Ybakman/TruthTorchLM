@@ -44,7 +44,7 @@ model = AutoModelForCausalLM.from_pretrained(
 tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-2-7b-chat-hf", use_fast=False)
 
 # API model
-api_model = "gpt-4o-mini"
+api_model = "gpt-4o"
 ```
 
 ### Generating Text with Truth Values  
@@ -112,10 +112,6 @@ results = ttlm.evaluate_truth_method(
     correctness_evaluator=model_judge,
     max_new_tokens=64
 )
-
-# Display evaluation results
-for i, method in enumerate(results['output_dict']['truth_methods']):
-    print(f"{method}: {results['eval_list'][i]}")
 ```
 
 ---
