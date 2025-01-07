@@ -49,7 +49,7 @@ api_model = "gpt-4o"
 
 ### Generating Text with Truth Values  
 
-Generate text from a model with truth values using built-in detection methods:
+TruthTorchLM generates messages with a truth value, indicating whether the model output is hallucinating or not. Various methods (called **truth methods**) can be used to detect hallucinations. Each method can have different algorithms and output ranges. Lower truth values generally suggest hallucinations. This functionality is mostly useful for short-form QA:
 ```python
 # Define truth methods
 lars = ttlm.truth_methods.LARS()
@@ -81,8 +81,7 @@ output_api_model = ttlm.generate_with_truth_value(
 ```
 
 ### Calibrating Truth Methods  
-
-Normalize truth values for consistent evaluation across methods:  
+Truth values for different methods may not be directly comparable. Use the `calibrate_truth_method` function to normalize truth values to a common range for better interpretability
 
 ```python
 model_judge = ttlm.evaluators.ModelJudge('gpt-4o-mini')
@@ -99,7 +98,7 @@ calibration_results = ttlm.calibrate_truth_method(
 
 ### Evaluating Truth Methods  
 
-Evaluate the performance of hallucination detection methods with metrics like AUROC and PRR:  
+We can evaluate the truth methods with the `evaluate_truth_method` function. We can define different evaluation metrics including AUROC, AUPRC, AUARC, Accuracy, F1, Precision, Recall, PRR:  
 
 ```python
 results = ttlm.evaluate_truth_method(
@@ -116,7 +115,7 @@ results = ttlm.evaluate_truth_method(
 
 ---
 
-## Implemented Hallucination Detection Methods  
+## Available Hallucination Detection Methods  
 
 - **LARS**: Learnable Response Scoring ([paper](https://arxiv.org/pdf/2406.11278)).  
 - **Confidence**: Measures the average log probability of the generated text.  
