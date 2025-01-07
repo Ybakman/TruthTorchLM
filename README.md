@@ -174,5 +174,4 @@ If you use TruthTorchLM in your research, please cite:
 TruthTorchLM is released under the [MIT License](LICENSE).  
 
 For inquiries or support, feel free to contact the maintainers.
->>>>>>> 5cb3fab6f9abdc046ff9c21692b1ecdaaed66e43
 
