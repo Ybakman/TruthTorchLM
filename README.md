@@ -49,20 +49,20 @@ api_model = "gpt-4o-mini"
 
 ### Generating Text with Truth Values  
 
-Generate text with truth values using pre-built detection methods:  
-
+Generate text from a model with truth values using built-in detection methods:
 ```python
 # Define truth methods
 lars = ttlm.truth_methods.LARS()
 confidence = ttlm.truth_methods.Confidence()
 self_detection = ttlm.truth_methods.SelfDetection(number_of_questions=5)
-
 truth_methods = [lars, confidence, self_detection]
-
+```
+```python
 # Define a chat history
 chat = [{"role": "system", "content": "You are a helpful assistant. Give short and precise answers."},
         {"role": "user", "content": "What is the capital city of France?"}]
-
+```
+```python
 # Generate text with truth values (Huggingface model)
 output_hf_model = ttlm.generate_with_truth_value(
     model=model,
@@ -72,14 +72,12 @@ output_hf_model = ttlm.generate_with_truth_value(
     max_new_tokens=100,
     temperature=0.7
 )
-
 # Generate text with truth values (API model)
 output_api_model = ttlm.generate_with_truth_value(
     model=api_model,
     messages=chat,
     truth_methods=truth_methods
 )
-
 ```
 
 ### Calibrating Truth Methods  
@@ -161,6 +159,4 @@ If you use TruthTorchLM in your research, please cite:
 TruthTorchLM is released under the [MIT License](LICENSE).  
 
 For inquiries or support, feel free to contact the maintainers.
-```
 
-Let me know if you'd like any additional improvements or details!
