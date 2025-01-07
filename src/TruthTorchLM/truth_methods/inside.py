@@ -3,7 +3,6 @@ import torch
 from typing import Union
 
 from .truth_method import TruthMethod
-from TruthTorchLM.utils import sigmoid_normalization
 from TruthTorchLM.availability import ACTIVATION_AVAILABLE_API_MODELS 
 from ..generation import sample_generations_hf_local
 

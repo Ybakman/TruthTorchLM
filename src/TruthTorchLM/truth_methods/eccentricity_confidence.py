@@ -1,12 +1,8 @@
-import copy
 import torch
-import random
-import numpy as np
 from typing import Union
-from litellm import completion
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
-from transformers import GPT2LMHeadModel, GPT2Tokenizer, DebertaForSequenceClassification, DebertaTokenizer
-from TruthTorchLM.utils import calculate_C_ecc, sigmoid_normalization
+from transformers import DebertaForSequenceClassification, DebertaTokenizer
+from TruthTorchLM.utils import calculate_C_ecc
 from .truth_method import TruthMethod
 from ..generation import sample_generations_hf_local, sample_generations_api
 

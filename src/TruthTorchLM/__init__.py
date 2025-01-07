@@ -1,3 +1,8 @@
+import warnings
+# Suppress specific warnings in the library
+warnings.filterwarnings("ignore")
+
+
 from .truth_methods.truth_method import TruthMethod
 from TruthTorchLM import utils ##TODO do we really need to import this?
 from TruthTorchLM import scoring_methods

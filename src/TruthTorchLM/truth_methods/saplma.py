@@ -1,6 +1,4 @@
-import copy
 import torch
-import random
 import numpy as np
 from tqdm import tqdm
 from typing import Union
@@ -9,7 +7,6 @@ from sklearn.model_selection import train_test_split
 
 
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, AutoModelForCausalLM
 from TruthTorchLM.availability import ACTIVATION_AVAILABLE_API_MODELS 
 
 from .truth_method import TruthMethod
@@ -17,7 +14,7 @@ from TruthTorchLM.templates import DEFAULT_SYSTEM_BENCHMARK_PROMPT, DEFAULT_USER
 
 from ..evaluators.correctness_evaluator import CorrectnessEvaluator 
 from TruthTorchLM.utils.dataset_utils import get_dataset
-from ..generation import sample_generations_hf_local, sample_generations_api, sample_generations_batch_hf_local, sample_generations_sequential_hf_local
+from ..generation import sample_generations_batch_hf_local, sample_generations_sequential_hf_local
 from TruthTorchLM.utils.eval_utils import metric_score
 
 from sklearn.neural_network import MLPClassifier

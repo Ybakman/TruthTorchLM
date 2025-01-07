@@ -1,12 +1,9 @@
-import copy
 import torch
-import random
-import numpy as np
 from typing import Union
 from litellm import completion
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 from transformers import DebertaForSequenceClassification, DebertaTokenizer
-from TruthTorchLM.utils import calculate_U_num_set, sigmoid_normalization
+from TruthTorchLM.utils import calculate_U_num_set
 from .truth_method import TruthMethod
 from ..generation import sample_generations_hf_local, sample_generations_api
 

@@ -7,7 +7,6 @@ from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokeniz
 from TruthTorchLM.templates import GOOGLE_CHECK_QUERY_SYSTEM_PROMPT, GOOGLE_CHECK_QUERY_USER_PROMPT, GOOGLE_CHECK_VERIFICATION_SYSTEM_PROMPT, GOOGLE_CHECK_VERIFICATION_USER_PROMPT
 
 import torch
-import numpy as np
 import copy
 
 

@@ -1,15 +1,11 @@
 from .truth_method import TruthMethod
 from TruthTorchLM.scoring_methods import ScoringMethod, LengthNormalizedScoring
-from TruthTorchLM.utils import sigmoid_normalization
-from litellm import completion
 from typing import Union
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 
 from TruthTorchLM.availability import PROB_AVAILABLE_API_MODELS
 import torch
 import numpy as np
-import copy
-import random
 from ..generation import sample_generations_hf_local, sample_generations_api
 
 

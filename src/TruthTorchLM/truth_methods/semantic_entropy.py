@@ -1,16 +1,13 @@
-import copy
+
 import torch
-import numpy as np
-import random
 from litellm import completion
 from typing import Union
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast, DebertaForSequenceClassification, DebertaTokenizer
-from TruthTorchLM.utils import sigmoid_normalization, bidirectional_entailment_clustering
+from TruthTorchLM.utils import bidirectional_entailment_clustering
 from TruthTorchLM.availability import PROB_AVAILABLE_API_MODELS
 from .truth_method import TruthMethod
 from TruthTorchLM.scoring_methods import ScoringMethod, LengthNormalizedScoring
 from ..generation import sample_generations_hf_local, sample_generations_api
-from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
 

@@ -1,13 +1,11 @@
-import copy
+
 import torch
-import numpy as np
 from typing import Union
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast, DebertaForSequenceClassification, DebertaTokenizer
 from TruthTorchLM.utils import calculate_affinity_matrix, calculate_laplacian, create_kernel, calculate_VNE
 from TruthTorchLM.availability import PROB_AVAILABLE_API_MODELS
 from .truth_method import TruthMethod
 from ..generation import sample_generations_hf_local, sample_generations_api
-from transformers import AutoModelForCausalLM, AutoTokenizer
 
 class KernelLanguageEntropy(TruthMethod):
     REQUIRES_SAMPLED_TEXT = True

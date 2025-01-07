@@ -1,15 +1,13 @@
 import copy
 import torch
-import random
 import numpy as np
 from typing import Union
 from litellm import completion
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
-from transformers import GPT2LMHeadModel, GPT2Tokenizer, DebertaForSequenceClassification, DebertaTokenizer
+from transformers import DebertaForSequenceClassification, DebertaTokenizer
 from TruthTorchLM.availability import AVAILABLE_API_MODELS
 from TruthTorchLM.utils import *
 from .truth_method import TruthMethod
-from transformers import AutoModelForCausalLM, AutoTokenizer
 from TruthTorchLM.templates import SELF_DETECTION_QUESTION_PROMPT, SELF_DETECTION_SYSTEM_PROMPT, ENTAILMENT_PROMPT, DEFAULT_SYSTEM_PROMPT 
 from TruthTorchLM.generation import sample_generations_hf_local, sample_generations_api
 

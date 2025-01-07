@@ -1,8 +1,6 @@
 from enum import Enum
 from .truth_method import TruthMethod
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
-from transformers import LlamaForCausalLM, LlamaTokenizer
-from TruthTorchLM.availability import AVAILABLE_API_MODELS
 from TruthTorchLM.utils import fix_tokenizer_chat
 from litellm import completion
 import copy

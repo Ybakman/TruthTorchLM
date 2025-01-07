@@ -1,6 +1,5 @@
 from .truth_method import TruthMethod
-from TruthTorchLM.utils import sigmoid_normalization
-from litellm import completion
+
 from typing import Union
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 from sentence_transformers import CrossEncoder
@@ -9,8 +8,7 @@ from .truth_method import TruthMethod
 from TruthTorchLM.availability import PROB_AVAILABLE_API_MODELS
 import torch
 import numpy as np
-import copy
-import random
+
 
 
 class TokenSAR(TruthMethod):

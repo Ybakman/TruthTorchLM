@@ -7,7 +7,6 @@ from typing import Union
 from datasets import  Dataset
 from sklearn.model_selection import train_test_split
 
-from litellm import completion
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, AutoModelForCausalLM
 from transformers import DebertaForSequenceClassification, DebertaTokenizer
