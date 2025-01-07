@@ -148,7 +148,7 @@ If you use TruthTorchLM in your research, please cite:
   author={Yavuz Faruk Bakman, Duygu Nur Yaldiz,Sungmin Kang, Hayrettin Eren Yildiz, Alperen Ozis},
   year={2025},
   howpublished={GitHub},
-  url={https://github.com/YourRepo/TruthTorchLM}
+  url={https://github.com/Ybakman/TruthTorchLM}
 }
 ```
 
