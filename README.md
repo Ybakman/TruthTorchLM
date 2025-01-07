@@ -1,6 +1,3 @@
-Here’s an enhanced version of the README with a citation and improved formatting:  
-
-```markdown
 # TruthTorchLM: A Comprehensive Library for Hallucination Detection in LLMs  
 
 **TruthTorchLM** is an open-source library designed to detect and mitigate hallucinations in text generation models. The library integrates state-of-the-art methods, offers comprehensive benchmarking tools across various tasks, and enables seamless integration with popular frameworks like Huggingface and LiteLLM.
@@ -83,8 +80,6 @@ output_api_model = ttlm.generate_with_truth_value(
     truth_methods=truth_methods
 )
 
-print(output_hf_model)
-print(output_api_model)
 ```
 
 ### Calibrating Truth Methods  
