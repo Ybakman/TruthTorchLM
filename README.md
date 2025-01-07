@@ -117,9 +117,29 @@ results = ttlm.evaluate_truth_method(
 
 ## Available Hallucination Detection Methods  
 
-- **LARS**: Learnable Response Scoring ([paper](https://arxiv.org/pdf/2406.11278)).  
-- **Confidence**: Measures the average log probability of the generated text.  
-- **SelfDetection**: Assesses consistency by generating rephrased questions.  
+- **LARS**: [Do Not Design, Learn: A Trainable Scoring Function for Uncertainty Estimation in Generative LLMs](https://arxiv.org/pdf/2406.11278).  
+- **Confidence**: [Uncertainty Estimation in Autoregressive Structured Prediction](https://openreview.net/pdf?id=jN5y-zb5Q7m). 
+- **Entropy**:[Uncertainty Estimation in Autoregressive Structured Prediction](https://openreview.net/pdf?id=jN5y-zb5Q7m).  
+- **SelfDetection**: [Knowing What LLMs DO NOT Know: A Simple Yet Effective Self-Detection Method](https://arxiv.org/pdf/2310.17918). 
+- **AttentionScore**: [LLM-Check: Investigating Detection of Hallucinations in Large Language Models](https://openreview.net/pdf?id=LYx4w3CAgy). 
+- **CrossExamination**: [LM vs LM: Detecting Factual Errors via Cross Examination](https://arxiv.org/pdf/2305.13281). 
+- **EccentricityConfidence**: [Generating with Confidence: Uncertainty Quantification for Black-box Large Language Models](https://arxiv.org/pdf/2305.19187). 
+- **EccentricityUncertainty**: [Generating with Confidence: Uncertainty Quantification for Black-box Large Language Models](https://arxiv.org/pdf/2305.19187).
+- **GoogleSearchCheck**: [FacTool: Factuality Detection in Generative AI -- A Tool Augmented Framework for Multi-Task and Multi-Domain Scenarios](https://arxiv.org/pdf/2307.13528). 
+- **Inside**: [INSIDE: LLMs' Internal States Retain the Power of Hallucination Detection](https://openreview.net/pdf?id=Zj12nzlQbz). 
+- **KernelLanguageEntropy**: [Kernel Language Entropy: Fine-grained Uncertainty Quantification for LLMs from Semantic Similarities](https://arxiv.org/pdf/2405.20003). 
+- **MARS**: [MARS: Meaning-Aware Response Scoring for Uncertainty Estimation in Generative LLMs](https://aclanthology.org/2024.acl-long.419.pdf). 
+- **MatrixDegreeConfidence**: [Generating with Confidence: Uncertainty Quantification for Black-box Large Language Models](https://arxiv.org/pdf/2305.19187). 
+- **MatrixDegreeUncertainty**: [Generating with Confidence: Uncertainty Quantification for Black-box Large Language Models](https://arxiv.org/pdf/2305.19187).
+- **MultiLLMCollab**: [Don’t Hallucinate, Abstain: Identifying LLM Knowledge Gaps via Multi-LLM Collaboration](https://arxiv.org/pdf/2402.00367). 
+- **NumSemanticSetUncertainty**: [Semantic Uncertainty: Linguistic Invariances for Uncertainty Estimation in Natural Language Generation](https://arxiv.org/pdf/2302.09664). 
+- **PTrue**: [Language Models (Mostly) Know What They Know](https://arxiv.org/pdf/2207.05221). 
+- **Saplma**: [The Internal State of an LLM Knows When It’s Lying](https://aclanthology.org/2023.findings-emnlp.68.pdf). 
+- **SemanticEntropy**: [Semantic Uncertainty: Linguistic Invariances for Uncertainty Estimation in Natural Language Generation](https://arxiv.org/pdf/2302.09664).
+- **sentSAR**: [Shifting Attention to Relevance: Towards the Predictive Uncertainty Quantification of Free-Form Large Language Models](https://aclanthology.org/2024.acl-long.276.pdf). 
+- **SumEigenUncertainty**: [Generating with Confidence: Uncertainty Quantification for Black-box Large Language Models](https://arxiv.org/pdf/2305.19187).
+- **tokenSAR**: [Shifting Attention to Relevance: Towards the Predictive Uncertainty Quantification of Free-Form Large Language Models](https://aclanthology.org/2024.acl-long.276.pdf). 
+- **VerbalizedConfidence**: [Just Ask for Calibration: Strategies for Eliciting Calibrated Confidence Scores from Language Models Fine-Tuned with Human Feedback](https://openreview.net/pdf?id=g3faCfrwm7). 
 
 ---
 
