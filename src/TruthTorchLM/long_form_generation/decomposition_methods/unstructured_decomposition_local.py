@@ -15,13 +15,13 @@ def default_output_parser(text:str):
         return statements
 
 class UnstructuredDecompositionLocal(FactualDecompositionMethod):
-    def __init__(self, model:PreTrainedModel, tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast], chat_template:list=CHAT, decomposition_depth:int=1, 
+    def __init__(self, model:PreTrainedModel, tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast], instruction:list=CHAT, decomposition_depth:int=1, 
                  output_parser:Callable[[str],list[str]]=default_output_parser, add_generation_prompt = True, continue_final_message = False, **kwargs):
         super().__init__()
     
         self.model = model
         self.tokenizer = tokenizer
-        self.chat_template = chat_template
+        self.instruction = instruction
         self.output_parser = output_parser
         self.decomposition_depth = decomposition_depth
         self.add_generation_prompt = add_generation_prompt
@@ -50,7 +50,7 @@ class UnstructuredDecompositionLocal(FactualDecompositionMethod):
 
     def decompose_facts(self, input_text:str):
 
-        messages = deepcopy(self.chat_template)
+        messages = deepcopy(self.instruction)
         for item in messages:
             item["content"] = item["content"].format(TEXT=input_text)
         self.tokenizer, messages = fix_tokenizer_chat(self.tokenizer, messages)
@@ -62,4 +62,4 @@ class UnstructuredDecompositionLocal(FactualDecompositionMethod):
         return statements
         
     def __str__(self):
-        return "Factual decomposition by using LLMs method with " + self.model + " model. Chat template is:\n" +  str(self.chat_template) + "\n Sentence seperator is: " + self.sentence_seperator
+        return "Factual decomposition by using LLMs method with " + self.model + " model. Chat template is:\n" +  str(self.instruction) + "\n Sentence seperator is: " + self.sentence_seperator

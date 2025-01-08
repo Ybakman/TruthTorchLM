@@ -11,7 +11,7 @@ from .generation import generate_with_truth_value
 from .calibration import calibrate_truth_method
 from TruthTorchLM import evaluators
 from .evaluators import evaluate_truth_method
-from .templates import DEFAULT_USER_PROMPT, DEFAULT_SYSTEM_PROMPT ##TODO import all?
+from .templates import *
 from .availability import AVAILABLE_DATASETS, AVAILABLE_EVALUATION_METRICS
 from TruthTorchLM import normalizers
 

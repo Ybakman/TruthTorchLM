@@ -71,11 +71,12 @@ def long_form_generation_with_truth_value_hf_local(model:PreTrainedModel, messag
     unnormalized_truth_values = []
     method_spec_outputs = []
     for stmt_check_method in stmt_check_methods:
+        print("Applying stement check method ", stmt_check_method.__class__.__name__)
         stmt_normalized_truth_values = []
         stmt_unnormalized_truth_values = []
         stmt_method_spec_outputs = []
         for sidx, statement in enumerate(statements):
-            print("Check for statement: ", statement)
+            # print("Check for statement: ", statement)
             text_so_far = ' '.join(statements[:sidx]) if sidx > 0 else None
             truth_values = stmt_check_method(model=model, input_text=text, generated_text=generated_text, question_context=question_context, statement=statement, 
                                             text_so_far=text_so_far, all_ids=model_output, tokenizer=tokenizer, generation_seed=generation_seed, messages=messages, **kwargs) 
@@ -142,11 +143,12 @@ def long_form_generation_with_truth_value_api(model:str, messages:list, question
     unnormalized_truth_values = []
     method_spec_outputs = []
     for stmt_check_method in stmt_check_methods:
+        print("Applying stement check method ", stmt_check_method.__class__.__name__)
         stmt_normalized_truth_values = []
         stmt_unnormalized_truth_values = []
         stmt_method_spec_outputs = []
         for sidx, statement in enumerate(statements):
-            print("Check for statement: ", statement)
+            # print("Check for statement: ", statement)
             text_so_far = ' '.join(statements[:sidx]) if sidx > 0 else None
             truth_values = stmt_check_method(model=model, messages=messages, generated_text=generated_text, question_context=question_context, 
                                             statement=statement, text_so_far=text_so_far, generation_seed=generation_seed, **kwargs)

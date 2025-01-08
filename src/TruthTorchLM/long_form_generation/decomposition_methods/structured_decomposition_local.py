@@ -15,7 +15,7 @@ class Statements(BaseModel):
     statements: list
 
 class StructuredDecompositionLocal(FactualDecompositionMethod):
-    def __init__(self, model:PreTrainedModel, tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast], chat_template:list=CHAT, decomposition_depth:int=1, 
+    def __init__(self, model:PreTrainedModel, tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast], instruction:list=CHAT, decomposition_depth:int=1, 
                  add_generation_prompt = True, continue_final_message = False):
         super().__init__()
     
@@ -23,14 +23,14 @@ class StructuredDecompositionLocal(FactualDecompositionMethod):
         outlines_model = outlines.models.Transformers(model, tokenizer)
         self.generator = outlines.generate.json(outlines_model, Statements)
         self.tokenizer = tokenizer
-        self.chat_template = chat_template
+        self.instruction = instruction
         self.decomposition_depth = decomposition_depth
         self.add_generation_prompt = add_generation_prompt
         self.continue_final_message = continue_final_message
     
     def decompose_facts(self, input_text:str):
 
-        messages = deepcopy(self.chat_template)
+        messages = deepcopy(self.instruction)
         for item in messages:
             item["content"] = item["content"].format(TEXT=input_text)
         self.tokenizer, messages = fix_tokenizer_chat(self.tokenizer, messages)
@@ -40,4 +40,4 @@ class StructuredDecompositionLocal(FactualDecompositionMethod):
         return resp.statements
         
     def __str__(self):
-        return "Factual decomposition by using LLMs.\nModel: " + self.model + "\nOutput structure is enforced with 'outlines' library.\nChat template is:\n" +  str(self.chat_template) 
+        return "Factual decomposition by using LLMs.\nModel: " + self.model + "\nOutput structure is enforced with 'outlines' library.\nChat template is:\n" +  str(self.instruction) 

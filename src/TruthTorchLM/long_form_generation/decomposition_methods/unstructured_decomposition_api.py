@@ -15,14 +15,14 @@ def default_output_parser(text:str):
         return statements
 
 class UnstructuredDecompositionAPI(FactualDecompositionMethod):
-    def __init__(self, model:str, chat_template:list=CHAT, decomposition_depth:int=1, output_parser:Callable[[str],list[str]]=default_output_parser, **kwargs):
+    def __init__(self, model:str, instruction:list=CHAT, decomposition_depth:int=1, output_parser:Callable[[str],list[str]]=default_output_parser, **kwargs):
         super().__init__()
 
         if type(model) == str and not model in AVAILABLE_API_MODELS:
             raise ValueError(f"model {model} is not supported.")
     
         self.model = model
-        self.chat_template = chat_template
+        self.instruction = instruction
         self.decomposition_depth = decomposition_depth
         self.output_parser = output_parser
         self.kwargs = kwargs
@@ -32,7 +32,7 @@ class UnstructuredDecompositionAPI(FactualDecompositionMethod):
 
     def decompose_facts(self, input_text:str):
 
-        messages = deepcopy(self.chat_template)
+        messages = deepcopy(self.instruction)
         for item in messages:
             item["content"] = item["content"].format(TEXT=input_text)
             
@@ -47,4 +47,4 @@ class UnstructuredDecompositionAPI(FactualDecompositionMethod):
         return statements
         
     def __str__(self):
-        return "Factual decomposition by using LLMs method with " + self.model + " model. Chat template is:\n" +  str(self.chat_template) + "\n Sentence seperator is: " + self.sentence_seperator
+        return "Factual decomposition by using LLMs method with " + self.model + " model. Chat template is:\n" +  str(self.instruction) + "\n Sentence seperator is: " + self.sentence_seperator

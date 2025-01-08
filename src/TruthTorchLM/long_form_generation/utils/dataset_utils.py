@@ -55,7 +55,7 @@ def download_file(file_info, local_file_path, headers):
     if response.status_code == 200:
         with open(local_file_path, 'wb') as f:
             f.write(response.content)
-        print(f"Downloaded: {file_info['path']}")
+        # print(f"Downloaded: {file_info['path']}")
     else:
         print(f"Failed to download {file_info['path']}: {response.status_code}")
 
