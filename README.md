@@ -16,8 +16,12 @@
 ---
 
 ## Installation  
-
-Install TruthTorchLM using pip:  
+Create a new environment with python >=3.10:
+```bash
+conda create --name truthtorchlm python=3.10
+conda activate truthtorchlm
+```
+Then, install TruthTorchLM using pip:  
 
 ```bash
 pip install TruthTorchLM
