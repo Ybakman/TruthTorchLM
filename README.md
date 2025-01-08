@@ -9,7 +9,7 @@
 ## Features  
 
 - **State-of-the-Art Methods**: Offers 23 **truth methods** that are designed to assess the truthfulness of LLM generations. These methods range from Google Search to uncertainty estimation and multi-LLM collaboration techniques.
-- **Integration**: Fully compatible with **Huggingface** and **LiteLLM**, enabling users to incorporate truth evaluation into their workflows with minimal code changes.  
+- **Integration**: Fully compatible with **Huggingface** and **LiteLLM**, enabling users to integrate truthfulness assessment into their workflows with **minimal code changes**.  
 - **Evaluation Tools**: Benchmark truth methods using various metrics including AUROC, AUPRC, PRR, and Accuracy.  
 - **Calibration**: Normalize and calibrate truth methods for interpretable and comparable outputs.  
 - **Long-Form Generation**: Adapts truth methods to assess truthfulness in long-form text generations effectively.  
