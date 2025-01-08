@@ -6,11 +6,11 @@
 
 ## Features  
 
-- **State-of-the-Art Methods**: Implementations of advanced hallucination detection techniques.  
+- **State-of-the-Art Methods**: Implementations of advanced hallucination detection techniques.
+- **Integration**: Seamlessly works with Huggingface and LiteLLM. 
 - **Evaluation Tools**: Benchmark hallucination detection methods using various metrics like AUROC, PRR, and Accuracy.  
-- **Calibration**: Normalize and calibrate truth values for interpretable and comparable hallucination scores.  
-- **Integration**: Seamlessly works with Huggingface and LiteLLM.  
-- **Long-Form Generation**: Adapts detection methods to handle long-form text generations effectively.  
+- **Calibration**: Normalize and calibrate truth values for interpretable and comparable outputs.  
+- **Long-Form Generation**: Adapts detection methods to detect hallucinations in long-form text generations effectively.  
 - **Extendability**: Provides an intuitive interface for implementing new hallucination detection methods.  
 
 ---
