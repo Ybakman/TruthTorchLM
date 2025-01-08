@@ -36,13 +36,6 @@ class KernelLanguageEntropy(TruthMethod):
             number_of_generations=self.number_of_generations, return_text = True, return_logprobs=False, **kwargs)
 
         generated_texts = sampled_generations_dict["generated_texts"][:self.number_of_generations]
-        
-        # KLE part
-        # semantic_graph = calculate_affinity_matrix(texts = generated_texts, context = question_context, method_for_similarity = 'kernel',
-        #                                            model_for_entailment = self.model_for_entailment, tokenizer_for_entailment = self.tokenizer_for_entailment)
-        # graph_laplacian = calculate_laplacian(graph = semantic_graph, normalize = self.normalize_laplacian)
-        # kernel = create_kernel(laplacian = graph_laplacian, kernel_type = self.kernel_type, temperature=self.temperature, smoothness=self.smoothness, scale=self.scale)
-        # kernel_entropy = calculate_VNE(kernel)
         semantic_graph, kernel, kernel_entropy = self.calculate_kernel_language_entropy(texts=generated_texts, context=question_context, method_for_similarity='kernel',
                                                     model_for_entailment = self.model_for_entailment, tokenizer_for_entailment = self.tokenizer_for_entailment,
                                                     normalize_laplacian=self.normalize_laplacian, kernel_type=self.kernel_type, 
