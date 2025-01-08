@@ -3,18 +3,17 @@
 </p>
 <p align="left">
     
-## TruthTorchLM: A Comprehensive Library for Hallucination Detection in LLMs  
-
+## TruthTorchLM: A Comprehensive Library for Assessing Truthfulness in LLM Outputs
 ---
 
 ## Features  
 
-- **State-of-the-Art Methods**: Implementations of advanced hallucination detection techniques.
-- **Integration**: Seamlessly works with **Huggingface** and **LiteLLM**. 
-- **Evaluation Tools**: Benchmark hallucination detection methods using various metrics.  
-- **Calibration**: Normalize and calibrate hallucination detection methods for interpretable and comparable outputs.  
-- **Long-Form Generation**: Adapts detection methods to detect hallucinations in long-form text generations effectively.  
-- **Extendability**: Provides an intuitive interface for implementing new hallucination detection methods.  
+- **State-of-the-Art Methods**: Offers 23 **truth methods** that are designed to assess the truthfulness of LLM generations. These methods range from Google Search to uncertainty estimation and multi-LLM collaboration techniques.
+- **Integration**: Fully compatible with **Huggingface** and **LiteLLM**, enabling users to incorporate truth evaluation into their workflows with minimal code changes.  
+- **Evaluation Tools**: Benchmark truth methods using various metrics including AUROC, AUPRC, PRR, and Accuracy.  
+- **Calibration**: Normalize and calibrate truth methods for interpretable and comparable outputs.  
+- **Long-Form Generation**: Adapts truth methods to assess truthfulness in long-form text generations effectively.  
+- **Extendability**: Provides an intuitive interface for implementing new truth methods.  
 
 ---
 
@@ -56,7 +55,7 @@ api_model = "gpt-4o"
 
 ### Generating Text with Truth Values  
 
-TruthTorchLM generates messages with a truth value, indicating whether the model output is hallucinating or not. Various methods (called **truth methods**) can be used to detect hallucinations. Each method can have different algorithms and output ranges. Lower truth values generally suggest hallucinations. This functionality is mostly useful for short-form QA:
+TruthTorchLM generates messages with a truth value, indicating whether the model output is truthful or not. Various methods (called **truth methods**) can be used for this purpose. Each method can have different algorithms and output ranges. Higher truth values generally suggest truthful outputs. This functionality is mostly useful for short-form QA:
 ```python
 # Define truth methods
 lars = ttlm.truth_methods.LARS()
@@ -120,9 +119,9 @@ results = ttlm.evaluate_truth_method(
 )
 ```
 
-### Hallucination Detection in Long-Form Generation 
+### Truthfulness in Long-Form Generation 
 
-Assigning a single score for long text is neither practical nor useful. TruthTorchLM first decomposes the generated text into short, single-sentence statements and assigns truth values to these statements using statement check methods. The `long_form_generation_with_truth_value` function returns the generated text, decomposed statements, and their truth values.
+Assigning a single truth value for a long text is neither practical nor useful. TruthTorchLM first decomposes the generated text into short, single-sentence statements and assigns truth values to these statements using statement check methods. The `long_form_generation_with_truth_value` function returns the generated text, decomposed statements, and their truth values.
 
 
 ```python
@@ -173,7 +172,7 @@ output_api_model = LFG.long_form_generation_with_truth_value(model="gpt-4o-mini"
 
 ### Evaluation of Truth Methods in Long-Form Generation
 
-We can evaluate truth methods on long form generation by using `evaluate_truth_method_long_form` function. To obtain the correctness labels of the statements we follow [SAFE paper](https://arxiv.org/pdf/2403.18802). SAFE performs google search for each statement and assigns labels as supported, unsupported or irrelevant. We can define different evaluation metrics including AUROC, AUPRC, AUARC, Accuracy, F1, Precision, Recall, PRR. 
+We can evaluate truth methods on long-form generation by using `evaluate_truth_method_long_form` function. To obtain the correctness of the statements we follow [SAFE paper](https://arxiv.org/pdf/2403.18802). SAFE performs Google search for each statement and assigns labels as supported, unsupported, or irrelevant. We can define different evaluation metrics including AUROC, AUPRC, AUARC, Accuracy, F1, Precision, Recall, PRR. 
 
 Note: Calibrating truth methods before running evaluation is recommended.
 
@@ -195,7 +194,7 @@ results = LFG.evaluate_truth_method_long_form(dataset='longfact_objects', model=
 ```
 ---
 
-## Available Hallucination Detection Methods  
+## Available Truth Methods  
 
 - **LARS**: [Do Not Design, Learn: A Trainable Scoring Function for Uncertainty Estimation in Generative LLMs](https://arxiv.org/pdf/2406.11278).  
 - **Confidence**: [Uncertainty Estimation in Autoregressive Structured Prediction](https://openreview.net/pdf?id=jN5y-zb5Q7m). 
@@ -239,8 +238,8 @@ If you use TruthTorchLM in your research, please cite:
 
 ```bibtex
 @misc{truthtorchlm2025,
-  title={TruthTorchLM: A Comprehensive Library for Hallucination Detection in Large Language Models},
-  author={Yavuz Faruk Bakman, Duygu Nur Yaldiz,Sungmin Kang, Hayrettin Eren Yildiz, Alperen Ozis},
+  title={TruthTorchLM: A Comprehensive Library for Assessing Truthfulness in LLM Outputs},
+  author={Yavuz Faruk Bakman, Duygu Nur Yaldiz,Sungmin Kang, Hayrettin Eren Yildiz, Alperen Ozis, Salman Avestimehr},
   year={2025},
   howpublished={GitHub},
   url={https://github.com/Ybakman/TruthTorchLM}
