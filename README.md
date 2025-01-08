@@ -5,16 +5,14 @@
     
 ## TruthTorchLM: A Comprehensive Library for Hallucination Detection in LLMs  
 
-**TruthTorchLM** is an open-source library designed to detect and mitigate hallucinations in text generation models. The library integrates state-of-the-art methods, offers comprehensive benchmarking tools across various tasks, and enables seamless integration with popular frameworks like Huggingface and LiteLLM.
-
 ---
 
 ## Features  
 
 - **State-of-the-Art Methods**: Implementations of advanced hallucination detection techniques.
-- **Integration**: Seamlessly works with Huggingface and LiteLLM. 
-- **Evaluation Tools**: Benchmark hallucination detection methods using various metrics like AUROC, PRR, and Accuracy.  
-- **Calibration**: Normalize and calibrate truth values for interpretable and comparable outputs.  
+- **Integration**: Seamlessly works with **Huggingface** and **LiteLLM**. 
+- **Evaluation Tools**: Benchmark hallucination detection methods using various metrics.  
+- **Calibration**: Normalize and calibrate hallucination detection methods for interpretable and comparable outputs.  
 - **Long-Form Generation**: Adapts detection methods to detect hallucinations in long-form text generations effectively.  
 - **Extendability**: Provides an intuitive interface for implementing new hallucination detection methods.  
 
