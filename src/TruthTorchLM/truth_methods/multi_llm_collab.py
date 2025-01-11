@@ -1,5 +1,5 @@
 from .truth_method import TruthMethod
-from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
+from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast, AutoModelForCausalLM, AutoTokenizer
 from TruthTorchLM.availability import AVAILABLE_API_MODELS
 from litellm import completion
 import copy
@@ -30,9 +30,9 @@ JUDGE_COMPETE = "Answer only 'Same' or 'Different'. The two given answers are: "
 class MultiLLMCollab(TruthMethod):
     REQUIRES_NORMALIZATION = False
 
-    def __init__(self, collaborate_mode:str, feedback_models:list[Union[str, PreTrainedModel]],
-                feedback_tokenizers:list[Union[PreTrainedTokenizer, PreTrainedTokenizerFast]]=None,
-                 question_form: str='free_form', max_new_tokens=1024, temperature=1.0, top_k=50, num_beams=1, **generation_kwargs):
+    def __init__(self, collaborate_mode:str='coop_self', feedback_models:list[PreTrainedModel]=None, 
+                feedback_tokenizers:list[Union[PreTrainedTokenizer, PreTrainedTokenizerFast]]=None, feedback_api_models: list[str]=None,
+                question_form: str='free_form', max_new_tokens=1024, temperature=1.0, top_k=50, num_beams=1, **generation_kwargs):
         super().__init__()
         
         if collaborate_mode not in ['coop_self', 'coop_others', 'compete']:
@@ -45,23 +45,32 @@ class MultiLLMCollab(TruthMethod):
         else:
             self.question_form = question_form
 
-        # Validate feedback models and tokenizers
         if collaborate_mode != 'coop_self':
-            if not feedback_models:
-                raise ValueError("Feedback models and tokenizers are required for 'coop_others' and 'compete' modes.")
-        self.feedback_models = feedback_models
-        self.feedback_tokenizers = feedback_tokenizers
-
-        # Additional debug output for clarity
-        print(f"Collaboration mode: {self.collaborate_mode}")
+            if feedback_models is None or feedback_tokenizers is None:
+                self.feedback_models = [
+                    AutoModelForCausalLM.from_pretrained("meta-llama/Meta-Llama-3-8B-Instruct", use_auth_token=True).to("cuda:1"),
+                    AutoModelForCausalLM.from_pretrained("mistralai/Mistral-7B-Instruct-v0.1", use_auth_token=True).to("cuda:2")]
+                self.feedback_tokenizers = [
+                    AutoTokenizer.from_pretrained("meta-llama/Meta-Llama-3-8B-Instruct", use_fast=False),
+                    AutoTokenizer.from_pretrained("mistralai/Mistral-7B-Instruct-v0.1", use_fast=False)]
+                print('Feedback models and tokenizers set as "Meta-Llama-3-8B-Instruct" and "Mistral-7B-Instruct-v0.1"')
+            else:
+                self.feedback_models = feedback_models
+                self.feedback_tokenizers = feedback_tokenizers
+            if feedback_api_models is None:
+                self.feedback_api_models = ['gpt-3.5-turbo', 'gpt-3.5-turbo-0125']
+                print('Feedback models set as "gpt-3.5-turbo" and "gpt-3.5-turbo-0125"')
+            else:
+                self.feedback_api_models = feedback_api_models
         
-        self.feedback_models = feedback_models
-        self.feedback_tokenizers = feedback_tokenizers 
         self.max_new_tokens = max_new_tokens
         self.temperature = temperature
         self.top_k = top_k
         self.num_beams = num_beams
         self.generation_kwargs = generation_kwargs
+        
+        # Print collaboration mode
+        print(f"Collaboration mode: {self.collaborate_mode}")
         
 
     def forward_hf_local(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], 
@@ -98,11 +107,11 @@ class MultiLLMCollab(TruthMethod):
                                                                       model=model, temperature=self.temperature)
         elif self.collaborate_mode == 'coop_others':
             generated_answer, abstain, feedbacks = self.coop_others_api(question_context=question_context, generated_answer=generated_text,
-                                                                     qa_model=model, feedback_models=self.feedback_models,
+                                                                     qa_model=model, feedback_models=self.feedback_api_models,
                                                                      temperature=self.temperature)
         elif self.collaborate_mode == 'compete':
             generated_answer, abstain, _, feedbacks = self.compete_api(question_context=question_context, generated_answer=generated_text,
-                                                                    feedback_models=self.feedback_models,
+                                                                    feedback_models=self.feedback_api_models,
                                                                     question_form=self.question_form, temperature=self.temperature)
         return {"truth_value": 1.-float(abstain), "generated_text": generated_answer, "feedbacks": feedbacks}
 
