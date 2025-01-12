@@ -30,6 +30,8 @@ class SAPLMA(TruthMethod):
     def __init__(self, saplma_model:MLPClassifier =None, layer_index = -1):
 
         super().__init__()
+        if saplma_model is None:
+            print('SAPLMA model is not provided. Please train a new model or load a pre-trained model. Use "train_saplma_model" method to train a new model.')
         self.saplma_model = saplma_model
         self.layer_index = layer_index
         

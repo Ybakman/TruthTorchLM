@@ -123,16 +123,17 @@ def metric_score(metric_names:list[str], generation_correctness:list, truth_valu
     normalized_truth_values = normalized_truth_values[generation_correctness != -1]
     generation_correctness = generation_correctness[generation_correctness != -1]
 
-    # print(f'total nan values in truth values: {np.sum(np.isnan(truth_values))}')
-    # print(f'total nan values in normalized truth values: {np.sum(np.isnan(normalized_truth_values))}')
-    #replace NaN values with 0
-    truth_values[np.isnan(truth_values)] = 0
-    normalized_truth_values[np.isnan(normalized_truth_values)] = 0
+    pos_inf_replacement = 1e10  
+    neg_inf_replacement = -1e10
+
+    truth_values[np.isnan(truth_values)] = pos_inf_replacement 
+    normalized_truth_values[np.isnan(normalized_truth_values)] = 1.0
 
     # print(f'total inf values in truth values: {np.sum(np.isinf(truth_values))}')
     # print(f'total inf values in normalized truth values: {np.sum(np.isinf(normalized_truth_values))}')
-    truth_values[np.isinf(truth_values)] = 0
-    normalized_truth_values[np.isinf(normalized_truth_values)] = 0
+    
+    truth_values[truth_values == np.inf] = pos_inf_replacement
+    truth_values[truth_values == -np.inf] = neg_inf_replacement
 
     truth_values = list(truth_values) #convert to list
     normalized_truth_values = (normalized_truth_values) #convert to list

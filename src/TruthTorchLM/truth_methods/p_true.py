@@ -27,7 +27,8 @@ class PTrue(TruthMethod):
         tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, messages:list = [], **kwargs): 
         
         if sampled_generations_dict is None:
-            sampled_generations_dict = sample_generations_hf_local(model, input_text, tokenizer, [self], generation_seed, **kwargs)
+            sampled_generations_dict = sample_generations_hf_local(model = model, input_text = input_text, tokenizer = tokenizer, generation_seed=generation_seed, 
+            number_of_generations=self.number_of_ideas, return_text = True, batch_generation=self.batch_generation **kwargs)
         
         generated_text = tokenizer.decode(tokenizer.encode(generated_text, return_tensors="pt").view(-1).tolist(), skip_special_tokens=True)#remove special tokens
    

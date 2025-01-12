@@ -48,8 +48,7 @@ class CrossExamination(TruthMethod):
         if examiner_stage.name == Examiner_Stage.SETUP.name:
             examiner_messages.append({"role":"user", "content":SETUP_TEMPLATE.replace("<C>",output_from_examinee)})
         elif examiner_stage.name == Examiner_Stage.FOLLOWUP.name:
-            examiner_messages.append({"role":"user", "content":PROVIDE_ANSWERS_TEMPLATE.replace("<answers>",output_from_examinee)})
-            examiner_messages.append({"role":"user", "content":FOLLOWUP_TEMPLATE_1})
+            examiner_messages.append({"role":"user", "content":PROVIDE_ANSWERS_TEMPLATE.replace("<answers>",output_from_examinee)} + FOLLOWUP_TEMPLATE_1)
         elif examiner_stage.name == Examiner_Stage.DECISION.name:
             examiner_messages.append({"role":"user", "content":FACTUAL_DECISION_TEMPLATE})
         examiner_messages = self._examiner_inference(examiner_messages)
