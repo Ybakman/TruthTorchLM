@@ -26,10 +26,10 @@ requirements = ["aiohttp==3.9.3",
 
 setup(
     name="TruthTorchLM",  # Your package name
-    version="0.1.5",           # Package version
+    version="0.1.6",           # Package version
     author="Yavuz Faruk Bakman",
     author_email="ybakman@usc.edu",
-    description="TruthTorchLM is an open-source library designed to detect and mitigate hallucinations in text generation models. The library integrates state-of-the-art methods, offers comprehensive benchmarking tools across various tasks, and enables seamless integration with popular frameworks like Huggingface and LiteLLM.",
+    description="TruthTorchLM is an open-source library designed to assess truthfulness in language models' outputs. The library integrates state-of-the-art methods, offers comprehensive benchmarking tools across various tasks, and enables seamless integration with popular frameworks like Huggingface and LiteLLM.",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     package_dir={"": "src"},         # Maps the base package directory
