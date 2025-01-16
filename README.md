@@ -1,5 +1,5 @@
 <p align="center">
-  <img align="center" src="ttlm_logo.png" width="460px" />
+  <img align="center" src="https://github.com/Ybakman/TruthTorchLM/blob/main/ttlm_logo.png?raw=true" width="460px" />
 </p>
 <p align="left">
     
@@ -8,7 +8,7 @@
 
 ## Features  
 
-- **State-of-the-Art Methods**: Offers 23 **truth methods** that are designed to assess the truthfulness of LLM generations. These methods range from Google Search to uncertainty estimation and multi-LLM collaboration techniques.
+- **State-of-the-Art Methods**: Offers 24 **truth methods** that are designed to assess the truthfulness of LLM generations. These methods range from Google Search to uncertainty estimation and multi-LLM collaboration techniques.
 - **Integration**: Fully compatible with **Huggingface** and **LiteLLM**, enabling users to integrate truthfulness assessment into their workflows with **minimal code changes**.  
 - **Evaluation Tools**: Benchmark truth methods using various metrics including AUROC, AUPRC, PRR, and Accuracy.  
 - **Calibration**: Normalize and calibrate truth methods for interpretable and comparable outputs.  
@@ -32,6 +32,13 @@ pip install TruthTorchLM
 ---
 
 ## Quick Start  
+
+### Setting Up Credentials
+```python
+import os
+os.environ["OPENAI_API_KEY"] = 'your_open_ai_key'#to use openai models
+os.environ['SERPER_API_KEY'] = 'your_serper_api_key'#for long form generation evaluation: https://serper.dev/
+```
 
 ### Setting Up a Model  
 
@@ -87,10 +94,14 @@ output_api_model = ttlm.generate_with_truth_value(
 ```
 
 ### Calibrating Truth Methods  
-Truth values for different methods may not be directly comparable. Use the `calibrate_truth_method` function to normalize truth values to a common range for better interpretability
+Truth values for different methods may not be directly comparable. Use the `calibrate_truth_method` function to normalize truth values to a common range for better interpretability. Note that normalized truth value in the output dictionary is meaningless without calibration.
 
 ```python
 model_judge = ttlm.evaluators.ModelJudge('gpt-4o-mini')
+
+for truth_method in truth_methods:
+    truth_method.set_normalizer(ttlm.normalizers.IsotonicRegression())
+
 calibration_results = ttlm.calibrate_truth_method(
     dataset='trivia_qa',
     model=model,
@@ -218,7 +229,8 @@ results = LFG.evaluate_truth_method_long_form(dataset='longfact_objects', model=
 - **sentSAR**: [Shifting Attention to Relevance: Towards the Predictive Uncertainty Quantification of Free-Form Large Language Models](https://aclanthology.org/2024.acl-long.276.pdf). 
 - **SumEigenUncertainty**: [Generating with Confidence: Uncertainty Quantification for Black-box Large Language Models](https://arxiv.org/pdf/2305.19187).
 - **tokenSAR**: [Shifting Attention to Relevance: Towards the Predictive Uncertainty Quantification of Free-Form Large Language Models](https://aclanthology.org/2024.acl-long.276.pdf). 
-- **VerbalizedConfidence**: [Just Ask for Calibration: Strategies for Eliciting Calibrated Confidence Scores from Language Models Fine-Tuned with Human Feedback](https://openreview.net/pdf?id=g3faCfrwm7). 
+- **VerbalizedConfidence**: [Just Ask for Calibration: Strategies for Eliciting Calibrated Confidence Scores from Language Models Fine-Tuned with Human Feedback](https://openreview.net/pdf?id=g3faCfrwm7).
+- **DirectionalEntailmentGraph**: [LLM Uncertainty Quantification through Directional Entailment Graph and Claim Level Response Augmentation](https://arxiv.org/pdf/2407.00994)
 
 ---
 
@@ -227,8 +239,9 @@ results = LFG.evaluate_truth_method_long_form(dataset='longfact_objects', model=
 - **Yavuz Faruk Bakman** (ybakman@usc.edu)  
 - **Duygu Nur Yaldiz** (yaldiz@usc.edu)  
 - **Sungmin Kang** (kangsung@usc.edu)  
-- **Hayrettin Eren Yildiz** (hayereyil@gmail.com)  
-- **Alperen Ozis** (alperenozis@gmail.com)  
+- **Alperen Ozis** (alperenozis@gmail.com)
+- **Hayrettin Eren Yildiz** (hayereyil@gmail.com)
+- **Mitash Shah** (mitashsh@usc.edu)  
 
 ---
 
@@ -239,7 +252,7 @@ If you use TruthTorchLM in your research, please cite:
 ```bibtex
 @misc{truthtorchlm2025,
   title={TruthTorchLM: A Comprehensive Library for Assessing Truthfulness in LLM Outputs},
-  author={Yavuz Faruk Bakman, Duygu Nur Yaldiz,Sungmin Kang, Hayrettin Eren Yildiz, Alperen Ozis, Salman Avestimehr},
+  author={Yavuz Faruk Bakman, Duygu Nur Yaldiz,Sungmin Kang, Alperen Ozis, Hayrettin Eren Yildiz,Mitash Shah,Salman Avestimehr},
   year={2025},
   howpublished={GitHub},
   url={https://github.com/Ybakman/TruthTorchLM}
