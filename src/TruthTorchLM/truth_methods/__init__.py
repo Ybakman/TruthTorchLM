@@ -22,10 +22,11 @@ from .matrix_degree_confidence import MatrixDegreeConfidence
 from .attention_score import AttentionScore
 from .mars import MARS
 from .multi_llm_collab import MultiLLMCollab
+from .directional_entailment_graph import DirectionalEntailmentGraph
 
 
 __all__ = ['Entropy', 'Confidence', 'TruthMethod', 'SemanticEntropy', 'PTrue', 'Inside', 'SentSAR',
 'GoogleSearchCheck', 'EccentricityUncertainty', 'MatrixDegreeUncertainty', 'NumSemanticSetUncertainty', 
 'SumEigenUncertainty', 'SelfDetection', 'TokenSAR', "LARS", 'KernelLanguageEntropy', 'CrossExamination', 
 'SAPLMA', 'VerbalizedConfidence', 'EccentricityConfidence', 'MatrixDegreeConfidence', 'AttentionScore', 
-'MARS', 'MultiLLMCollab']
+'MARS', 'MultiLLMCollab', 'DirectionalEntailmentGraph']

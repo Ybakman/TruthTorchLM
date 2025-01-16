@@ -3,6 +3,7 @@ from TruthTorchLM.utils.calibration_utils import f1_picker
 from TruthTorchLM.utils.common_utils import sigmoid_normalization
 import numpy as np
 
+
 class SigmoidNormalizer(Normalizer):
 
     def __init__(self, threshold:float = 0.0, std:float = 1.0, threshold_picker = f1_picker):

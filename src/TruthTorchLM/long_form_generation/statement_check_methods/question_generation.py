@@ -13,6 +13,7 @@ from random import randint
 from typing import Union
 from copy import deepcopy
 from litellm import completion
+import numpy as np
 
 
 INSTRUCTION = [{"role": "system", "content": "You will be given a text and a follow-up sentence. Generate a question that, in the context of the preceding original text, might have generated the follow-up sentence. Please do not use specific facts that appear in the follow-up sentence when formulating the question. Provide only the text of the question with no additional text."},
@@ -37,6 +38,7 @@ GEN_ANSWER_INST = [{"role": "system", "content": 'You are a helpful assistant. G
 
 class QuestionGeneration(StatementCheckMethod):
     def __init__(self, model:Union[PreTrainedModel, str], num_questions:int, 
+                 aggregation_strategy:str='max', #can be avg, min, or max
                  instruction:list=FIRST_STATEMENT_INSTRUCTION, 
                  first_statement_instruction:list=FIRST_STATEMENT_INSTRUCTION, 
                  generate_answer_instruction:list=GEN_ANSWER_INST,
@@ -65,6 +67,16 @@ class QuestionGeneration(StatementCheckMethod):
                 "seed": 42,
                 "do_sample":True}
         self.kwargs.update(kwargs)
+
+        if aggregation_strategy.lower() == "min":
+            self.aggregation_strategy = np.min
+        elif aggregation_strategy.lower() == "max":
+            self.aggregation_strategy = np.max
+        elif aggregation_strategy.lower() == "avg":
+            self.aggregation_strategy = np.mean
+        else:
+            raise ValueError(f"aggregation strategy {aggregation_strategy} is not supported. Choose from ['min', 'max', 'avg']")
+
 
         if type(model) != str:
             self.kwargs.pop('seed', None) 
@@ -182,16 +194,16 @@ class QuestionGeneration(StatementCheckMethod):
         final_method_specific_outputs = []
         for i in range(len(self.truth_methods)):
             output_dict = {"normalized_truth_values":[], 'unnormalized_truth_values':[], "method_spec_outputs":[]}
-            total = 0
+            total = []
             for truth_values in normalized_truth_values:
-                total += truth_values[i]
+                total.append(truth_values[i])
                 output_dict["normalized_truth_values"].append(truth_values[i])
-            final_normalized_truth_values.append(total/len(normalized_truth_values))
-            total = 0
+            final_normalized_truth_values.append(self.aggregation_strategy(total))
+            total = []
             for truth_values in unnormalized_truth_values:
-                total += truth_values[i]
+                total.append(truth_values[i])
                 output_dict["unnormalized_truth_values"].append(truth_values[i])
-            final_unnormalized_truth_values.append(total/len(unnormalized_truth_values))
+            final_unnormalized_truth_values.append(self.aggregation_strategy(total))
             for truth_values in method_spec_outputs:
                 output_dict["method_spec_outputs"].append(truth_values[i])
             final_method_specific_outputs.append(output_dict)
@@ -261,16 +273,16 @@ class QuestionGeneration(StatementCheckMethod):
         final_method_specific_outputs = []
         for i in range(len(self.truth_methods)):
             output_dict = {"normalized_truth_values":[], 'unnormalized_truth_values':[], "method_spec_outputs":[]}
-            total = 0
+            total = []
             for truth_values in normalized_truth_values:
-                total += truth_values[i]
+                total.append(truth_values[i])
                 output_dict["normalized_truth_values"].append(truth_values[i])
-            final_normalized_truth_values.append(total/len(normalized_truth_values))
-            total = 0
+            final_normalized_truth_values.append(self.aggregation_strategy(total))
+            total = []
             for truth_values in unnormalized_truth_values:
-                total += truth_values[i]
+                total.append(truth_values[i])
                 output_dict["unnormalized_truth_values"].append(truth_values[i])
-            final_unnormalized_truth_values.append(total/len(unnormalized_truth_values))
+            final_unnormalized_truth_values.append(self.aggregation_strategy(total))
             for truth_values in method_spec_outputs:
                 output_dict["method_spec_outputs"].append(truth_values[i])
             final_method_specific_outputs.append(output_dict)

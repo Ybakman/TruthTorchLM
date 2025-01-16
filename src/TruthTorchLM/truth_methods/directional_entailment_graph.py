@@ -1,7 +1,7 @@
 import torch
 from typing import Union
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
-from ..utils.generation import sample_generations_hf_local, sample_generations_api
+from ..generation import sample_generations_hf_local, sample_generations_api
 from .truth_method import TruthMethod
 
 import numpy as np
