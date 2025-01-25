@@ -2,7 +2,6 @@ from .truth_method import TruthMethod
 from TruthTorchLM.utils import fix_tokenizer_chat
 from typing import Union
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
-from TruthTorchLM.templates import PTRUE_SYSTEM_PROMPT, PTRUE_USER_PROMPT, PTRUE_MODEL_OUTPUT
 from TruthTorchLM.utils.common_utils import generate
 from ..generation import sample_generations_api
 

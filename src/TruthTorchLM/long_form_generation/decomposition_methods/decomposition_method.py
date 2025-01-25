@@ -1,22 +1,13 @@
 from abc import ABC, abstractmethod
 
-class FactualDecompositionMethod(ABC):
+class DecompositionMethod(ABC):
     def __init__(self):
+        
         pass
 
     def __call__(self, input_text)->list[str]:
 
-        paragraphs = [paragraph.strip() for paragraph in input_text.split('\n') if paragraph.strip()]
-        all_statements = []
-        for paragraph in paragraphs:
-            statements = self.decompose_facts(paragraph)
-            for _ in range(self.decomposition_depth-1):
-                temp_statements = []
-                for statement in statements:
-                    temp_statements.extend(self.decompose_facts(statement))
-                statements = temp_statements
-            all_statements.extend(statements)
-        return all_statements
+        return self.decompose_facts(input_text)
 
     @abstractmethod
     def decompose_facts(self, input_text:str)->list[str]:

@@ -4,10 +4,9 @@ from typing import Union
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 from sentence_transformers import CrossEncoder
 from .truth_method import TruthMethod
-
-from TruthTorchLM.availability import PROB_AVAILABLE_API_MODELS
 import torch
 import numpy as np
+from TruthTorchLM.error_handler import handle_logprobs_error
 
 
 
@@ -58,12 +57,8 @@ class TokenSAR(TruthMethod):
                 
         return {"truth_value": score,  "generated_text": generated_text}# we shouldn't return generated text. remove it from the output format
     
-
+    @handle_logprobs_error
     def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):
-
-        if not model in PROB_AVAILABLE_API_MODELS:
-            raise ValueError("TokenSAR method is not applicable to given model")
-
         importance_vector = []
         for i in range(len(generated_tokens)):
             removed_answer = "".join(generated_tokens[:i]) + "".join(generated_tokens[i+1:])

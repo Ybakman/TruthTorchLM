@@ -5,7 +5,6 @@ from typing import Union
 from litellm import completion
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 from transformers import DebertaForSequenceClassification, DebertaTokenizer
-from TruthTorchLM.availability import AVAILABLE_API_MODELS
 from TruthTorchLM.utils import *
 from .truth_method import TruthMethod
 from TruthTorchLM.templates import SELF_DETECTION_QUESTION_PROMPT, SELF_DETECTION_SYSTEM_PROMPT, ENTAILMENT_PROMPT, DEFAULT_SYSTEM_PROMPT 
@@ -106,8 +105,7 @@ class SelfDetection(TruthMethod):
 
     
     def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):
-        if model not in AVAILABLE_API_MODELS:
-            raise ValueError("This method is not applicable to given model")
+        
         kwargs = copy.deepcopy(kwargs)
         generated_questions = []
         generated_texts = []

@@ -35,7 +35,7 @@ GOOGLE_CHECK_QUERY_USER_PROMPT = '''You are a query generator designed to help u
     claim: ChatGPT is created by Google.
     response: ["Who created ChatGPT?", "ChatGPT"]
 
-    Now complete the following(ONLY RESPONSE IN A LIST FORMAT, DO NOT RETURN OTHER WORDS!!! START YOUR RESPONSE WITH '[' AND END WITH ']'):
+    Now complete the following(ONLY RESPONSE IN A LIST FORMAT, DO NOT RETURN OTHER WORDS!!!'):
     question_context: {question_context}
     claim: {input}
     response:'''
@@ -49,7 +49,7 @@ GOOGLE_CHECK_VERIFICATION_USER_PROMPT = '''You are given a piece of text and its
     [text]: {claim}
     The following is the provided evidences
     [evidences]: {evidence}
-    You should only respond in a python dictionary format as described below. DO NOT RETURN ANYTHING ELSE. START YOUR RESPONSE WITH '{{'.
+    You should only respond in the following format as described below. DO NOT RETURN ANYTHING ELSE. START YOUR RESPONSE WITH '{{'.
     [response format]: 
     {{
       "reasoning": "Why is the given text factual or non-factual? Be careful when you said something is non-factual. When you said something is non-factual, you must provide multiple evidences to support your decision.",
@@ -167,82 +167,3 @@ INCORRECT
 NOT_ATTEMPTED
 Just return one the following words: 'CORRECT', 'INCORRECT', or 'NOT_ATTEMPTED'.
 """.strip()
-
-LFG_QUESTION_GENERATION_PROMPT = [{"role": "system", "content": 
-'''You are an expert assistant skilled at generating focused and contextually relevant questions from statements. \
-Your task is to create a question such that the answer would align closely with the provided statement. To ensure \
-the question is precise and relevant, consider the context provided by the original question. Study the examples \
-below from a variety of topics and follow the same pattern.
-
-Original Question: What themes are commonly explored in 20th-century dystopian literature?
-Statement: George Orwell's novel 1984 explores the theme of government surveillance. 
-Question: What theme does George Orwell's novel 1984 explore?   
-
-Original Question: What themes are commonly explored in 20th-century dystopian literature?
-Statement: George Orwell's novel 1984 portrays a totalitarian regime that monitors every aspect of citizens' lives. 
-Question: How does George Orwell's novel 1984 reflect the theme of totalitarian control, as commonly explored in 20th-century dystopian literature?
-
-Original Question: What themes are commonly explored in 20th-century dystopian literature?
-Statement: The novel 1984 is written by George Orwell.
-Question: Who has written the novel 1984?
-
-Original Question: How has artificial intelligence influenced industries in the 21st century?
-Statement: Artificial intelligence enables better decision-making through data analysis.
-Question: How does artificial intelligence enhance the decision-making process in modern businesses?
-
-Original Question: What factors contributed to the Great Depression, and how did governments respond?
-Statement: Stock market speculation contributed to the Great Depression.
-Question: Did stock market speculation contribute to the Great Depression?
-
-Original Question: Who is Abraham Lincoln?
-Statement: Abraham Lincoln is best known for leading the country through the Civil War.
-Question: What is Abraham Lincoln's most significant historical contribution?
-
-Original Question: Who is Abraham Lincoln?
-Statement: Abraham Lincoln served from 1861 to 1865 as the president of he US.
-Question: When did Abraham Lincoln serve as the president of the United States?
-
-Now, follow the pattern demonstrated in the examples to generate a question for the given statement,\
-without adding explanations, introductions, or conversational responses.'''},
-{"role": "user", "content": 
-'''Original question: {question_context}
-Statement: {statement}
-Question: '''}]
-
-LFG_DECOMPOSITION_PROMPT = [{"role": "system", "content": 
-'''You are a helpful assistant. List the specific factual propositions included in the given input as a python list. \
-Be complete and do not leave any factual claims out. Provide each factual claim as a separate sentence in a list, \
-without adding explanations, introductions, or conversational responses. Each sentence must be standalone, \
-containing all necessary details to be understood independently of the original text and other sentences. \
-This includes using full identifiers for any people, places, or objects mentioned, instead of pronouns or partial names. \
-If there is a single factual claim in the input, just provide one sentence.
-
-Examples: 
-
-Paragraph: Mount Everest is the tallest mountain in the world, standing at 8,848 meters above sea level. \
-It is located in the Himalayas on the border between Nepal and the Tibet Autonomous Region of China. \
-The first successful ascent of Mount Everest was achieved in 1953 by Sir Edmund Hillary and Tenzing Norgay.
-Propositions: 
-['Mount Everest is the tallest mountain in the world.',
- 'Mount Everest stands at 8,848 meters above sea level.',
- 'Mount Everest is located in the Himalayas.',
- 'Mount Everest is on the border between Nepal and the Tibet Autonomous Region of China.',
- 'The first successful ascent of Mount Everest was achieved in 1953.',
- 'Sir Edmund Hillary and Tenzing Norgay achieved the first successful ascent of Mount Everest.']
-
-Paragraph: Medical ethics are also evolving to address issues related to genetic testing, privacy concerns, \
-and the ethical implications of personalized medicine, highlighting the importance of maintaining patient autonomy, \
-informed consent, and confidentiality in the era of advanced health technologies.
-Propositions: 
-['Medical ethics are evolving to address issues related to genetic testing.',
- 'Medical ethics are evolving to address privacy concerns.',
- 'Medical ethics are evolving to address the ethical implications of personalized medicine.',
- 'Maintaining patient autonomy is important in the era of advanced health technologies.',
- 'Informed consent is important in the era of advanced health technologies.',
- 'Confidentiality is important in the era of advanced health technologies.']
-
-For the new sample, simply list the factual claim in seperate sentences as a python list, \
-without adding explanations, introductions, or conversational responses.'''},
-{"role": "user", "content": 
- '''Paragraph: {TEXT}
- Propositions:'''}]

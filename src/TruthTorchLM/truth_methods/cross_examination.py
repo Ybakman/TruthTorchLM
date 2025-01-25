@@ -48,7 +48,7 @@ class CrossExamination(TruthMethod):
         if examiner_stage.name == Examiner_Stage.SETUP.name:
             examiner_messages.append({"role":"user", "content":SETUP_TEMPLATE.replace("<C>",output_from_examinee)})
         elif examiner_stage.name == Examiner_Stage.FOLLOWUP.name:
-            examiner_messages.append({"role":"user", "content":PROVIDE_ANSWERS_TEMPLATE.replace("<answers>",output_from_examinee)} + FOLLOWUP_TEMPLATE_1)
+            examiner_messages.append({"role":"user", "content":PROVIDE_ANSWERS_TEMPLATE.replace("<answers>",output_from_examinee)+" " +FOLLOWUP_TEMPLATE_1})
         elif examiner_stage.name == Examiner_Stage.DECISION.name:
             examiner_messages.append({"role":"user", "content":FACTUAL_DECISION_TEMPLATE})
         examiner_messages = self._examiner_inference(examiner_messages)
@@ -129,6 +129,7 @@ class CrossExamination(TruthMethod):
         
         messages.append({"role":"user", "content":EXAMINEE_PROMPT.replace("<questions>",examiner_messages[-1]['content'])})
         tokenizer, messages = fix_tokenizer_chat(tokenizer, messages)
+        print(messages)
         text = tokenizer.apply_chat_template(messages, tokenize = False)
         input_ids = tokenizer.encode(text, return_tensors="pt").to(model.device)
         model_output = model.generate(input_ids, max_new_tokens=self.max_new_tokens, temperature = self.temperature, top_k = self.top_k, num_beams = self.num_beams, **self.generation_kwargs)

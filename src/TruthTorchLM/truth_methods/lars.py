@@ -13,7 +13,6 @@ from transformers import DebertaForSequenceClassification, DebertaTokenizer
 
 from .truth_method import TruthMethod
 from TruthTorchLM.utils import bidirectional_entailment_clustering
-from TruthTorchLM.availability import PROB_AVAILABLE_API_MODELS
 from TruthTorchLM.templates import DEFAULT_SYSTEM_BENCHMARK_PROMPT, DEFAULT_USER_PROMPT
 from .semantic_entropy import calculate_total_log
 
@@ -22,6 +21,8 @@ from TruthTorchLM.utils.dataset_utils import get_dataset
 from ..generation import sample_generations_hf_local, sample_generations_api, sample_generations_batch_hf_local, sample_generations_sequential_hf_local
 from TruthTorchLM.utils.eval_utils import metric_score
 from TruthTorchLM.utils.common_utils import fix_tokenizer_chat
+
+from TruthTorchLM.error_handler import handle_logprobs_error
 
 class LARS(TruthMethod):
 
@@ -152,11 +153,8 @@ class LARS(TruthMethod):
 
         return {"truth_value": lars_score,  "generated_text": generated_text}# we shouldn't return generated text. remove it from the output format
     
-
+    @handle_logprobs_error
     def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):
-
-        if not model in PROB_AVAILABLE_API_MODELS:
-            raise ValueError("LARS method is not applicable to given model")
 
         if self.ue_type == "confidence":
             lars_score = self._lars(question_context, generated_tokens, torch.exp(torch.tensor(logprobs)))

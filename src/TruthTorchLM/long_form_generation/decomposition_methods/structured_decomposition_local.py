@@ -1,43 +1,64 @@
-from .decomposition_method import FactualDecompositionMethod
-from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
-from typing import Union
-from typing import Callable
+from ..templates import DECOMPOSITION_INSTRUCTION, DECOMPOSITION_INSTRUCTION_GRANULAR
+from .decomposition_method import DecompositionMethod
 from TruthTorchLM.utils.common_utils import fix_tokenizer_chat
 
-from copy import deepcopy
 import outlines
+from typing import Union
+from copy import deepcopy
 from pydantic import BaseModel
+from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 
-CHAT = [{"role": "system", "content": 'You are a helpful assistant. List the specific factual propositions included in the given input. Be complete and do not leave any factual claims out. Provide each factual claim as a separate sentence in a separate bullet point, without adding explanations, introductions, or conversational responses. Each sentence must be standalone, containing all necessary details to be understood independently of the original text and other sentences. This includes using full identifiers for any people, places, or objects mentioned, instead of pronouns or partial names. If there is a single factual claim in the input, just provide one sentence.'},
-        {"role": "user", "content": '''{TEXT}'''}]
 
-class Statements(BaseModel):
-    statements: list
+class Claims(BaseModel):
+    claims: list[str]
 
-class StructuredDecompositionLocal(FactualDecompositionMethod):
-    def __init__(self, model:PreTrainedModel, tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast], instruction:list=CHAT, decomposition_depth:int=1, 
-                 add_generation_prompt = True, continue_final_message = False):
+class StructuredDecompositionLocal(DecompositionMethod):
+    def __init__(self, model:PreTrainedModel, tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast], 
+                 instruction:list=DECOMPOSITION_INSTRUCTION, instruction_for_granular:list=DECOMPOSITION_INSTRUCTION_GRANULAR, 
+                 decomposition_depth:int=1, seed:int=715, split_by_paragraphs=True, ):
         super().__init__()
     
-        outlines.disable_cache() ##TODO where to put this?
+        outlines.disable_cache()
         outlines_model = outlines.models.Transformers(model, tokenizer)
-        self.generator = outlines.generate.json(outlines_model, Statements)
+        self.generator = outlines.generate.json(outlines_model, Claims)
         self.tokenizer = tokenizer
         self.instruction = instruction
+        self.instruction_for_granular = instruction_for_granular
         self.decomposition_depth = decomposition_depth
-        self.add_generation_prompt = add_generation_prompt
-        self.continue_final_message = continue_final_message
+        self.split_by_paragraphs = split_by_paragraphs
+        self.seed = seed
+        self.model_name = model.name_or_path
     
-    def decompose_facts(self, input_text:str):
+    def decompose_facts(self, input_text:str, level:int=1):
 
-        messages = deepcopy(self.instruction)
+        messages = deepcopy(self.instruction if level==1 else self.instruction_for_granular)
+
         for item in messages:
             item["content"] = item["content"].format(TEXT=input_text)
         self.tokenizer, messages = fix_tokenizer_chat(self.tokenizer, messages)
-        text = self.tokenizer.apply_chat_template(messages, tokenize = False, add_generation_prompt=self.add_generation_prompt, continue_final_message=self.continue_final_message)
-        resp = self.generator(text)
+        text = self.tokenizer.apply_chat_template(messages, tokenize = False, add_generation_prompt=True, continue_final_message=False)
+        resp = self.generator(text, seed=self.seed)
 
-        return resp.statements
+        return resp.claims
+    
+    def __call__(self, input_text) -> list[str]:
+
+        if self.split_by_paragraphs:
+            paragraphs = [paragraph.strip() for paragraph in input_text.split('\n') if paragraph.strip()]
+        else:
+            paragraphs = [input_text]
+        all_claims = []
+        for paragraph in paragraphs:
+            claims = self.decompose_facts(paragraph, level=1)
+            for d in range(1, self.decomposition_depth):
+                temp_claims = []
+                for claim in claims:
+                    temp_claims.extend(self.decompose_facts(claim, level=d+1))
+                claims = temp_claims
+            all_claims.extend(claims)
+        return all_claims
         
     def __str__(self):
-        return "Factual decomposition by using LLMs.\nModel: " + self.model + "\nOutput structure is enforced with 'outlines' library.\nChat template is:\n" +  str(self.instruction) 
+        return "Decomposition by using LLMs.\nModel: " + self.model_name + \
+    "\nOutput structure is enforced with 'outlines' library.\nInstruction for the first level of decomposition is:\n" +  str(self.instruction) +\
+    "\nInstruction for the granular decomposition (level 2 and higher) is:\n" + str(self.instruction_for_granular) 

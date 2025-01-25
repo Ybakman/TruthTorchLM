@@ -7,12 +7,11 @@ from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokeniz
 from transformers import AutoTokenizer, AutoModelForCausalLM, AutoModelForTokenClassification
 
 from .truth_method import TruthMethod
-
-from TruthTorchLM.availability import PROB_AVAILABLE_API_MODELS
 from scipy.special import softmax
 import torch
 import numpy as np
 import re
+from TruthTorchLM.error_handler import handle_logprobs_error
 
 
 class MARS(TruthMethod):
@@ -130,9 +129,6 @@ class MARS(TruthMethod):
                         token_idx = last_token 
                         break
                 if found == False and k == len(phrases)-i:
-                    print('Error')
-                    print(phrases)
-                    print(tokens)
                     return -np.mean(neg_log_likelihoods), np.ones(len(neg_log_likelihoods))/ len(neg_log_likelihoods)
 
         merged_importance_vector = np.array(merged_importance_vector) / self.mars_temperature
@@ -181,11 +177,8 @@ class MARS(TruthMethod):
                 
         return {"truth_value": score,  "generated_text": generated_text, 'phrases': phrases, 'importance_scores': importance_scores, 'probs': probs, 'merged_importance_vector': merged_importance_vector}
     
-
+    @handle_logprobs_error
     def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):
-
-        if not model in PROB_AVAILABLE_API_MODELS:
-            raise ValueError("MARS method is not applicable to given model")
 
         probs = np.exp(np.array(logprobs))
 

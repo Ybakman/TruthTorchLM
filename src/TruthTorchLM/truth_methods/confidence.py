@@ -5,12 +5,9 @@ from litellm import completion
 from typing import Union
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 from .truth_method import TruthMethod
-
-from TruthTorchLM.availability import PROB_AVAILABLE_API_MODELS
 import torch
-import numpy as np
-import copy
-import random
+from TruthTorchLM.error_handler import handle_logprobs_error
+
 
 
 class Confidence(TruthMethod):
@@ -44,12 +41,9 @@ class Confidence(TruthMethod):
                 
         return {"truth_value": score,  "generated_text": generated_text}# we shouldn't return generated text. remove it from the output format
     
-
+    @handle_logprobs_error
     def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):
-
-        if not model in PROB_AVAILABLE_API_MODELS:
-            raise ValueError("Confidence method is not applicable to given model")
-
+        
         score = self.scoring_function(logprobs)
 
         return {"truth_value": score, "generated_text": generated_text}# we shouldn't return generated text. remove it from the output format

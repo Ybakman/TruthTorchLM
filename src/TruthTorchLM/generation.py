@@ -4,11 +4,11 @@ import torch
 import random
 from typing import Union
 from litellm import completion
+from TruthTorchLM.error_handler import handle_logprobs_error
 
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 
 #from .truth_methods.truth_method import TruthMethod
-from TruthTorchLM.availability import AVAILABLE_API_MODELS, PROB_AVAILABLE_API_MODELS
 from TruthTorchLM.utils.common_utils import generate, fix_tokenizer_chat
 
 import time
@@ -74,21 +74,17 @@ def generate_with_truth_value_hf_local(model:PreTrainedModel, messages:list, que
 
 
 #for api-based models, we should write a wrapper function to handle exceptions during the api call
+@handle_logprobs_error
 def generate_with_truth_value_api(model:str, messages:list, question_context:str = None, truth_methods: list = [], generation_seed=None, **kwargs) -> dict:
     # Check if the model is an API model
     if generation_seed is not None:
         random.seed(generation_seed)
 
-    if type(model) == str and not model in AVAILABLE_API_MODELS:
-        raise ValueError(f"model {model} is not supported.")
 
     requires_logprobs = False    
     for truth_method in truth_methods:
         if truth_method.REQUIRES_LOGPROBS:
             requires_logprobs = True
-
-    if requires_logprobs and not model in PROB_AVAILABLE_API_MODELS:
-        raise ValueError(f"model {model} is not supported for probability requiring truth methods.")
     
     if question_context == None:
         question_context = ''
@@ -350,7 +346,7 @@ def sample_generations_sequential_hf_local(model:PreTrainedModel, input_text:str
     return {"generated_texts": generated_texts, "logprobs": logprobs_list, "activations": activations_list, "logits":logits_list, "attentions":attentions_list, "model_outputs": model_outputs, "tokens":token_lists}
             
 
-
+@handle_logprobs_error
 def sample_generations_api(model:str, messages:list, generation_seed:int=None, 
 number_of_generations:int = 0, return_text:bool = False, return_logits:bool = False, return_logprobs:bool = False, return_attentions:bool = False, return_activations:bool = False, **kwargs):
     #number_of_generations, return_text, return_logits, return_logprobs, return_attentions, return_activations = get_sampling_properties(truth_methods)

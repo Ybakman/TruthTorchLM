@@ -15,15 +15,14 @@
 # limitations under the License.
 """Rates a single atomic fact for accuracy."""
 
-import dataclasses
 import re
-from typing import Union
-from typing import Any
+import dataclasses
+from typing import Union, Any
+from litellm import completion
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 
 import TruthTorchLM.long_form_generation.utils.safe_utils as utils
 from TruthTorchLM.utils.common_utils import generate, fix_tokenizer_chat
-from litellm import completion
 
 SUPPORTED_LABEL = 'Supported'
 NOT_SUPPORTED_LABEL = 'Not Supported'

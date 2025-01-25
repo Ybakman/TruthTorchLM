@@ -2,11 +2,10 @@ import torch
 from litellm import completion
 from typing import Union
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
-from TruthTorchLM.availability import PROB_AVAILABLE_API_MODELS
 from .truth_method import TruthMethod
 from TruthTorchLM.scoring_methods import ScoringMethod, LengthNormalizedScoring
 from ..generation import sample_generations_hf_local, sample_generations_api
-
+from TruthTorchLM.error_handler import handle_logprobs_error
 from sentence_transformers.cross_encoder import CrossEncoder
 
 
@@ -75,11 +74,8 @@ class SentSAR(TruthMethod):
 
         return self._sentsar(generated_texts, question_context, scores, sampled_generations_dict)
         
-
+    @handle_logprobs_error
     def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):
-
-        if model not in PROB_AVAILABLE_API_MODELS:
-            raise ValueError("Semantic Entropy method is not applicable to given model")
         
         if sampled_generations_dict is None:
             sampled_generations_dict = sample_generations_api(model = model, messages = messages, generation_seed = generation_seed, 

@@ -7,8 +7,6 @@ from sklearn.model_selection import train_test_split
 
 
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
-from TruthTorchLM.availability import ACTIVATION_AVAILABLE_API_MODELS 
-
 from .truth_method import TruthMethod
 from TruthTorchLM.templates import DEFAULT_SYSTEM_BENCHMARK_PROMPT, DEFAULT_USER_PROMPT
 
@@ -51,9 +49,7 @@ class SAPLMA(TruthMethod):
     
 
     def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None,  logprobs:list=None, generated_tokens:list=None, **kwargs):
-
-        if not model in ACTIVATION_AVAILABLE_API_MODELS:
-            raise ValueError("SAPLMA method cannot be used with black-box API models since it requires access to activations.")
+        raise ValueError("SAPLMA method cannot be used with black-box API models since it requires access to activations.")
 
         return {"truth_value": 0}
 

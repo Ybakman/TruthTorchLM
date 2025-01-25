@@ -3,7 +3,6 @@ import torch
 from typing import Union
 
 from .truth_method import TruthMethod
-from TruthTorchLM.availability import ACTIVATION_AVAILABLE_API_MODELS 
 from ..generation import sample_generations_hf_local
 
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
@@ -41,8 +40,6 @@ class Inside(TruthMethod):
         return {"truth_value": eigen_score,   'generated_texts_for_inside': generated_texts}#this output format should be same for all truth methods
 
     def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):
-
-        if not model in ACTIVATION_AVAILABLE_API_MODELS:
-            raise ValueError("Inside method cannot be used with black-box API models since it requires access to activations.")
+        raise ValueError("Inside method cannot be used with black-box API models since it requires access to activations.")
 
         return {"truth_value": 0, 'generated_texts_for_inside': []}#this output format should be same for all truth methods

@@ -3,7 +3,6 @@ from typing import Union
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 from .truth_method import TruthMethod
 
-from TruthTorchLM.availability import ACTIVATION_AVAILABLE_API_MODELS 
 import torch
 import numpy as np
 import copy
@@ -39,8 +38,8 @@ class AttentionScore(TruthMethod):
     
 
     def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):
-        if not model in ACTIVATION_AVAILABLE_API_MODELS:
-            raise ValueError("Attention Score method cannot be used with black-box API models since it requires access to activations.")
+        
+        raise ValueError("Attention Score method cannot be used with black-box API models since it requires access to activations.")
 
         return {"truth_value": 0}#this output format should be same for all truth methods
 

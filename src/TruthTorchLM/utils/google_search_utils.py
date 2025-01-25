@@ -1,40 +1,7 @@
+import os
 import asyncio
 import aiohttp
-import os
 import nest_asyncio
-import ast
-
-
-
-def extract_dict_from_string(input_string):
-    start_index = input_string.find('{')
-    end_index = input_string.rfind('}')
-
-    if start_index != -1 and end_index != -1 and start_index < end_index:
-        return input_string[start_index:end_index + 1]
-    else:
-        return None
-
-def extract_list_from_string(input_string):
-        start_index = input_string.find('[')  
-        end_index = input_string.rfind(']') 
-
-        if start_index != -1 and end_index != -1 and start_index < end_index:
-            return input_string[start_index:end_index + 1]
-        else:
-            return None
-
-
-def type_check(output, expected_type):
-    try:
-        output_eval = ast.literal_eval(output)
-        if not isinstance(output_eval, expected_type):
-            return None
-        return output_eval
-    except:
-        return None
-
-
 
 class GoogleSerperAPIWrapper():
     """Wrapper around the Serper.dev Google Search API.

@@ -1,15 +1,11 @@
-from datasets import load_dataset
-from TruthTorchLM.availability import LONG_FORM_AVAILABLE_DATASETS
-from typing import Union
-from tqdm import tqdm
-
-import requests
 import os
-
 import json
 import random
-from typing import List
+import requests
+from typing import Union
 
+from TruthTorchLM.availability import LONG_FORM_AVAILABLE_DATASETS
+from TruthTorchLM.environment import get_cache_dir
 
 
 def get_dataset(dataset:Union[str, list], size_of_data:int, seed:int = 0):
@@ -35,15 +31,16 @@ def get_dataset(dataset:Union[str, list], size_of_data:int, seed:int = 0):
 
 def get_longfact(branch:str, size_of_data:int=100, seed:int = 0):
     #Download data
-    download_github_folder('google-deepmind', 'long-form-factuality', 'main', f'longfact/{branch}_noduplicates', f'./datasets/{branch}', None)
+    download_github_folder('google-deepmind', 'long-form-factuality', 'main', f'longfact/{branch}_noduplicates', f'{get_cache_dir()}/datasets/{branch}', None)
     #Load data
     questions = []
-    for file_name in os.listdir(f'./datasets/{branch}'):
-        with open(f'./datasets/{branch}/' + file_name, 'r') as file:
+    for file_name in os.listdir(f'{get_cache_dir()}/datasets/{branch}'):
+        with open(f'{get_cache_dir()}/datasets/{branch}/' + file_name, 'r') as file:
             for line in file:
                 questions.append({'question': json.loads(line)['prompt']})
 
     if size_of_data < len(questions):
+        random.seed(seed)
         return random.sample(questions, size_of_data)
     return questions
 

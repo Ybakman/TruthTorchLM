@@ -13,6 +13,7 @@ from TruthTorchLM import evaluators
 from .evaluators import evaluate_truth_method
 from .templates import *
 from .availability import AVAILABLE_DATASETS, AVAILABLE_EVALUATION_METRICS
+from .environment import *
 from TruthTorchLM import normalizers
 
 from TruthTorchLM import long_form_generation

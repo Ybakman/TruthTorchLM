@@ -1,50 +1,65 @@
-from .decomposition_method import FactualDecompositionMethod
-from TruthTorchLM.availability import AVAILABLE_API_MODELS
-
-from copy import deepcopy
-from typing import Callable
+from .decomposition_method import DecompositionMethod
+from ..templates import DECOMPOSITION_INSTRUCTION, DECOMPOSITION_INSTRUCTION_GRANULAR
 
 import instructor
+from copy import deepcopy
 from litellm import completion
 from pydantic import BaseModel
 
 
-CHAT = [{"role": "system", "content": 'You are a helpful assistant. List the specific factual propositions included in the given input. Be complete and do not leave any factual claims out. Provide each factual claim as a separate sentence in a separate bullet point. Each sentence must be standalone, containing all necessary details to be understood independently of the original text and other sentences. This includes using full identifiers for any people, places, or objects mentioned, instead of pronouns or partial names. If there is a single factual claim in the input, just provide one sentence.'},
-        {"role": "user", "content": '''{TEXT}'''}]
+class Claims(BaseModel):
+    claims: list[str]
 
-
-class Statements(BaseModel):
-    statements: list
-
-class StructuredDecompositionAPI(FactualDecompositionMethod):
-    def __init__(self, model:str, instruction:list=CHAT, decomposition_depth:int=1, **kwargs):
+class StructuredDecompositionAPI(DecompositionMethod):
+    def __init__(self, model:str, instruction:list=DECOMPOSITION_INSTRUCTION, 
+                 instruction_for_granular:list=DECOMPOSITION_INSTRUCTION_GRANULAR,
+                 decomposition_depth:int=1, split_by_paragraphs=True, **kwargs):
         super().__init__()
 
-        if type(model) == str and not model in AVAILABLE_API_MODELS:
-            raise ValueError(f"model {model} is not supported.")
     
         self.model = model
         self.instruction = instruction
+        self.instruction_for_granular = instruction_for_granular
         self.decomposition_depth = decomposition_depth
+        self.split_by_paragraphs = split_by_paragraphs
         self.kwargs = kwargs
         self.client = instructor.from_litellm(completion)
    
         if "seed" not in kwargs:
             self.kwargs["seed"] = 42
     
-    def decompose_facts(self, input_text:str):
+    def decompose_facts(self, input_text:str, level:int=1):
 
-        messages = deepcopy(self.instruction)
+        messages = deepcopy(self.instruction if level==1 else self.instruction_for_granular)
         for item in messages:
             item["content"] = item["content"].format(TEXT=input_text)
 
         resp = self.client.chat.completions.create(
             model=self.model,
             messages=messages,
-            response_model=Statements,
+            response_model=Claims,
             **self.kwargs
         )
-        return resp.statements
+        return resp.claims
+    
+    def __call__(self, input_text) -> list[str]:
+
+        if self.split_by_paragraphs:
+            paragraphs = [paragraph.strip() for paragraph in input_text.split('\n') if paragraph.strip()]
+        else:
+            paragraphs = [input_text]
+        all_claims = []
+        for paragraph in paragraphs:
+            claims = self.decompose_facts(paragraph, level=1)
+            for d in range(1, self.decomposition_depth):
+                temp_claims = []
+                for claim in claims:
+                    temp_claims.extend(self.decompose_facts(claim, level=d+1))
+                claims = temp_claims
+            all_claims.extend(claims)
+        return all_claims
         
     def __str__(self):
-        return "Factual decomposition by using LLMs with API calls.\nModel: " + self.model + "\nOutput structure is enforced with 'instructor' library.\nChat template is:\n" +  str(self.instruction) 
+        return "Decomposition by using LLMs with API calls.\nModel: " + self.model + \
+    "\nOutput structure is enforced with 'instructor' library.\nInstruction for the first level of decomposition is:\n" +  str(self.instruction) +\
+    "\nInstruction for the granular decomposition (level 2 and higher) is:\n" + str(self.instruction_for_granular) 

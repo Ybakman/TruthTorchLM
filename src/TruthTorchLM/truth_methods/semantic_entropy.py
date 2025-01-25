@@ -4,7 +4,6 @@ from litellm import completion
 from typing import Union
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast, DebertaForSequenceClassification, DebertaTokenizer
 from TruthTorchLM.utils import bidirectional_entailment_clustering
-from TruthTorchLM.availability import PROB_AVAILABLE_API_MODELS
 from .truth_method import TruthMethod
 from TruthTorchLM.scoring_methods import ScoringMethod, LengthNormalizedScoring
 from ..generation import sample_generations_hf_local, sample_generations_api
@@ -68,10 +67,7 @@ class SemanticEntropy(TruthMethod):
         return self._semantic_entropy(generated_texts, question_context, scores, generated_outputs)
         
 
-    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):
-        if model not in PROB_AVAILABLE_API_MODELS:
-            raise ValueError("Semantic Entropy method is not applicable to given model")
-        
+    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):        
         if sampled_generations_dict is None:
             sampled_generations_dict = sample_generations_api(model = model, messages = messages, generation_seed = generation_seed, 
             number_of_generations=self.number_of_generations, return_text = True, return_logprobs=True, **kwargs)

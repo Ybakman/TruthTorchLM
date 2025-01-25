@@ -1,6 +1,5 @@
 from .truth_method import TruthMethod
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast, AutoModelForCausalLM, AutoTokenizer
-from TruthTorchLM.availability import AVAILABLE_API_MODELS
 from litellm import completion
 import copy
 from typing import Union
@@ -97,8 +96,6 @@ class MultiLLMCollab(TruthMethod):
 
 
     def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
-        if model not in AVAILABLE_API_MODELS:
-            raise ValueError("This method is not applicable to given model")
         kwargs = copy.deepcopy(kwargs)
         
         # Get Decision - abstain or not
