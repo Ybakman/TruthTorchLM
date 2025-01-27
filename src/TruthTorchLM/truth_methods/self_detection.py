@@ -16,14 +16,15 @@ from TruthTorchLM.generation import sample_generations_hf_local, sample_generati
 class SelfDetection(TruthMethod):
     def __init__(self, output_type:str = 'entropy',method_for_similarity: str = "semantic", number_of_questions=5, model_for_entailment: PreTrainedModel = None, 
     tokenizer_for_entailment: PreTrainedTokenizer = None, prompt_for_generating_question = SELF_DETECTION_QUESTION_PROMPT, 
-    system_prompt = SELF_DETECTION_SYSTEM_PROMPT, prompt_for_entailment:str = ENTAILMENT_PROMPT, system_prompt_for_entailment:str = DEFAULT_SYSTEM_PROMPT, batch_generation = True, question_max_new_tokens = 64, question_temperature = 1.0):
+    system_prompt = SELF_DETECTION_SYSTEM_PROMPT, prompt_for_entailment:str = ENTAILMENT_PROMPT, system_prompt_for_entailment:str = DEFAULT_SYSTEM_PROMPT, entailment_model_device = 'cuda',
+     batch_generation = True, question_max_new_tokens = 64, question_temperature = 1.0, **generation_kwargs):
         super().__init__()
 
         self.tokenizer_for_entailment = tokenizer_for_entailment
         self.model_for_entailment = model_for_entailment
 
         if (model_for_entailment is None or tokenizer_for_entailment is None) and method_for_similarity == "semantic": 
-            self.model_for_entailment = DebertaForSequenceClassification.from_pretrained('microsoft/deberta-large-mnli')
+            self.model_for_entailment = DebertaForSequenceClassification.from_pretrained('microsoft/deberta-large-mnli').to(entailment_model_device)
             self.tokenizer_for_entailment = DebertaTokenizer.from_pretrained('microsoft/deberta-large-mnli')
 
         self.number_of_questions = number_of_questions
@@ -34,7 +35,7 @@ class SelfDetection(TruthMethod):
         self.batch_generation = batch_generation
         self.question_max_new_tokens = question_max_new_tokens
         self.question_temperature = question_temperature
-        
+        self.generation_kwargs = generation_kwargs
 
         if output_type not in ['entropy', 'consistency']:
             raise ValueError("output_type should be either 'entropy' or 'consistency'")
@@ -52,13 +53,13 @@ class SelfDetection(TruthMethod):
             tokenizer, chat = fix_tokenizer_chat(tokenizer, chat)
             input_text = tokenizer.apply_chat_template(chat, tokenize=False, add_generation_prompt = True)
             sampled_generations_dict = sample_generations_hf_local(model, input_text, tokenizer, number_of_generations=self.number_of_questions, return_text=True, generation_seed=generation_seed, 
-            max_new_tokens=self.question_max_new_tokens, temperature=self.question_temperature, batch_generation=self.batch_generation)
+            max_new_tokens=self.question_max_new_tokens, temperature=self.question_temperature, batch_generation=self.batch_generation, **self.generation_kwargs)
         if type(model) == str:
             sampled_generations_dict = sample_generations_api(model, chat, number_of_generations=self.number_of_questions, return_text=True, generation_seed=generation_seed, temperature=self.question_temperature)
 
         return sampled_generations_dict["generated_texts"]
 
-    def _self_detection_output(self,model, tokenizer, generated_texts:list, question_context:str, generated_questions):#TODO: check the similarity method's correctness
+    def _self_detection_output(self,model, tokenizer, generated_texts:list, question_context:str, generated_questions):
         if self.method_for_similarity == "semantic":
             clusters = bidirectional_entailment_clustering(self.model_for_entailment, self.tokenizer_for_entailment, question_context, generated_texts, 
             self.method_for_similarity, entailment_prompt= self.prompt_for_entailment, system_prompt=self.system_prompt_for_entailment)
@@ -94,7 +95,7 @@ class SelfDetection(TruthMethod):
             tokenizer, chat = fix_tokenizer_chat(tokenizer, chat)
             prompt = tokenizer.apply_chat_template(chat, tokenize=False)
             input_ids = tokenizer.encode(prompt, return_tensors="pt").to(model.device)
-            model_output = model.generate(input_ids, num_return_sequences=1, do_sample=True, **kwargs)#do sample?
+            model_output = model.generate(input_ids, num_return_sequences=1, do_sample=True, **kwargs)
             tokens = model_output[0][len(input_ids[0]):]
             generated_text = tokenizer.decode(tokens, skip_special_tokens=True)
             generated_texts.append(generated_text)

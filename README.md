@@ -132,18 +132,18 @@ results = ttlm.evaluate_truth_method(
 
 ### Truthfulness in Long-Form Generation 
 
-Assigning a single truth value for a long text is neither practical nor useful. TruthTorchLM first decomposes the generated text into short, single-sentence statements and assigns truth values to these statements using statement check methods. The `long_form_generation_with_truth_value` function returns the generated text, decomposed statements, and their truth values.
+Assigning a single truth value for a long text is neither practical nor useful. TruthTorchLM first decomposes the generated text into short, single-sentence claims and assigns truth values to these claims using claim check methods. The `long_form_generation_with_truth_value` function returns the generated text, decomposed claims, and their truth values.
 
 
 ```python
 import TruthTorchLM.long_form_generation as LFG
 from transformers import DebertaForSequenceClassification, DebertaTokenizer
 
-#define a decomposition method that breaks the the long text into statements
-decomposition_method = LFG.decomposition_methods.StructuredDecompositionAPI(model="gpt-4o-mini", decomposition_depth=1, instruction=ttlm.LFG_DECOMPOSITION_PROMPT) #Utilize API models to decompose text
-# decomposition_method = LFG.decomposition_methods.StructuredDecompositionLocal(model, tokenizer, decomposition_depth=1, chat_template=DECOMPOSITION_PROMT) #Utilize HF models to decompose text
+#define a decomposition method that breaks the the long text into claims
+decomposition_method = LFG.decomposition_methods.StructuredDecompositionAPI(model="gpt-4o-mini", decomposition_depth=1) #Utilize API models to decompose text
+# decomposition_method = LFG.decomposition_methods.StructuredDecompositionLocal(model, tokenizer, decomposition_depth=1) #Utilize HF models to decompose text
 
-#entailment model is used by some truth methods and statement check methods
+#entailment model is used by some truth methods and claim check methods
 model_for_entailment = DebertaForSequenceClassification.from_pretrained('microsoft/deberta-large-mnli').to('cuda:0')
 tokenizer_for_entailment = DebertaTokenizer.from_pretrained('microsoft/deberta-large-mnli')
 ```
@@ -153,17 +153,13 @@ tokenizer_for_entailment = DebertaTokenizer.from_pretrained('microsoft/deberta-l
 confidence = ttlm.truth_methods.Confidence()
 lars = ttlm.truth_methods.LARS()
 
-#define the statement check methods that applies truth methods
-qa_generation = LFG.statement_check_methods.QuestionAnswerGeneration(model="gpt-4o-mini", tokenizer=None, num_questions=2, max_answer_trials=2,
+#define the claim check methods that applies truth methods
+qa_generation = LFG.claim_check_methods.QuestionAnswerGeneration(model="gpt-4o-mini", tokenizer=None, num_questions=2, max_answer_trials=2,
                                                                      truth_methods=[confidence, lars], seed=0,
-                                                                     instruction=ttlm.LFG_QUESTION_GENERATION_PROMPT, 
-                                                                     first_statement_instruction=ttlm.LFG_QUESTION_GENERATION_PROMPT,
                                                                      entailment_model=model_for_entailment, entailment_tokenizer=tokenizer_for_entailment) #HF model and tokenizer can also be used, LM is used to generate question
-#there are some statement check methods that are directly designed for this purpose, not utilizing truth methods
-as_entailment = LFG.statement_check_methods.AnswerStatementEntailment( model="gpt-4o-mini", tokenizer=None, 
+#there are some claim check methods that are directly designed for this purpose, not utilizing truth methods
+ac_entailment = LFG.claim_check_methods.AnswerClaimEntailment( model="gpt-4o-mini", tokenizer=None, 
                                                                       num_questions=3, num_answers_per_question=2, 
-                                                                      instruction=ttlm.LFG_QUESTION_GENERATION_PROMPT, 
-                                                                      first_statement_instruction=ttlm.LFG_QUESTION_GENERATION_PROMPT,
                                                                       entailment_model=model_for_entailment, entailment_tokenizer=tokenizer_for_entailment) #HF model and tokenizer can also be used, LM is used to generate question
 ```
 
@@ -173,32 +169,30 @@ chat = [{"role": "system", "content": 'You are a helpful assistant. Give brief a
         {"role": "user", "content": f'Who is Ryan Reynolds?'}]
 
 #generate a message with a truth value, it's a wrapper fucntion for model.generate in Huggingface
-output_hf_model = LFG.long_form_generation_with_truth_value(model=model, tokenizer=tokenizer, messages=chat, fact_decomp_method=decomposition_method, 
-                                          stmt_check_methods=[qa_generation, as_entailment], generation_seed=0)
+output_hf_model = LFG.long_form_generation_with_truth_value(model=model, tokenizer=tokenizer, messages=chat, decomp_method=decomposition_method, 
+                                          claim_check_methods=[qa_generation, ac_entailment], generation_seed=0)
 
 #generate a message with a truth value, it's a wrapper fucntion for litellm.completion in litellm
-output_api_model = LFG.long_form_generation_with_truth_value(model="gpt-4o-mini", messages=chat, fact_decomp_method=decomposition_method, 
-                                          stmt_check_methods=[qa_generation, as_entailment], generation_seed=0, seed=0)
+output_api_model = LFG.long_form_generation_with_truth_value(model="gpt-4o-mini", messages=chat, decomp_method=decomposition_method, 
+                                          claim_check_methods=[qa_generation, ac_entailment], generation_seed=0, seed=0)
 ```
 
 ### Evaluation of Truth Methods in Long-Form Generation
 
-We can evaluate truth methods on long-form generation by using `evaluate_truth_method_long_form` function. To obtain the correctness of the statements we follow [SAFE paper](https://arxiv.org/pdf/2403.18802). SAFE performs Google search for each statement and assigns labels as supported, unsupported, or irrelevant. We can define different evaluation metrics including AUROC, AUPRC, AUARC, Accuracy, F1, Precision, Recall, PRR. 
-
-Note: Calibrating truth methods before running evaluation is recommended.
+We can evaluate truth methods on long-form generation by using `evaluate_truth_method_long_form` function. To obtain the correctness of the claims we follow [SAFE paper](https://arxiv.org/pdf/2403.18802). SAFE performs Google search for each claim and assigns labels as supported, unsupported, or irrelevant. We can define different evaluation metrics including AUROC, AUPRC, AUARC, Accuracy, F1, Precision, Recall, PRR. 
 
 ```python
-#create safe object that assigns labels to the statements
-safe = LFG.ClaimEvaluator(rater='gpt-4o-mini', tokenizer = None, max_steps = 2, max_retries = 2, num_searches = 2)
+#create safe object that assigns labels to the claims
+safe = LFG.ClaimEvaluator(rater='gpt-4o-mini', tokenizer = None, max_steps = 5, max_retries = 10, num_searches = 3) 
 
 #Define metrics
-sample_level_eval_metrics = ['f1'] #calculate metric over the statements of a question, then average across all the questions
-dataset_level_eval_metrics = ['auroc', 'prr'] #calculate the metric across all statements 
+sample_level_eval_metrics = ['f1'] #calculate metric over the claims of a question, then average across all the questions
+dataset_level_eval_metrics = ['auroc', 'prr'] #calculate the metric across all claims 
 ```
 ```python
 results = LFG.evaluate_truth_method_long_form(dataset='longfact_objects', model='gpt-4o-mini', tokenizer=None,
                                 sample_level_eval_metrics=sample_level_eval_metrics, dataset_level_eval_metrics=dataset_level_eval_metrics,
-                                fact_decomp_method=decomposition_method, stmt_check_methods=[qa_generation],
+                                decomp_method=decomposition_method, claim_check_methods=[qa_generation],
                                 claim_evaluator = safe, size_of_data=3,  previous_context=[{'role': 'system', 'content': 'You are a helpful assistant. Give precise answers.'}], 
                                 user_prompt="Question: {question_context}", seed=41,  return_method_details = False, return_calim_eval_details=False, wandb_run = None,  
                                 add_generation_prompt = True, continue_final_message = False)
