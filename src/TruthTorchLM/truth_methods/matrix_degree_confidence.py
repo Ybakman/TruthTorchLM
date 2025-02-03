@@ -46,6 +46,7 @@ class MatrixDegreeConfidence(TruthMethod):
             number_of_generations=self.number_of_generations - 1, return_text = True, batch_generation = self.batch_generation,  **kwargs)
 
         generated_texts = sampled_generations_dict["generated_texts"][:self.number_of_generations - 1]
+        
         generated_texts.append(generated_text)
         
         output_dict = self._matrix_degree_confidence(generated_texts, question_context, index = len(generated_texts)-1)

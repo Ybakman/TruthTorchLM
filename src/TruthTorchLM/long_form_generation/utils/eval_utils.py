@@ -163,7 +163,8 @@ def process_sample(claim_check_methods:list[ClaimCheckMethod], claims:list[str],
         claim_method_spec_outputs = []
         for sidx, claim in enumerate(claims):
             print("Check for claim: ", claim)
-            text_so_far = ' '.join(claims[:sidx]) if sidx > 0 else None
+            # text_so_far = ' '.join(claims[:sidx]) if sidx > 0 else None
+            text_so_far = None
             if type(model) == str:
                 truth_values = claim_check_method(model=model, messages=None, generated_text=generated_text, question_context=question_context, 
                                                 claim=claim, text_so_far=text_so_far, generation_seed=generation_seed, **kwargs)

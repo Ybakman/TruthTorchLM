@@ -99,8 +99,9 @@ class LARS(TruthMethod):
         attention_mask = torch.tensor(tokenized_input['attention_mask']).reshape(1,-1).to(self.device)
         token_type_ids = torch.tensor(tokenized_input['token_type_ids']).reshape(1,-1).to(self.device)
 
-        self.lars_model.eval()
-        logits = self.lars_model(input_ids, attention_mask=attention_mask, token_type_ids = token_type_ids).logits.detach()
+        with torch.no_grad():
+            self.lars_model.eval()
+            logits = self.lars_model(input_ids, attention_mask=attention_mask, token_type_ids = token_type_ids).logits.detach()
             
         return torch.nn.functional.sigmoid(logits[:,  0]).item()
 

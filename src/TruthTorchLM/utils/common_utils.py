@@ -19,7 +19,7 @@ from typing import Union
 def check_system_prompt_support(tokenizer):
     chat = [{"role": "system", "content": 'Test'},]
     try:
-        tokenizer(chat)
+        tokenizer.apply_chat_template(chat, tokenize=False)
         return True
     except:
         return False
@@ -119,19 +119,21 @@ def calculate_jaccard_similarity(text1: str, text2: str) -> float:
 
 # Function to check entailment between two sequences
 def check_entailment(model_for_entailment: PreTrainedModel, tokenizer_for_entailment: PreTrainedTokenizer, context: str, seq1: str, seq2: str):
-    inputs = tokenizer_for_entailment.encode_plus(
-        text=context + " " + seq1,
-        text_pair=context + " " + seq2,
-        return_tensors='pt',
-        truncation=True,
-        max_length=model_for_entailment.config.max_position_embeddings
-    ).to(model_for_entailment.device)
-    outputs = model_for_entailment(**inputs)
-    logits = outputs.logits
-    probs = torch.softmax(logits, dim=-1)
-    out_class = torch.argmax(probs[0], dim=-1).item()
-    
-    return out_class
+    with torch.no_grad():
+        inputs = tokenizer_for_entailment.encode_plus(
+            text=context + " " + seq1,
+            text_pair=context + " " + seq2,
+            return_tensors='pt',
+            truncation=True,
+            max_length=model_for_entailment.config.max_position_embeddings
+        ).to(model_for_entailment.device)
+        outputs = model_for_entailment(**inputs)
+        logits = outputs.logits.cpu()
+        del inputs, outputs
+        probs = torch.softmax(logits, dim=-1)
+        out_class = torch.argmax(probs[0], dim=-1).item()
+        
+        return out_class
 
 def check_entailment_with_generation(model, seq1: str = None, seq2: str = None, context:str = None, entailment_prompt:str = ENTAILMENT_PROMPT, system_prompt:str = DEFAULT_SYSTEM_PROMPT,  tokenizer = None, max_new_tokens: int = 32):
     if system_prompt is None:#for some models there is no system prompt in their chat template such as gemma

@@ -18,21 +18,20 @@ class AttentionScore(TruthMethod):
     def forward_hf_local(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], 
     tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, messages:list = [], **kwargs):
 
-        input_ids = tokenizer.encode(input_text, return_tensors="pt").to(model.device)
         model_output = all_ids.to(model.device)
-
         with torch.no_grad():
             output = model(model_output, output_attentions=True)
+            target_attention = output.attentions[self.layer_index].cpu()
+            del output
             scores = []
-            for head_index in range(output.attentions[self.layer_index].shape[1]):#for each head
-                attention = output.attentions[self.layer_index][0][head_index]#this values are after softmax
+            for head_index in range(target_attention.shape[1]):#for each head
+                attention = target_attention[0][head_index]#this values are after softmax
                 diag_entries = torch.diagonal(attention)
                 log_diag_entries = torch.log(diag_entries)
                 score = log_diag_entries.sum().item()
                 score = score/len(diag_entries)
                 scores.append(score)
-            scores = torch.tensor(scores)
-            result = torch.mean(scores)
+            result = np.mean(scores)
                 
         return {"truth_value": result,  "attention_score": result}# we shouldn't return generated text. remove it from the output format
     

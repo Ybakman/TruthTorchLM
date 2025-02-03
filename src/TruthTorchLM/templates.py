@@ -14,8 +14,9 @@ PTRUE_MODEL_OUTPUT = 'The generated answer is true'
 DEFAULT_JUDGE_SYSTEM_PROMPT = '''You are a question answer evaluator.'''
 
 
-SELF_DETECTION_QUESTION_PROMPT = "Given a question, paraphrase it to have different words and expressions but have the same meaning as the original question. Please note that you should not answer the question, but rather provide a re-phrased. Question: {question}"
+SELF_DETECTION_QUESTION_PROMPT = "Given a question, paraphrase it to have different words and expressions but have the same meaning as the original question. Please note that you should not answer the question, but rather provide a re-phrased. These paraphrased questions should be different from each other. Previous paraphrased questions: {previous_questions}. Only output a single paraphrased question, nothing else. Question: {question}"
 SELF_DETECTION_SYSTEM_PROMPT = 'You are a helpful assistant. Give short and precise answers.'
+SELF_DETECTION_USER_PROMPT = '{question_context}?'
 
 GOOGLE_CHECK_QUERY_SYSTEM_PROMPT = 'You are a brilliant assistant.'
 GOOGLE_CHECK_QUERY_USER_PROMPT = '''You are a query generator designed to help users verify a given claim using search engines. Your primary task is to generate a Python list of two effective and skeptical search engine queries. These queries should assist users in critically evaluating the factuality of a provided claim using search engines.

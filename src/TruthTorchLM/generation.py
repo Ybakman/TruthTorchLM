@@ -59,7 +59,7 @@ def generate_with_truth_value_hf_local(model:PreTrainedModel, messages:list, que
     method_spec_outputs = []
     
     for truth_method in truth_methods:
-        truth_values = truth_method(model=model,  input_text=text, generated_text=generated_text, question_context=question_context, all_ids=model_output, tokenizer=tokenizer, generation_seed = generation_seed, sampled_generations_dict=sampled_gen_dict, **kwargs)
+        truth_values = truth_method(model=model,  input_text=text, generated_text=generated_text, question_context=question_context, all_ids=model_output, tokenizer=tokenizer, generation_seed = generation_seed, sampled_generations_dict=sampled_gen_dict, messages=messages, **kwargs)
         normalized_truth_values.append(truth_values['normalized_truth_value'])
         unnormalized_truth_values.append(truth_values['truth_value'])
         method_spec_outputs.append(truth_values)

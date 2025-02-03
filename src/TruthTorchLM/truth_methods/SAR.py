@@ -1,20 +1,21 @@
 import torch
-from litellm import completion
+import numpy as np
 from typing import Union
-from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
+
 from .truth_method import TruthMethod
-from TruthTorchLM.scoring_methods import ScoringMethod, LengthNormalizedScoring
 from ..generation import sample_generations_hf_local, sample_generations_api
 from TruthTorchLM.error_handler import handle_logprobs_error
+
 from sentence_transformers.cross_encoder import CrossEncoder
+from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 
 
-class SentSAR(TruthMethod):
+class SAR(TruthMethod):
 
     REQUIRES_SAMPLED_TEXT = True
     REQUIRES_SAMPLED_LOGPROBS = True
     
-    def __init__(self, scoring_function : ScoringMethod = LengthNormalizedScoring(), number_of_generations=5, t=0.001, 
+    def __init__(self, number_of_generations=5, t=0.001, 
                  model_for_similarity=None, similarity_model_device = 'cuda', batch_generation=True):#normalization
         super().__init__()
         if model_for_similarity is None:
@@ -22,11 +23,9 @@ class SentSAR(TruthMethod):
         else:
             self.model_for_similarity = model_for_similarity
 
-        self.scoring_function = scoring_function
         self.number_of_generations = number_of_generations
         self.t = t
         self.batch_generation = batch_generation
-
 
     def _sentsar(self, generated_texts:list[str], question_context:str, scores:list[float], sampled_generations_dict:dict):
 
@@ -53,8 +52,19 @@ class SentSAR(TruthMethod):
         sentence_scores = torch.tensor(sentence_scores)
 
         entropy = (torch.sum(sentence_scores, dim=0) / torch.tensor(sentence_scores.shape[0])).item()
-        return {"truth_value": -entropy, 'sentSAR': entropy, "score_for_each_generation": scores, 'generated_texts': generated_texts, "similarities": similarities}
-        
+        return {"truth_value": -entropy, 'SAR': entropy, "score_for_each_generation": scores, 'generated_texts': generated_texts, "similarities": similarities}
+    
+    def _tokensar_local(self, question_context:str, generated_text:str, tokens:list[int], logprobs:list[float], tokenizer:Union[PreTrainedTokenizer, PreTrainedTokenizerFast]):
+        importance_vector = []
+        for i in range(len(tokens)):
+            removed_answer_ids = tokens[:i] + tokens[i+1:]
+            removed_answer = tokenizer.decode(removed_answer_ids, skip_special_tokens=True)
+            score = self.model_for_similarity.predict([( question_context +" "+removed_answer, question_context + ' ' + generated_text)])
+            score = 1 - score[0]
+            importance_vector.append(score)
+
+        importance_vector = importance_vector / np.sum(importance_vector)
+        return np.dot(importance_vector, logprobs)
 
     def forward_hf_local(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], 
     tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, messages:list = [], **kwargs):
@@ -65,14 +75,26 @@ class SentSAR(TruthMethod):
 
 
         generated_texts = sampled_generations_dict["generated_texts"][:self.number_of_generations]
+        generated_tokens = sampled_generations_dict["tokens"][:self.number_of_generations]
+        logprobs = sampled_generations_dict["logprobs"][:self.number_of_generations]
 
         scores = []
         for i in range(self.number_of_generations):
-            tokens_text = [tokenizer.decode([token]) for token in sampled_generations_dict["tokens"][i]]
-            score = self.scoring_function(sampled_generations_dict["logprobs"][i]) 
+            score =  self._tokensar_local(question_context, generated_texts[i], generated_tokens[i], logprobs[i], tokenizer)
             scores.append(score) #scores are in log scale
 
         return self._sentsar(generated_texts, question_context, scores, sampled_generations_dict)
+    
+    def _tokensar_api(self, question_context:str, generated_text:str, tokens:list[str], logprobs:list[float]):
+        importance_vector = []
+        for i in range(len(tokens)):
+            removed_answer = "".join(tokens[:i]) + "".join(tokens[i+1:])
+            score = self.model_for_similarity.predict([( question_context +" "+removed_answer, question_context + ' ' + generated_text)])
+            score = 1 - score[0]
+            importance_vector.append(score)
+
+        importance_vector = importance_vector / np.sum(importance_vector)
+        return np.dot(importance_vector, logprobs)
         
     @handle_logprobs_error
     def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):
@@ -83,10 +105,12 @@ class SentSAR(TruthMethod):
 
 
         generated_texts = sampled_generations_dict["generated_texts"][:self.number_of_generations]
+        generated_tokens = sampled_generations_dict["tokens"][:self.number_of_generations]
+        logprobs = sampled_generations_dict["logprobs"][:self.number_of_generations]
 
         scores = []
         for i in range(self.number_of_generations):
-            score = self.scoring_function(sampled_generations_dict["logprobs"][i]) 
+            score = self._tokensar_api(question_context, generated_texts[i], generated_tokens[i], logprobs[i])
             scores.append(score) #scores are in log scale
 
         return self._sentsar(generated_texts, question_context, scores, sampled_generations_dict)

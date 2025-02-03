@@ -42,10 +42,8 @@ class TokenSAR(TruthMethod):
             logprobs = logprobs.view(-1).tolist()#convert to list
 
             importance_vector = []
-            print(tokens.shape)
             tokens = tokens.view(-1).tolist()
             for i in range(len(tokens)):
-                print(i)
                 removed_answer_ids = tokens[:i] + tokens[i+1:]
                 removed_answer = tokenizer.decode(removed_answer_ids , skip_special_tokens=True)
                 score = self.similarity_model.predict([( question_context +" "+removed_answer, question_context + ' ' + generated_text)])

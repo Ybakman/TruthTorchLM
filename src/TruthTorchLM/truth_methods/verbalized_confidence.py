@@ -51,7 +51,7 @@ class VerbalizedConfidence(TruthMethod):
         chat = [{"role": "system", "content": self.system_prompt},
         {"role": "user", "content": self.user_prompt.format(question_context = question_context, generated_text = generated_text)}]
         tokenizer, chat = fix_tokenizer_chat(tokenizer, chat)#in case some tokenizers don't have chat template and don't support system prompt
-        prompt = tokenizer.apply_chat_template(chat, tokenize=False)
+        prompt = tokenizer.apply_chat_template(chat, tokenize=False, add_generation_prompt=True, continue_final_message = False)
 
         kwargs = copy.deepcopy(kwargs)
         kwargs.pop('do_sample', None)

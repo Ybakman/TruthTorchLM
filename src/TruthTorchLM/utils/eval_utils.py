@@ -251,8 +251,11 @@ def run_over_dataset(dataset: Union[str, list], model:Union[str,PreTrainedModel]
         messages = previous_context.copy()
         messages.append({'role': 'user', 'content': user_prompt.format(question_context = dataset[i]['question'])})
 
+        #print(messages)
+
         truth_dict = generate_with_truth_value(model = model, messages = messages, question_context = dataset[i]['question'], truth_methods = truth_methods, tokenizer=tokenizer,
         generation_seed = seed, batch_generation=batch_generation, add_generation_prompt=add_generation_prompt, continue_final_message=continue_final_message, **kwargs)
+        #print(truth_dict['generated_text'])
         
         is_correct = correctness_evaluator(dataset[i]['question'], truth_dict['generated_text'], dataset[i]['ground_truths'])
         output_dict['generation_correctness'].append(is_correct)
