@@ -51,11 +51,10 @@ import torch
 
 # Huggingface model
 model = AutoModelForCausalLM.from_pretrained(
-    "meta-llama/Llama-2-7b-chat-hf", 
+    "meta-llama/Meta-Llama-3-8B-Instruct", 
     torch_dtype=torch.bfloat16
 ).to('cuda:0')
-tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-2-7b-chat-hf", use_fast=False)
-
+tokenizer = AutoTokenizer.from_pretrained("meta-llama/Meta-Llama-3-8B-Instruct", use_fast=False)
 # API model
 api_model = "gpt-4o"
 ```
