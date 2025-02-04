@@ -78,7 +78,7 @@ class CrossExamination(TruthMethod):
             input_ids = self.tokenizer_examiner.encode(text, return_tensors="pt").to(self.model_examiner.device)
             model_output = self.model_examiner.generate(input_ids, max_new_tokens=self.max_new_tokens, temperature = self.temperature, top_k = self.top_k, num_beams = self.num_beams, **self.generation_kwargs)
             tokens = model_output[0][len(input_ids[0]):]
-            generated_text = self.tokenizer_examiner.decode(tokens, skip_special_tokens = False)
+            generated_text = self.tokenizer_examiner.decode(tokens, skip_special_tokens = True)
             examiner_messages.append({"role":"assistant", "content":generated_text})
             return examiner_messages
 
@@ -134,7 +134,7 @@ class CrossExamination(TruthMethod):
         input_ids = tokenizer.encode(text, return_tensors="pt").to(model.device)
         model_output = model.generate(input_ids, max_new_tokens=self.max_new_tokens, temperature = self.temperature, top_k = self.top_k, num_beams = self.num_beams, **self.generation_kwargs)
         tokens = model_output[0][len(input_ids[0]):]
-        generated_text = tokenizer.decode(tokens, skip_special_tokens = False)
+        generated_text = tokenizer.decode(tokens, skip_special_tokens = True)
         messages.append({"role":"assistant", "content":generated_text})
         for i in range(self.follow_up_turns_threshold):
             is_it_over, examiner_messages = self.examiner_inference(examiner_messages, messages[-1]['content'], Examiner_Stage.FOLLOWUP)
@@ -145,7 +145,7 @@ class CrossExamination(TruthMethod):
                 input_ids = tokenizer.encode(text, return_tensors="pt").to(model.device)
                 model_output = model.generate(input_ids, max_new_tokens=self.max_new_tokens, temperature = self.temperature, top_k = self.top_k, num_beams = self.num_beams, **self.generation_kwargs)
                 tokens = model_output[0][len(input_ids[0]):]
-                generated_text = tokenizer.decode(tokens, skip_special_tokens = False)
+                generated_text = tokenizer.decode(tokens, skip_special_tokens = True)
                 messages.append({"role":"assistant", "content":generated_text})
                 if i+1 == self.follow_up_turns_threshold:
                     examiner_messages.append({"role":"user", "content":PROVIDE_ANSWERS_TEMPLATE.replace("<answers>",messages[-1]['content'])})

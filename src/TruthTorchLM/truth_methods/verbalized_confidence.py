@@ -47,7 +47,7 @@ class VerbalizedConfidence(TruthMethod):
     def forward_hf_local(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], 
         tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, messages:list = [], **kwargs): 
         
-        generated_text = tokenizer.decode(tokenizer.encode(generated_text, return_tensors="pt").view(-1).tolist(), skip_special_tokens=True)#remove special tokens
+        
         chat = [{"role": "system", "content": self.system_prompt},
         {"role": "user", "content": self.user_prompt.format(question_context = question_context, generated_text = generated_text)}]
         tokenizer, chat = fix_tokenizer_chat(tokenizer, chat)#in case some tokenizers don't have chat template and don't support system prompt
