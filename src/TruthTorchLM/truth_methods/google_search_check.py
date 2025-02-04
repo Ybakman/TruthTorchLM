@@ -85,7 +85,6 @@ class GoogleSearchCheck(TruthMethod):
         outlines_generator = outlines.generate.json(outlines_model, Response)
 
         kwargs = copy.deepcopy(kwargs)
-        generated_text = tokenizer.decode(tokenizer.encode(generated_text, return_tensors="pt").view(-1).tolist(), skip_special_tokens=True)#remove special tokens
         #first we need to generate search queries
 
         
