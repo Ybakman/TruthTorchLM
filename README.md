@@ -3,7 +3,7 @@
 </p>
 <p align="left">
     
-### TruthTorchLM: A Comprehensive Library for Assessing Truthfulness in LLM Outputs
+## TruthTorchLM: A Comprehensive Library for Assessing Truthfulness in LLM Outputs
 ---
 
 ## Features  
