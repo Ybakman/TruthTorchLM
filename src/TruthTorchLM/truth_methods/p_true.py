@@ -32,7 +32,6 @@ class PTrue(TruthMethod):
             number_of_generations=self.number_of_ideas, return_text = True, batch_generation=self.batch_generation, **kwargs)
         
         generated_text = tokenizer.decode(tokenizer.encode(generated_text, return_tensors="pt").view(-1).tolist(), skip_special_tokens=True)#remove special tokens
-   
         ideas = sampled_generations_dict["generated_texts"][:self.number_of_ideas]
         ideas = "\n".join(ideas)
 
@@ -42,8 +41,7 @@ class PTrue(TruthMethod):
         {"role": "user", "content": self.user_prompt.format(question_context = question_context, ideas = ideas, generated_text = generated_text)},
         {"role": "assistant", "content": self.model_output}]
         tokenizer, chat = fix_tokenizer_chat(tokenizer, chat)#in case some tokenizers don't have chat template and don't support system prompt
-
-        
+ 
         prompt = tokenizer.apply_chat_template(chat, tokenize=False)
         prompt_tokens = tokenizer.encode(prompt, return_tensors="pt").to(model.device)
         with torch.no_grad():
@@ -57,6 +55,7 @@ class PTrue(TruthMethod):
 
         #write a function to find the probability of token 'true' in the logprobs
         indices, texts = find_token_indices(prompt_tokens[0][1:], tokenizer, "true")
+
         loss_true = 0
         for index in indices[-1]:#only look at the last occurence of the word true
             loss_true += logprobs[index]
