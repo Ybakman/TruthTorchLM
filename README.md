@@ -31,6 +31,10 @@ pip install TruthTorchLM
 
 ---
 
+### Demo Video Available in Youtube
+
+https://youtu.be/Bim-6Tv_qU4
+
 ## Quick Start  
 
 ### Setting Up Credentials
