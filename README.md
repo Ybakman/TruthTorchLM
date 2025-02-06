@@ -3,16 +3,16 @@
 </p>
 <p align="left">
     
-## TruthTorchLM: A Comprehensive Library for Assessing Truthfulness in LLM Outputs
+## TruthTorchLM: A Comprehensive Library for Assessing/Predicting Truthfulness in LLM Outputs
 ---
 
 ## Features  
 
-- **State-of-the-Art Methods**: Offers more than 25 **truth methods** that are designed to assess the truthfulness of LLM generations. These methods range from Google Search to uncertainty estimation and multi-LLM collaboration techniques.
-- **Integration**: Fully compatible with **Huggingface** and **LiteLLM**, enabling users to integrate truthfulness assessment into their workflows with **minimal code changes**.  
+- **State-of-the-Art Methods**: Offers more than 25 **truth methods** that are designed to assess/predict the truthfulness of LLM generations. These methods range from Google Search to uncertainty estimation and multi-LLM collaboration techniques.
+- **Integration**: Fully compatible with **Huggingface** and **LiteLLM**, enabling users to integrate truthfulness assessment/prediction into their workflows with **minimal code changes**.  
 - **Evaluation Tools**: Benchmark truth methods using various metrics including AUROC, AUPRC, PRR, and Accuracy.  
 - **Calibration**: Normalize and calibrate truth methods for interpretable and comparable outputs.  
-- **Long-Form Generation**: Adapts truth methods to assess truthfulness in long-form text generations effectively.  
+- **Long-Form Generation**: Adapts truth methods to assess/predict truthfulness in long-form text generations effectively.  
 - **Extendability**: Provides an intuitive interface for implementing new truth methods.  
 
 ---
