@@ -228,4 +228,3 @@ class SerperAPI:
 
   def _parse_results(self, results: dict[Any, Any]) -> str:
     return ' '.join(self._parse_snippets(results))
-

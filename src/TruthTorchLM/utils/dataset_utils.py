@@ -5,7 +5,7 @@ from tqdm import tqdm
 
 
 
-def get_dataset(dataset:Union[str, list], size_of_data:float = 1.0, seed:int = 0, split = 'test'):
+def get_dataset(dataset: Union[str, list], size_of_data: float = 1.0, seed: int = 0, split='test'):
     if type(dataset) != str:
         if len(dataset) == 0:
             raise ValueError("Dataset list is empty.")
@@ -13,7 +13,7 @@ def get_dataset(dataset:Union[str, list], size_of_data:float = 1.0, seed:int = 0
             raise ValueError("Dataset should have 'question' and 'ground_truths' keys.")
         return dataset
     
-    if dataset not in AVAILABLE_DATASETS:
+    if dataset not in AVAILABLE_DATASETS and dataset != "wikipedia":
         raise ValueError(f"Dataset is not available. Available datasets are: {AVAILABLE_DATASETS}")
 
     print("Loading dataset from Huggingface Datasets, split:", split, "fraction of data:", size_of_data)
@@ -28,7 +28,9 @@ def get_dataset(dataset:Union[str, list], size_of_data:float = 1.0, seed:int = 0
         dataset = get_pop_qa(size_of_data=size_of_data, seed=seed, split=split)
     elif dataset == "simple_qa":
         dataset = get_simple_qa(size_of_data=size_of_data, seed=seed, split=split)
-    
+    elif dataset == "wikipedia":
+        dataset = get_wikipedia(size_of_data=size_of_data, seed=seed, split='train')
+
     return dataset
 
 
@@ -123,5 +125,22 @@ def get_simple_qa(size_of_data:float = 1.0, seed:int = 0, split = 'test'):
     answers = raw_dataset['answer']
     for i in tqdm(range(len(raw_dataset))):
         dataset.append({'question': questions[i], 'ground_truths': [answers[i]]})
+
+    return dataset
+
+
+def get_wikipedia(size_of_data: float = 1.0, seed: int = 0, split='train'):
+    raw_dataset = load_dataset("wikimedia/wikipedia", "20231101.en", split=split)
+
+    if size_of_data != 1.0:
+        raw_dataset = raw_dataset.train_test_split(train_size=size_of_data, seed=seed)['train']
+
+    dataset = []
+    
+    for data in tqdm(raw_dataset, desc="Processing Wikipedia dataset"):
+        context = data["text"].strip() 
+        title = data["title"].strip()
+        
+        dataset.append({'context': context, 'title': title})
 
     return dataset
