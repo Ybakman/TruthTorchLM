@@ -47,16 +47,16 @@ class NaiveApplication(ClaimCheckMethod):
 
         question = question_context if self.use_question else ""
         q_messages = deepcopy(self.generate_answer_instruction)
-        q_messages[1]["content"] = question
+        q_messages[-1]["content"] = q_messages[-1]["content"].format(question=question)
         tokenizer, q_messages = fix_tokenizer_chat(tokenizer, q_messages)
         text = tokenizer.apply_chat_template(q_messages, tokenize = False, add_generation_prompt=True, continue_final_message=False)
         q_messages.append({"role": "assistant", "content": claim})
         tokenizer, q_messages = fix_tokenizer_chat(tokenizer, q_messages)
-        text_messsages = tokenizer.apply_chat_template(q_messages, tokenize = False, add_generation_prompt=True, continue_final_message=False)
+        text_messsages = tokenizer.apply_chat_template(q_messages, tokenize = False, add_generation_prompt=False, continue_final_message=False)
         model_outputs = tokenizer.encode(text_messsages, return_tensors="pt").to(model.device)
 
         t_messages = deepcopy(self.generate_answer_instruction) 
-        t_messages[-1] = {"role": "user", "content": question}
+        t_messages[-1]["content"] = t_messages[-1]["content"].format(question=question)
         normalized_truth_values, unnormalized_truth_values, method_spec_outputs = self._get_truth_value_local(self.truth_methods, model=model, tokenizer=tokenizer, 
                                                                                                                 question=question, text=text, answer=claim, 
                                                                                                                 model_output=model_outputs, generation_seed=generation_seed, 
@@ -100,12 +100,12 @@ class NaiveApplication(ClaimCheckMethod):
                 print(f"Truth method '{truth_method.__class__.__name__}' requires logprobs.")
 
         if requires_logprobs:
-            raise ValueError(f"Truth methods requiring logprobs cannot be used with QuestionGeneration claim check method.")
+            raise ValueError(f"Truth methods requiring logprobs cannot be used with NaiveApplication claim check method.")
 
         q_messages = deepcopy(self.generate_answer_instruction)
         question = question_context if self.use_question else ""
         #Get truth value for truth method
-        q_messages[1]["content"] = question
+        q_messages[-1]["content"] = q_messages[-1]["content"].format(question=question)
         normalized_truth_values, unnormalized_truth_values, method_spec_outputs = self._get_truth_value_api(self.truth_methods, model=model, 
                                                                                         q_messages=q_messages, question=question, answer=claim, 
                                                                                         generation_seed=generation_seed, **kwargs)

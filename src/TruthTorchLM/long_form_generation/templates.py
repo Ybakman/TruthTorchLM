@@ -42,14 +42,14 @@ without adding explanations, introductions, or conversational responses.'''},
 Claim: {claim}
 Question: '''}]
 
-# ANSWER_GENERATION_INSTRUCTION = [{"role": "system", "content": 
-# '''You are a helpful assistant. Give a single claim answer to given question. \
-# Don\‘t provide any additional information. Just answer the question with a brief \
-# sentence in a single claim.'''},
-# {"role": "user", "content": ""},]
+ANSWER_GENERATION_INSTRUCTION = [{"role": "system", "content": 
+'''You are a helpful assistant. Give a single claim answer to given question. \
+Don\‘t provide any additional information. Just answer the question with a brief \
+sentence in a single claim.'''},
+{"role": "user", "content": "{question}"},]
 
-ANSWER_GENERATION_INSTRUCTION = [{"role": "system", "content": 'You are a helpful assistant. Give short and precise answers.'},
-                  {"role": "user", "content": ""},]
+# ANSWER_GENERATION_INSTRUCTION = [{"role": "system", "content": 'You are a helpful assistant. Give short and precise answers.'},
+#                   {"role": "user", "content": "{question}"},]
 
 #For decomposition methods
 

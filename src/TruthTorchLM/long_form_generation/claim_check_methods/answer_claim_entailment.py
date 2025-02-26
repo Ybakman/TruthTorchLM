@@ -129,7 +129,7 @@ class AnswerClaimEntailment(ClaimCheckMethod):
         entailment = []
         for i, question in enumerate(questions):
             messages = deepcopy(self.generate_answer_instruction)
-            messages[1]["content"] = question
+            messages[-1]["content"] = messages[-1]["content"].format(question=question)
             tokenizer, messages = fix_tokenizer_chat(tokenizer, messages)
             text = tokenizer.apply_chat_template(messages, tokenize = False, add_generation_prompt=True, continue_final_message=False)
             #check if the answer aligns with the claim
@@ -153,9 +153,9 @@ class AnswerClaimEntailment(ClaimCheckMethod):
         questions = self._get_questions(question_context=question_context, claim=claim, text_so_far=text_so_far)
         answers = []
         entailment = []
-        q_messages = deepcopy(self.generate_answer_instruction)
         for i, question in enumerate(questions):
-            q_messages[1]["content"] = question
+            q_messages = deepcopy(self.generate_answer_instruction)
+            q_messages[-1]["content"] = q_messages[-1]["content"].format(question=question)
             #check if the answer aligns with the claim
             for _ in range(self.num_answers_per_question):
                 response = completion(

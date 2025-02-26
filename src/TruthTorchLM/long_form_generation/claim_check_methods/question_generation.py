@@ -36,7 +36,6 @@ class QuestionGeneration(ClaimCheckMethod):
         self.kwargs = {
                 # "max_length": 50,
                 "num_return_sequences": 1,
-                "seed": 42,
                 "do_sample":True}
         self.kwargs.update(kwargs)
 
@@ -135,13 +134,13 @@ class QuestionGeneration(ClaimCheckMethod):
         model_outputs = [None] * len(questions)
         for i, question in enumerate(questions):
             q_messages = deepcopy(self.generate_answer_instruction)
-            q_messages[1]["content"] = question
+            q_messages[-1]["content"] = q_messages[-1]["content"].format(question=question)
             tokenizer, q_messages = fix_tokenizer_chat(tokenizer, q_messages)
             text = tokenizer.apply_chat_template(q_messages, tokenize = False, add_generation_prompt=True, continue_final_message=False)
             texts[i] = text
             q_messages.append({"role": "assistant", "content": claim})
             tokenizer, q_messages = fix_tokenizer_chat(tokenizer, q_messages)
-            text_messsages = tokenizer.apply_chat_template(q_messages, tokenize = False, add_generation_prompt=True, continue_final_message=False)
+            text_messsages = tokenizer.apply_chat_template(q_messages, tokenize = False, add_generation_prompt=False, continue_final_message=False)
             model_outputs[i] = tokenizer.encode(text_messsages, return_tensors="pt").to(model.device)
 
         normalized_truth_values = []
@@ -149,7 +148,7 @@ class QuestionGeneration(ClaimCheckMethod):
         method_spec_outputs = []
         for question, text, answer, model_output in zip(questions, texts, answers, model_outputs):
             t_messages = deepcopy(self.generate_answer_instruction) 
-            t_messages[-1] = {"role": "user", "content": question}
+            t_messages[-1]["content"] = t_messages[-1]["content"].format(question=question)
             normalized_truth_value, unnormalized_truth_value, method_spec_output = self._get_truth_value_local(self.truth_methods, model=model, tokenizer=tokenizer, 
                                                                                                                     question=question, text=text, answer=answer, 
                                                                                                                     model_output=model_output, generation_seed=generation_seed, messages=t_messages, **kwargs)
@@ -215,14 +214,14 @@ class QuestionGeneration(ClaimCheckMethod):
 
         #Get model answers for each question (generate answers until it entails the claim)
         answers = [claim] * len(questions)
-        q_messages = deepcopy(self.generate_answer_instruction)
 
         #Get truth value for truth method
         normalized_truth_values = []
         unnormalized_truth_values = []
         method_spec_outputs = []
         for question, answer in zip(questions, answers):
-            q_messages[1]["content"] = question
+            q_messages = deepcopy(self.generate_answer_instruction)
+            q_messages[-1]["content"] = q_messages[-1]["content"].format(question=question)
             normalized_truth_value, unnormalized_truth_value, method_spec_output = self._get_truth_value_api(self.truth_methods, model=model, 
                                                                                             q_messages=q_messages, question=question, answer=answer, 
                                                                                             generation_seed=generation_seed, **kwargs)

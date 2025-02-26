@@ -14,7 +14,6 @@ import numpy as np
 class PTrue(TruthMethod):
 
     REQUIRES_SAMPLED_TEXT = True
-    REQUIRES_LOGPROBS = True
     
     def __init__(self, number_of_ideas: int = 5, system_prompt:str = PTRUE_SYSTEM_PROMPT, user_prompt:str = PTRUE_USER_PROMPT, model_output:str = PTRUE_MODEL_OUTPUT, batch_generation = True):
         super().__init__()
