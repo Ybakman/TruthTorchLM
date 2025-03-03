@@ -11,7 +11,6 @@ from ..templates import QUESTION_GENERATION_INSTRUCTION, ANSWER_GENERATION_INSTR
 from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast, PreTrainedModel
 
 import torch
-from random import randint
 from typing import Union
 from copy import deepcopy
 from litellm import completion
@@ -376,7 +375,7 @@ class QuestionGeneration(ClaimCheckMethod):
 
         if requires_logprobs:
             raise ValueError(
-                f"Truth methods requiring logprobs cannot be used with QuestionGeneration claim check method."
+                "Truth methods requiring logprobs cannot be used with QuestionGeneration claim check method."
             )
 
         # Get model answers for each question (generate answers until it entails the claim)

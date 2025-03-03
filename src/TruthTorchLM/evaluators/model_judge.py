@@ -1,5 +1,4 @@
 from .correctness_evaluator import CorrectnessEvaluator
-import evaluate
 from typing import Union
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 from litellm import completion

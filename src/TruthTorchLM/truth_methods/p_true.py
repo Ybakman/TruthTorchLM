@@ -1,6 +1,5 @@
 from .truth_method import TruthMethod
 from TruthTorchLM.utils import find_token_indices, fix_tokenizer_chat
-from litellm import completion
 from typing import Union
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 from TruthTorchLM.templates import (

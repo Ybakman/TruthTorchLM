@@ -10,7 +10,6 @@ from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokeniz
 # from .truth_methods.truth_method import TruthMethod
 from TruthTorchLM.utils.common_utils import generate, fix_tokenizer_chat
 
-import time
 
 
 def generate_with_truth_value(

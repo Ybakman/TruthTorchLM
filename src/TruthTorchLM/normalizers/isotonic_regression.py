@@ -1,5 +1,4 @@
 from .normalizer import Normalizer
-import numpy as np
 import sklearn.isotonic as isotonic
 
 

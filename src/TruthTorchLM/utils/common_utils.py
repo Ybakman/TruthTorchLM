@@ -2,15 +2,11 @@ import numpy as np
 import torch
 import copy
 from transformers import (
-    GPT2LMHeadModel,
-    GPT2Tokenizer,
     PreTrainedModel,
     PreTrainedTokenizer,
     PreTrainedTokenizerFast,
 )
-import re
 from sklearn.metrics import jaccard_score
-from scipy.linalg import eigh
 from sklearn.feature_extraction.text import CountVectorizer
 from transformers import DebertaForSequenceClassification, DebertaTokenizer
 

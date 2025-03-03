@@ -238,7 +238,7 @@ class NaiveApplication(ClaimCheckMethod):
 
         if requires_logprobs:
             raise ValueError(
-                f"Truth methods requiring logprobs cannot be used with NaiveApplication claim check method."
+                "Truth methods requiring logprobs cannot be used with NaiveApplication claim check method."
             )
 
         q_messages = deepcopy(self.generate_answer_instruction)

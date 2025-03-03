@@ -2,7 +2,6 @@ import torch
 import numpy as np
 from tqdm import tqdm
 from typing import Union
-from datasets import Dataset
 from sklearn.model_selection import train_test_split
 
 
@@ -20,8 +19,6 @@ from TruthTorchLM.utils.eval_utils import metric_score
 
 from sklearn.neural_network import MLPClassifier
 from TruthTorchLM.utils.common_utils import fix_tokenizer_chat
-from sklearn.neural_network import MLPClassifier
-from TruthTorchLM.utils.eval_utils import metric_score
 
 
 # https://arxiv.org/pdf/2304.13734

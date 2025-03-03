@@ -19,15 +19,9 @@ import time
 import random
 from typing import Any, Optional, Literal, Union
 import requests
-import copy
-import io
-import json
 import os
 import re
-import string
-import types
 import termcolor
-from typing import Any
 
 
 _SERPER_URL = "https://google.serper.dev"

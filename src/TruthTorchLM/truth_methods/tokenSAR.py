@@ -3,7 +3,6 @@ from .truth_method import TruthMethod
 from typing import Union
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 from sentence_transformers import CrossEncoder
-from .truth_method import TruthMethod
 import torch
 import numpy as np
 from TruthTorchLM.error_handler import handle_logprobs_error

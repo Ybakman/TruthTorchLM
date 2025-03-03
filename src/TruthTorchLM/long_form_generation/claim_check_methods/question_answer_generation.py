@@ -14,7 +14,6 @@ from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast, PreTraine
 from transformers import DebertaForSequenceClassification, DebertaTokenizer
 
 import torch
-from random import randint
 from typing import Union
 from copy import deepcopy
 from litellm import completion

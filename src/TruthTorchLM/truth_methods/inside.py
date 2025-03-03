@@ -1,4 +1,3 @@
-import copy
 import torch
 from typing import Union
 

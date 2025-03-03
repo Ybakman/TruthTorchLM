@@ -1,5 +1,4 @@
 import torch
-from litellm import completion
 from typing import Union
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 from .truth_method import TruthMethod

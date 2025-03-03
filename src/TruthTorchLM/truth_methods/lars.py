@@ -1,6 +1,5 @@
 import copy
 import torch
-import random
 import numpy as np
 from tqdm import tqdm
 from typing import Union
@@ -674,7 +673,7 @@ class LARS(TruthMethod):
             print(log)
             if wandb_run:
                 wandb_run.log(
-                    {"iter": 0, f"test_loss": tloss}.update(metric_scores))
+                    {"iter": 0, "test_loss": tloss}.update(metric_scores))
             model.train()
 
         for epoch in range(epochs):
@@ -729,7 +728,7 @@ class LARS(TruthMethod):
                             {
                                 "iter": iteration,
                                 "train_loss": train_loss / total_sample,
-                                f"test_loss": tloss,
+                                "test_loss": tloss,
                             }.update(metric_scores)
                         )
 

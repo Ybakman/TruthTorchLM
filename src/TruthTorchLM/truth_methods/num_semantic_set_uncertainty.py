@@ -1,6 +1,5 @@
 import torch
 from typing import Union
-from litellm import completion
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 from transformers import DebertaForSequenceClassification, DebertaTokenizer
 from TruthTorchLM.utils import calculate_U_num_set

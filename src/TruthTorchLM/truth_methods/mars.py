@@ -1,16 +1,11 @@
 from .truth_method import TruthMethod
-from TruthTorchLM.scoring_methods import ScoringMethod, LengthNormalizedScoring
-from TruthTorchLM.utils import sigmoid_normalization
-from litellm import completion
 from typing import Union
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 from transformers import (
     AutoTokenizer,
-    AutoModelForCausalLM,
     AutoModelForTokenClassification,
 )
 
-from .truth_method import TruthMethod
 from scipy.special import softmax
 import torch
 import numpy as np

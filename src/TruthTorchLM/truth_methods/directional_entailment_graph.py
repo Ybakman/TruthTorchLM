@@ -6,7 +6,6 @@ from .truth_method import TruthMethod
 
 import numpy as np
 import re
-from tqdm import tqdm
 from scipy.linalg import eigvals
 
 

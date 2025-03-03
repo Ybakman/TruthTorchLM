@@ -1,12 +1,9 @@
 from .truth_method import TruthMethod
 from typing import Union
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
-from .truth_method import TruthMethod
 
 import torch
 import numpy as np
-import copy
-import random
 
 
 class AttentionScore(TruthMethod):
