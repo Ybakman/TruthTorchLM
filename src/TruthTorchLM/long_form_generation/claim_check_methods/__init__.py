@@ -5,4 +5,10 @@ from .answer_claim_entailment import AnswerClaimEntailment
 from .naive_application import NaiveApplication
 
 
-__all__ = ['ClaimCheckMethod', 'QuestionAnswerGeneration', 'QuestionGeneration', 'AnswerClaimEntailment', 'NaiveApplication']
+__all__ = [
+    "ClaimCheckMethod",
+    "QuestionAnswerGeneration",
+    "QuestionGeneration",
+    "AnswerClaimEntailment",
+    "NaiveApplication",
+]

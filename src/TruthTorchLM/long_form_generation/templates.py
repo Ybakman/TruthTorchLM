@@ -1,8 +1,9 @@
+# For claim check methods
 
-#For claim check methods 
-
-QUESTION_GENERATION_INSTRUCTION = [{"role": "system", "content": 
-'''You are an expert assistant skilled at generating focused and contextually relevant questions from claims. \
+QUESTION_GENERATION_INSTRUCTION = [
+    {
+        "role": "system",
+        "content": """You are an expert assistant skilled at generating focused and contextually relevant questions from claims. \
 Your task is to create a question such that the answer would align closely with the provided claim. To ensure \
 the question is precise and relevant, consider the context provided by the original question. Study the examples \
 below from a variety of topics and follow the same pattern.
@@ -36,25 +37,35 @@ Claim: Abraham Lincoln served from 1861 to 1865 as the president of the US.
 Question: When did Abraham Lincoln serve as the president of the United States?
 
 Now, follow the pattern demonstrated in the examples to generate a question for the given claim,\
-without adding explanations, introductions, or conversational responses.'''},
-{"role": "user", "content": 
-'''Original question: {question_context}
+without adding explanations, introductions, or conversational responses.""",
+    },
+    {
+        "role": "user",
+        "content": """Original question: {question_context}
 Claim: {claim}
-Question: '''}]
+Question: """,
+    },
+]
 
-ANSWER_GENERATION_INSTRUCTION = [{"role": "system", "content": 
-'''You are a helpful assistant. Give a single claim answer to given question. \
+ANSWER_GENERATION_INSTRUCTION = [
+    {
+        "role": "system",
+        "content": """You are a helpful assistant. Give a single claim answer to given question. \
 Don\‘t provide any additional information. Just answer the question with a brief \
-sentence in a single claim.'''},
-{"role": "user", "content": "{question}"},]
+sentence in a single claim.""",
+    },
+    {"role": "user", "content": "{question}"},
+]
 
 # ANSWER_GENERATION_INSTRUCTION = [{"role": "system", "content": 'You are a helpful assistant. Give short and precise answers.'},
 #                   {"role": "user", "content": "{question}"},]
 
-#For decomposition methods
+# For decomposition methods
 
-DECOMPOSITION_INSTRUCTION = [{"role": "system", "content": 
-'''You are a helpful assistant. List the specific factual claims included in the given input as a python list. \
+DECOMPOSITION_INSTRUCTION = [
+    {
+        "role": "system",
+        "content": """You are a helpful assistant. List the specific factual claims included in the given input as a python list. \
 Be complete and do not leave any factual claims out. Provide each factual claim as a separate sentence in a list, \
 without adding explanations, introductions, or conversational responses. Each sentence must be standalone, \
 containing all necessary details to be understood independently of the original text and other sentences. \
@@ -87,13 +98,19 @@ Claims:
  'Confidentiality is important in the era of advanced health technologies.']
 
 For the new sample, simply list the factual claim in seperate sentences as a python list, \
-without adding explanations, introductions, or conversational responses.'''},
-{"role": "user", "content": 
- '''Paragraph: {TEXT}
- Claims:'''}]
+without adding explanations, introductions, or conversational responses.""",
+    },
+    {
+        "role": "user",
+        "content": """Paragraph: {TEXT}
+ Claims:""",
+    },
+]
 
-DECOMPOSITION_INSTRUCTION_GRANULAR = [{"role": "system", "content": 
-'''You are a helpful assistant. List the specific factual claims included in the given input as a python list. \
+DECOMPOSITION_INSTRUCTION_GRANULAR = [
+    {
+        "role": "system",
+        "content": """You are a helpful assistant. List the specific factual claims included in the given input as a python list. \
 Be complete and do not leave any factual claims out. Provide each factual claim as a separate sentence in a list, \
 without adding explanations, introductions, or conversational responses. Each sentence must be standalone, \
 containing all necessary details to be understood independently of the original text. \
@@ -124,18 +141,25 @@ Claims:
 []
 
 For the new input, simply list the factual claim in seperate sentences as a python list, \
-without adding explanations, introductions, or conversational responses.'''},
-{"role": "user", "content": 
- '''Input: {TEXT}
- Claims:'''}]
+without adding explanations, introductions, or conversational responses.""",
+    },
+    {
+        "role": "user",
+        "content": """Input: {TEXT}
+ Claims:""",
+    },
+]
 
-UNSTRUCTURED_DECOMPOSITION_INSTRUCTION = [{"role": "system", "content": 
-'''You are a helpful assistant. List the specific factual claims included in the given input. \
+UNSTRUCTURED_DECOMPOSITION_INSTRUCTION = [
+    {
+        "role": "system",
+        "content": """You are a helpful assistant. List the specific factual claims included in the given input. \
 Be complete and do not leave any factual claims out. Provide each factual claim as a separate sentence \
 in a separate bullet point, without adding explanations, introductions, or conversational responses. \
 Each sentence must be standalone, containing all necessary details to be understood independently of the \
 original text and other sentences. This includes using full identifiers for any people, places, or objects \
 mentioned, instead of pronouns or partial names. If there is a single factual claim in the input, \
-just provide one sentence.'''},
-{"role": "user", "content": '''{TEXT}'''}]
-
+just provide one sentence.""",
+    },
+    {"role": "user", "content": """{TEXT}"""},
+]

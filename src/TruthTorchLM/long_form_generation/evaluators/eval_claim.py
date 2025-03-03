@@ -1,4 +1,4 @@
-'''Code taken from SAFE https://github.com/google-deepmind/long-form-factuality/tree/main/eval/safe and adapted to TruthTorchLM'''
+"""Code taken from SAFE https://github.com/google-deepmind/long-form-factuality/tree/main/eval/safe and adapted to TruthTorchLM"""
 
 # Copyright 2024 Google LLC
 #
@@ -24,11 +24,11 @@ from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokeniz
 import TruthTorchLM.long_form_generation.utils.safe_utils as utils
 from TruthTorchLM.utils.common_utils import generate, fix_tokenizer_chat
 
-SUPPORTED_LABEL = 'Supported'
-NOT_SUPPORTED_LABEL = 'Not Supported'
+SUPPORTED_LABEL = "Supported"
+NOT_SUPPORTED_LABEL = "Not Supported"
 
-_STATEMENT_PLACEHOLDER = '[STATEMENT]'
-_KNOWLEDGE_PLACEHOLDER = '[KNOWLEDGE]'
+_STATEMENT_PLACEHOLDER = "[STATEMENT]"
+_KNOWLEDGE_PLACEHOLDER = "[KNOWLEDGE]"
 _NEXT_SEARCH_FORMAT = f"""\
 Instructions:
 1. You have been given a STATEMENT and some KNOWLEDGE points.
@@ -72,151 +72,197 @@ STATEMENT:
 
 from abc import ABC
 
+
 class ClaimEvaluator(ABC):
-    
-    def __init__(self, rater:Union[PreTrainedModel, str], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast]= None,
-                       max_steps: int = 5, max_retries: int = 10, num_searches: int = 3):
+
+    def __init__(
+        self,
+        rater: Union[PreTrainedModel, str],
+        tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
+        max_steps: int = 5,
+        max_retries: int = 10,
+        num_searches: int = 3,
+    ):
         self.rater = rater
         self.tokenizer = tokenizer
         self.max_steps = max_steps
         self.max_retries = max_retries
         self.num_searches = num_searches
 
-    def __call__(self, atomic_fact:str) -> dict:
-        return check_atomic_fact(atomic_fact, self.rater, self.tokenizer, self.max_steps, self.max_retries, self.num_searches)
-    
+    def __call__(self, atomic_fact: str) -> dict:
+        return check_atomic_fact(
+            atomic_fact,
+            self.rater,
+            self.tokenizer,
+            self.max_steps,
+            self.max_retries,
+            self.num_searches,
+        )
+
     def __str__(self):
-        return "SAFE claim evaluator with rater: " + str(self.rater) + " max_steps: " + str(self.max_steps) + " max_retries: " + str(self.max_retries) + " num_searches: " + str(self.num_searches)
-    
+        return (
+            "SAFE claim evaluator with rater: "
+            + str(self.rater)
+            + " max_steps: "
+            + str(self.max_steps)
+            + " max_retries: "
+            + str(self.max_retries)
+            + " num_searches: "
+            + str(self.num_searches)
+        )
+
 
 @dataclasses.dataclass()
 class GoogleSearchResult:
-  query: str
-  result: str
+    query: str
+    result: str
 
 
 @dataclasses.dataclass()
 class FinalAnswer:
-  response: str
-  answer: str
+    response: str
+    answer: str
 
 
 def _generate(prompt, model, tokenizer, **kwargs):
     messages = [{"role": "user", "content": prompt}]
     if type(model) == str:
-        response = completion(
-                                model=model,
-                                messages=messages,
-                                **kwargs
-                            )
-        generated_text = response.choices[0].message['content']
+        response = completion(model=model, messages=messages, **kwargs)
+        generated_text = response.choices[0].message["content"]
     else:
         tokenizer, messages = fix_tokenizer_chat(tokenizer, messages)
-        text = tokenizer.apply_chat_template(messages, tokenize = False, add_generation_prompt=True, continue_final_message=False)
-        generated_text = generate(text, model, tokenizer, **kwargs)['generated_text_skip_specials']
+        text = tokenizer.apply_chat_template(
+            messages,
+            tokenize=False,
+            add_generation_prompt=True,
+            continue_final_message=False,
+        )
+        generated_text = generate(text, model, tokenizer, **kwargs)[
+            "generated_text_skip_specials"
+        ]
     return generated_text
 
 
 def call_search(
-                    search_query: str,
-                    num_searches: int = 3,
-                    search_postamble: str = '',  # ex: 'site:https://en.wikipedia.org'
-                ) -> str:
+    search_query: str,
+    num_searches: int = 3,
+    search_postamble: str = "",  # ex: 'site:https://en.wikipedia.org'
+) -> str:
     """Call Google Search to get the search result."""
-    search_query += f' {search_postamble}' if search_postamble else ''
+    search_query += f" {search_postamble}" if search_postamble else ""
 
     serper_searcher = utils.SerperAPI(k=num_searches)
     return serper_searcher.run(search_query, k=num_searches)
 
 
 def maybe_get_next_search(
-                                atomic_fact: str,
-                                past_searches: list[GoogleSearchResult],
-                                model:Union[PreTrainedModel, str], 
-                                tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast]= None,
-                                num_searches: int = 3,
-                                search_postamble: str = '',  # ex: 'site:https://en.wikipedia.org'
-                                **kwargs
-                            ) -> Union[GoogleSearchResult ,None]:
-  """Get the next query from the model."""
-  knowledge = '\n'.join([s.result for s in past_searches])
-  knowledge = 'N/A' if not knowledge else knowledge
-  full_prompt = _NEXT_SEARCH_FORMAT.replace(_STATEMENT_PLACEHOLDER, atomic_fact)
-  full_prompt = full_prompt.replace(_KNOWLEDGE_PLACEHOLDER, knowledge)
-  full_prompt = utils.strip_string(full_prompt)
-  model_response = _generate(full_prompt, model, tokenizer, **kwargs)
-  query = utils.extract_first_code_block(model_response, ignore_language=True)
-  # print(f'Search query: {query}')
+    atomic_fact: str,
+    past_searches: list[GoogleSearchResult],
+    model: Union[PreTrainedModel, str],
+    tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
+    num_searches: int = 3,
+    search_postamble: str = "",  # ex: 'site:https://en.wikipedia.org'
+    **kwargs,
+) -> Union[GoogleSearchResult, None]:
+    """Get the next query from the model."""
+    knowledge = "\n".join([s.result for s in past_searches])
+    knowledge = "N/A" if not knowledge else knowledge
+    full_prompt = _NEXT_SEARCH_FORMAT.replace(_STATEMENT_PLACEHOLDER, atomic_fact)
+    full_prompt = full_prompt.replace(_KNOWLEDGE_PLACEHOLDER, knowledge)
+    full_prompt = utils.strip_string(full_prompt)
+    model_response = _generate(full_prompt, model, tokenizer, **kwargs)
+    query = utils.extract_first_code_block(model_response, ignore_language=True)
+    # print(f'Search query: {query}')
 
-  if model_response and query:
-    return GoogleSearchResult(query=query, result=call_search(search_query=query, num_searches=num_searches, search_postamble=search_postamble))
+    if model_response and query:
+        return GoogleSearchResult(
+            query=query,
+            result=call_search(
+                search_query=query,
+                num_searches=num_searches,
+                search_postamble=search_postamble,
+            ),
+        )
 
-  return None
+    return None
 
 
 def maybe_get_final_answer(
-                                atomic_fact: str,
-                                searches: list[GoogleSearchResult],
-                                model:Union[PreTrainedModel, str], 
-                                tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast]= None,
-                                **kwargs
-                            ) -> Union[FinalAnswer, None]:
-  """Get the final answer from the model."""
-  knowledge = '\n'.join([search.result for search in searches])
-  full_prompt = _FINAL_ANSWER_FORMAT.replace(
-      _STATEMENT_PLACEHOLDER, atomic_fact
-  )
-  full_prompt = full_prompt.replace(_KNOWLEDGE_PLACEHOLDER, knowledge)
-  full_prompt = utils.strip_string(full_prompt)
-  model_response = _generate(full_prompt, model, tokenizer, **kwargs)
-  answer = utils.extract_first_square_brackets(model_response)
-  answer = re.sub(r'[^\w\s]', '', answer).strip()
+    atomic_fact: str,
+    searches: list[GoogleSearchResult],
+    model: Union[PreTrainedModel, str],
+    tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
+    **kwargs,
+) -> Union[FinalAnswer, None]:
+    """Get the final answer from the model."""
+    knowledge = "\n".join([search.result for search in searches])
+    full_prompt = _FINAL_ANSWER_FORMAT.replace(_STATEMENT_PLACEHOLDER, atomic_fact)
+    full_prompt = full_prompt.replace(_KNOWLEDGE_PLACEHOLDER, knowledge)
+    full_prompt = utils.strip_string(full_prompt)
+    model_response = _generate(full_prompt, model, tokenizer, **kwargs)
+    answer = utils.extract_first_square_brackets(model_response)
+    answer = re.sub(r"[^\w\s]", "", answer).strip()
 
-  if model_response and answer in [SUPPORTED_LABEL, NOT_SUPPORTED_LABEL]:
-    return FinalAnswer(response=model_response, answer=answer)
+    if model_response and answer in [SUPPORTED_LABEL, NOT_SUPPORTED_LABEL]:
+        return FinalAnswer(response=model_response, answer=answer)
 
-  return None
+    return None
 
 
 def check_atomic_fact(
-                            atomic_fact: str,
-                            rater:Union[PreTrainedModel, str], 
-                            tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast]= None,
-                            max_steps: int = 5,
-                            max_retries: int = 10,
-                            num_searches: int = 3,
-                            search_postamble: str = '',  # ex: 'site:https://en.wikipedia.org'
-                            **kwargs
-                        ) -> tuple[Union[FinalAnswer, None], dict[str, Any]]:
-  """Check if the given atomic fact is supported."""
-  search_results = []
+    atomic_fact: str,
+    rater: Union[PreTrainedModel, str],
+    tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
+    max_steps: int = 5,
+    max_retries: int = 10,
+    num_searches: int = 3,
+    search_postamble: str = "",  # ex: 'site:https://en.wikipedia.org'
+    **kwargs,
+) -> tuple[Union[FinalAnswer, None], dict[str, Any]]:
+    """Check if the given atomic fact is supported."""
+    search_results = []
 
-  for i in range(max_steps):
-    next_search, num_tries = None, 0
+    for i in range(max_steps):
+        next_search, num_tries = None, 0
 
-    while not next_search and num_tries <= max_retries:
-      # print(f'Step {i} Search trial #{num_tries}')s
-      next_search = maybe_get_next_search(atomic_fact=atomic_fact, past_searches=search_results, model=rater, tokenizer=tokenizer,
-                                            num_searches=num_searches, search_postamble=search_postamble, **kwargs)
-      num_tries += 1
+        while not next_search and num_tries <= max_retries:
+            # print(f'Step {i} Search trial #{num_tries}')s
+            next_search = maybe_get_next_search(
+                atomic_fact=atomic_fact,
+                past_searches=search_results,
+                model=rater,
+                tokenizer=tokenizer,
+                num_searches=num_searches,
+                search_postamble=search_postamble,
+                **kwargs,
+            )
+            num_tries += 1
 
-    if next_search is None:
-      utils.maybe_print_error('Unsuccessful parsing for `next_search`')
-      break
-    else:
-      search_results.append(next_search)
+        if next_search is None:
+            utils.maybe_print_error("Unsuccessful parsing for `next_search`")
+            break
+        else:
+            search_results.append(next_search)
 
-  search_dicts = {
-      'google_searches': [dataclasses.asdict(s) for s in search_results]
-  }
-  final_answer, num_tries = None, 0
+    search_dicts = {"google_searches": [dataclasses.asdict(s) for s in search_results]}
+    final_answer, num_tries = None, 0
 
-  while not final_answer and num_tries <= max_retries:
-    num_tries += 1
-    final_answer = maybe_get_final_answer(atomic_fact=atomic_fact, searches=search_results, model=rater, tokenizer=tokenizer, **kwargs)
+    while not final_answer and num_tries <= max_retries:
+        num_tries += 1
+        final_answer = maybe_get_final_answer(
+            atomic_fact=atomic_fact,
+            searches=search_results,
+            model=rater,
+            tokenizer=tokenizer,
+            **kwargs,
+        )
 
-  if final_answer is None:
-    utils.maybe_print_error('Unsuccessful parsing for `final_answer`')
-    return {"answer": None, "response":None, "search_details":None}
+    if final_answer is None:
+        utils.maybe_print_error("Unsuccessful parsing for `final_answer`")
+        return {"answer": None, "response": None, "search_details": None}
 
-  return {"answer": final_answer.answer, "response":final_answer.response, "search_details":search_dicts}
+    return {
+        "answer": final_answer.answer,
+        "response": final_answer.response,
+        "search_details": search_dicts,
+    }

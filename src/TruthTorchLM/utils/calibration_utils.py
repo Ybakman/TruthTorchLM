@@ -10,10 +10,11 @@ def f1_picker(correctness: list, truth_values: list):
     # Remove NaN values and find the index of the highest F1 score
     f1_scores = np.nan_to_num(f1_scores)  # Replace NaN with 0
     max_index = np.argmax(f1_scores)
-    
+
     # The thresholds array is of length len(precisions) - 1, so we use max_index-1 to get the corresponding threshold
     threshold = thresholds[max_index - 1] if max_index > 0 else thresholds[0]
     return threshold
+
 
 def precision_picker(correctness: list, truth_values: list, precision: float):
     precisions, recalls, thresholds = precision_recall_curve(correctness, truth_values)
@@ -23,6 +24,7 @@ def precision_picker(correctness: list, truth_values: list, precision: float):
     threshold = thresholds[index - 1] if index > 0 else thresholds[0]
     return threshold
 
+
 def recall_picker(correctness: list, truth_values: list, recall: float):
     precisions, recalls, thresholds = precision_recall_curve(correctness, truth_values)
     # Find the index of the smallest recall that is greater than or equal to the target recall
@@ -31,8 +33,12 @@ def recall_picker(correctness: list, truth_values: list, recall: float):
     threshold = thresholds[index - 1] if index > 0 else thresholds[0]
     return threshold
 
+
 def accuracy_picker(correctness: list, truth_values: list):
-    accuracies = [np.mean((truth_values > threshold) == correctness) for threshold in np.unique(truth_values)]
+    accuracies = [
+        np.mean((truth_values > threshold) == correctness)
+        for threshold in np.unique(truth_values)
+    ]
     threshold = np.unique(truth_values)[np.argmax(accuracies)]
     return threshold
 
@@ -53,11 +59,11 @@ def accuracy_picker(correctness: list, truth_values: list):
 #     else:
 #         # Calculate F1 scores for each threshold
 #         f1_scores = 2 * (precisions * recalls) / (precisions + recalls)
-        
+
 #         # Remove NaN values and find the index of the highest F1 score
 #         f1_scores = np.nan_to_num(f1_scores)  # Replace NaN with 0
 #         max_index = np.argmax(f1_scores)
-        
+
 #         # The thresholds array is of length len(precisions) - 1, so we use max_index-1 to get the corresponding threshold
 #         threshold = thresholds[max_index - 1] if max_index > 0 else thresholds[0]
 

@@ -13,7 +13,7 @@ from scipy.linalg import eigvals
 class DirectionalEntailmentGraph(TruthMethod):
     """
     Implements the Directed Entailment Graph approach for measuring uncertainty
-    based on random walk Laplacian eigenvalues. 
+    based on random walk Laplacian eigenvalues.
     """
 
     REQUIRES_SAMPLED_TEXT = True
@@ -45,19 +45,26 @@ class DirectionalEntailmentGraph(TruthMethod):
         self.batch_generation = batch_generation
 
         # Load default DeBERTa MNLI if user didn't specify
-        if (model_for_entailment is None or tokenizer_for_entailment is None):
+        if model_for_entailment is None or tokenizer_for_entailment is None:
             from transformers import AutoModelForSequenceClassification, AutoTokenizer
-            print("No entailment model provided. Loading microsoft/deberta-large-mnli by default.")
+
+            print(
+                "No entailment model provided. Loading microsoft/deberta-large-mnli by default."
+            )
             nli_model_name = "microsoft/deberta-large-mnli"
             tokenizer_for_entailment = AutoTokenizer.from_pretrained(nli_model_name)
-            model_for_entailment = AutoModelForSequenceClassification.from_pretrained(nli_model_name).to(entailment_model_device)
+            model_for_entailment = AutoModelForSequenceClassification.from_pretrained(
+                nli_model_name
+            ).to(entailment_model_device)
             model_for_entailment.eval()
 
         self.model_for_entailment = model_for_entailment
         self.tokenizer_for_entailment = tokenizer_for_entailment
         self.entailment_model_device = entailment_model_device
 
-    def _compute_directional_entailment_uncertainty(self, sampled_generations_dict, question_context):
+    def _compute_directional_entailment_uncertainty(
+        self, sampled_generations_dict, question_context
+    ):
         """
         Core logic that:
           1. Extracts the top N generated texts
@@ -67,7 +74,9 @@ class DirectionalEntailmentGraph(TruthMethod):
           5. Calculates the final uncertainty measure
         Returns a dictionary with the final uncertainty and any additional info.
         """
-        generated_texts = sampled_generations_dict["generated_texts"][: self.number_of_generations]
+        generated_texts = sampled_generations_dict["generated_texts"][
+            : self.number_of_generations
+        ]
 
         # STEP 1: Build Entailment Matrix
         entailment_matrix = self._build_entailment_matrix(generated_texts)
@@ -87,7 +96,7 @@ class DirectionalEntailmentGraph(TruthMethod):
         output_dict = {
             "generated_texts": generated_texts,
             "directional_entailment_uncertainty": uncertainty_value,
-            "truth_value": -uncertainty_value
+            "truth_value": -uncertainty_value,
         }
         return output_dict
 
@@ -121,7 +130,9 @@ class DirectionalEntailmentGraph(TruthMethod):
                 **kwargs
             )
 
-        return self._compute_directional_entailment_uncertainty(sampled_generations_dict, question_context)
+        return self._compute_directional_entailment_uncertainty(
+            sampled_generations_dict, question_context
+        )
 
     def forward_api(
         self,
@@ -150,11 +161,12 @@ class DirectionalEntailmentGraph(TruthMethod):
                 **kwargs
             )
 
-        return self._compute_directional_entailment_uncertainty(sampled_generations_dict, question_context)
-
+        return self._compute_directional_entailment_uncertainty(
+            sampled_generations_dict, question_context
+        )
 
     # "Private" utility methods. We can put them in `utils` if they are going to be used somewhere else
-  
+
     def _build_entailment_matrix(self, responses):
         """
         Build an n x n matrix of entailment probabilities
@@ -167,7 +179,9 @@ class DirectionalEntailmentGraph(TruthMethod):
                 if i == j:
                     matrix[i, j] = 1.0
                 else:
-                    matrix[i, j] = self._compute_entailment_prob(responses[i], responses[j])
+                    matrix[i, j] = self._compute_entailment_prob(
+                        responses[i], responses[j]
+                    )
         return matrix
 
     def _compute_entailment_prob(self, r1, r2):
@@ -175,7 +189,9 @@ class DirectionalEntailmentGraph(TruthMethod):
         Use the loaded NLI model & tokenizer to get entailment probability.
         Expects roberta/deberta style [contradiction, neutral, entailment].
         """
-        inputs = self.tokenizer_for_entailment.encode_plus(r1, r2, return_tensors="pt", truncation=True).to(self.entailment_model_device)
+        inputs = self.tokenizer_for_entailment.encode_plus(
+            r1, r2, return_tensors="pt", truncation=True
+        ).to(self.entailment_model_device)
         with torch.no_grad():
             logits = self.model_for_entailment(**inputs).logits
         probs = torch.softmax(logits, dim=1)
@@ -184,7 +200,7 @@ class DirectionalEntailmentGraph(TruthMethod):
 
     def _build_similarity_matrix(self, responses):
         """
-        Build an n x n matrix of text similarity. 
+        Build an n x n matrix of text similarity.
         If method_for_similarity == 'jaccard', compute Jaccard.
         Otherwise, you can implement a semantic approach.
         """
@@ -195,11 +211,11 @@ class DirectionalEntailmentGraph(TruthMethod):
                 # if i == j:
                 #     matrix[i, j] = 1.0
                 # else:
-                    if self.method_for_similarity.lower() == "jaccard":
-                        matrix[i, j] = self._jaccard_similarity(responses[i], responses[j])
-                    # else:
-                    #     # Fall back to a placeholder if we want to implement semantic or something
-                    #     matrix[i, j] = 0.0
+                if self.method_for_similarity.lower() == "jaccard":
+                    matrix[i, j] = self._jaccard_similarity(responses[i], responses[j])
+                # else:
+                #     # Fall back to a placeholder if we want to implement semantic or something
+                #     matrix[i, j] = 0.0
         return matrix
 
     def _jaccard_similarity(self, r1, r2):
@@ -210,7 +226,7 @@ class DirectionalEntailmentGraph(TruthMethod):
         return float(len(intersection)) / float(len(union)) if union else 0.0
 
     def _tokenize(self, text):
-        cleaned_text = re.sub(r'[^\w\s]', '', text.lower())
+        cleaned_text = re.sub(r"[^\w\s]", "", text.lower())
         return cleaned_text.split()
 
     def _compute_random_walk_laplacian(self, adjacency_matrix):

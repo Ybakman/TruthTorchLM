@@ -5,4 +5,9 @@ from .structured_decomposition_api import StructuredDecompositionAPI
 from .structured_decomposition_local import StructuredDecompositionLocal
 
 
-__all__ = ['UnstructuredDecompositionAPI', 'UnstructuredDecompositionLocal', 'StructuredDecompositionAPI', 'StructuredDecompositionLocal']
+__all__ = [
+    "UnstructuredDecompositionAPI",
+    "UnstructuredDecompositionLocal",
+    "StructuredDecompositionAPI",
+    "StructuredDecompositionLocal",
+]
