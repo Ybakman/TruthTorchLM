@@ -59,7 +59,8 @@ class MARS(TruthMethod):
             .to(model.device)
         )
         input_ids = (
-            torch.tensor(tokenized_input["input_ids"]).reshape(1, -1).to(model.device)
+            torch.tensor(tokenized_input["input_ids"]).reshape(
+                1, -1).to(model.device)
         )
 
         unk_token_id = tokenizer.unk_token_id
@@ -147,7 +148,7 @@ class MARS(TruthMethod):
             found = False
             while found == False:
                 for k in range(1, len(phrases) - i + 1):
-                    word = "".join(phrases[i : i + k])
+                    word = "".join(phrases[i: i + k])
                     last_token = -1
                     for j in range(
                         token_idx + 1, len(tokens) + 1
@@ -168,7 +169,7 @@ class MARS(TruthMethod):
                             np.mean(neg_log_likelihoods[token_idx:last_token])
                         )
                         merged_importance_vector.append(
-                            np.mean(importance_vector[i : i + k])
+                            np.mean(importance_vector[i: i + k])
                         )
                         found = True
                         i += k
@@ -202,7 +203,8 @@ class MARS(TruthMethod):
         **kwargs
     ):
 
-        input_ids = tokenizer.encode(input_text, return_tensors="pt").to(model.device)
+        input_ids = tokenizer.encode(
+            input_text, return_tensors="pt").to(model.device)
 
         if type(tokenizer.eos_token_id) == list:
             if all_ids[0, -1] in tokenizer.eos_token_id:
@@ -217,7 +219,7 @@ class MARS(TruthMethod):
                 print("exeeded max length")
                 model_output = all_ids
         # model_output = all_ids
-        tokens = model_output[0][len(input_ids[0]) :]
+        tokens = model_output[0][len(input_ids[0]):]
         tokens_text = [tokenizer.decode(token) for token in tokens]
         generated_text = tokenizer.decode(tokens, skip_special_tokens=False)
 
@@ -228,10 +230,10 @@ class MARS(TruthMethod):
             # Calculate probabilities from logits
             probs = torch.softmax(logits, dim=-1)  # probs for each token
             probs = probs[
-                0, len(input_ids[0]) - 1 : -1, :
+                0, len(input_ids[0]) - 1: -1, :
             ]  # logprobs for each token in the generated text
             probs = torch.gather(
-                probs, dim=1, index=model_output[0][len(input_ids[0]) :].view(-1, 1)
+                probs, dim=1, index=model_output[0][len(input_ids[0]):].view(-1, 1)
             )  # logprobs for each token in the generated text
             probs = probs.view(-1).tolist()  # convert to list
             probs = np.array(probs)

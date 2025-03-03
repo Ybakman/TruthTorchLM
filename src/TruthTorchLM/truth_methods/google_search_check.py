@@ -153,7 +153,8 @@ class GoogleSearchCheck(TruthMethod):
         evidences = self.get_evidences(query)
 
         # Ask model to verify the claim
-        outlines_generator = outlines.generate.json(outlines_model, Verification)
+        outlines_generator = outlines.generate.json(
+            outlines_model, Verification)
 
         chat = [
             {"role": "system", "content": self.check_verification_system_prompt},

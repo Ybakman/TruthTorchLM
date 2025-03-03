@@ -92,17 +92,20 @@ class AnswerClaimEntailment(ClaimCheckMethod):
         )
 
         if type(self.model) == str:
-            response = completion(model=self.model, messages=messages, **self.kwargs)
+            response = completion(
+                model=self.model, messages=messages, **self.kwargs)
             question = response.choices[0].message["content"]
         else:
-            self.tokenizer, messages = fix_tokenizer_chat(self.tokenizer, messages)
+            self.tokenizer, messages = fix_tokenizer_chat(
+                self.tokenizer, messages)
             text = self.tokenizer.apply_chat_template(
                 messages,
                 tokenize=False,
                 add_generation_prompt=True,
                 continue_final_message=False,
             )
-            generated_output = generate(text, self.model, self.tokenizer, **self.kwargs)
+            generated_output = generate(
+                text, self.model, self.tokenizer, **self.kwargs)
             question = generated_output["generated_text_skip_specials"]
 
         return question.strip()
@@ -139,7 +142,8 @@ class AnswerClaimEntailment(ClaimCheckMethod):
 
         assert (implication_1 in [0, 1, 2]) and (implication_2 in [0, 1, 2])
         implications = [implication_1, implication_2]
-        semantically_equivalent = (0 not in implications) and ([1, 1] != implications)
+        semantically_equivalent = (0 not in implications) and ([
+            1, 1] != implications)
         # semantically_equivalent = (implications[0] == 2) and (implications[1] == 2) #strict check
         return semantically_equivalent
 
@@ -166,7 +170,8 @@ class AnswerClaimEntailment(ClaimCheckMethod):
         entailment = []
         for i, question in enumerate(questions):
             messages = deepcopy(self.generate_answer_instruction)
-            messages[-1]["content"] = messages[-1]["content"].format(question=question)
+            messages[-1]["content"] = messages[-1]["content"].format(
+                question=question)
             tokenizer, messages = fix_tokenizer_chat(tokenizer, messages)
             text = tokenizer.apply_chat_template(
                 messages,
@@ -221,7 +226,8 @@ class AnswerClaimEntailment(ClaimCheckMethod):
             )
             # check if the answer aligns with the claim
             for _ in range(self.num_answers_per_question):
-                response = completion(model=model, messages=q_messages, **kwargs)
+                response = completion(
+                    model=model, messages=q_messages, **kwargs)
                 answer = response.choices[0].message["content"]
                 answers.append(answer)
                 if self._does_entail(claim=claim, question=question, answer=answer):
@@ -242,7 +248,8 @@ class AnswerClaimEntailment(ClaimCheckMethod):
 
     def __str__(self):
 
-        model_name = self.model.__class__ if type(self.model) != str else self.model
+        model_name = self.model.__class__ if type(
+            self.model) != str else self.model
         ent_model_name = (
             self.entailment_model.__class__
             if type(self.entailment_model) != str

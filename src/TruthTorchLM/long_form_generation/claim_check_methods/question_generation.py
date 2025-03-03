@@ -91,17 +91,20 @@ class QuestionGeneration(ClaimCheckMethod):
         )
 
         if type(self.model) == str:
-            response = completion(model=self.model, messages=messages, **self.kwargs)
+            response = completion(
+                model=self.model, messages=messages, **self.kwargs)
             question = response.choices[0].message["content"]
         else:
-            self.tokenizer, messages = fix_tokenizer_chat(self.tokenizer, messages)
+            self.tokenizer, messages = fix_tokenizer_chat(
+                self.tokenizer, messages)
             text = self.tokenizer.apply_chat_template(
                 messages,
                 tokenize=False,
                 add_generation_prompt=True,
                 continue_final_message=False,
             )
-            generated_output = generate(text, self.model, self.tokenizer, **self.kwargs)
+            generated_output = generate(
+                text, self.model, self.tokenizer, **self.kwargs)
             question = generated_output["generated_text_skip_specials"]
 
         return question.strip()
@@ -181,7 +184,8 @@ class QuestionGeneration(ClaimCheckMethod):
                 messages=messages,
                 **kwargs,
             )
-            normalized_truth_values.append(truth_values["normalized_truth_value"])
+            normalized_truth_values.append(
+                truth_values["normalized_truth_value"])
             unnormalized_truth_values.append(truth_values["truth_value"])
             method_spec_outputs.append(truth_values)
 
@@ -272,11 +276,13 @@ class QuestionGeneration(ClaimCheckMethod):
             total = []
             for truth_values in normalized_truth_values:
                 total.append(truth_values[i])
-            final_normalized_truth_values.append(self.aggregation_strategy(total))
+            final_normalized_truth_values.append(
+                self.aggregation_strategy(total))
             total = []
             for truth_values in unnormalized_truth_values:
                 total.append(truth_values[i])
-            final_unnormalized_truth_values.append(self.aggregation_strategy(total))
+            final_unnormalized_truth_values.append(
+                self.aggregation_strategy(total))
             for outputs in method_spec_outputs:
                 outputs[i].pop("generated_text", None)
                 output_dict["detailed_outputs"].append(outputs[i])
@@ -337,7 +343,8 @@ class QuestionGeneration(ClaimCheckMethod):
                 sampled_generations_dict=sampled_gen_dict,
                 **kwargs,
             )
-            normalized_truth_values.append(truth_values["normalized_truth_value"])
+            normalized_truth_values.append(
+                truth_values["normalized_truth_value"])
             unnormalized_truth_values.append(truth_values["truth_value"])
             method_spec_outputs.append(truth_values)
 
@@ -410,11 +417,13 @@ class QuestionGeneration(ClaimCheckMethod):
             total = []
             for truth_values in normalized_truth_values:
                 total.append(truth_values[i])
-            final_normalized_truth_values.append(self.aggregation_strategy(total))
+            final_normalized_truth_values.append(
+                self.aggregation_strategy(total))
             total = []
             for truth_values in unnormalized_truth_values:
                 total.append(truth_values[i])
-            final_unnormalized_truth_values.append(self.aggregation_strategy(total))
+            final_unnormalized_truth_values.append(
+                self.aggregation_strategy(total))
             for outputs in method_spec_outputs:
                 outputs[i].pop("generated_text", None)
                 output_dict["detailed_outputs"].append(outputs[i])
@@ -431,7 +440,8 @@ class QuestionGeneration(ClaimCheckMethod):
 
     def __str__(self):
 
-        model_name = self.model.__class__ if type(self.model) != str else self.model
+        model_name = self.model.__class__ if type(
+            self.model) != str else self.model
 
         return f"Claim Check Method by Generating Questions.\n\
 Question generation model: {model_name}\n\

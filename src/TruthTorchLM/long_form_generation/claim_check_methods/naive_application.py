@@ -84,7 +84,8 @@ class NaiveApplication(ClaimCheckMethod):
                 messages=messages,
                 **kwargs,
             )
-            normalized_truth_values.append(truth_values["normalized_truth_value"])
+            normalized_truth_values.append(
+                truth_values["normalized_truth_value"])
             unnormalized_truth_values.append(truth_values["truth_value"])
             method_spec_outputs.append(truth_values)
 
@@ -107,7 +108,8 @@ class NaiveApplication(ClaimCheckMethod):
 
         question = question_context if self.use_question else ""
         q_messages = deepcopy(self.generate_answer_instruction)
-        q_messages[-1]["content"] = q_messages[-1]["content"].format(question=question)
+        q_messages[-1]["content"] = q_messages[-1]["content"].format(
+            question=question)
         tokenizer, q_messages = fix_tokenizer_chat(tokenizer, q_messages)
         text = tokenizer.apply_chat_template(
             q_messages,
@@ -128,7 +130,8 @@ class NaiveApplication(ClaimCheckMethod):
         )
 
         t_messages = deepcopy(self.generate_answer_instruction)
-        t_messages[-1]["content"] = t_messages[-1]["content"].format(question=question)
+        t_messages[-1]["content"] = t_messages[-1]["content"].format(
+            question=question)
         normalized_truth_values, unnormalized_truth_values, method_spec_outputs = (
             self._get_truth_value_local(
                 self.truth_methods,
@@ -206,7 +209,8 @@ class NaiveApplication(ClaimCheckMethod):
                 sampled_generations_dict=sampled_gen_dict,
                 **kwargs,
             )
-            normalized_truth_values.append(truth_values["normalized_truth_value"])
+            normalized_truth_values.append(
+                truth_values["normalized_truth_value"])
             unnormalized_truth_values.append(truth_values["truth_value"])
             method_spec_outputs.append(truth_values)
 
@@ -240,7 +244,8 @@ class NaiveApplication(ClaimCheckMethod):
         q_messages = deepcopy(self.generate_answer_instruction)
         question = question_context if self.use_question else ""
         # Get truth value for truth method
-        q_messages[-1]["content"] = q_messages[-1]["content"].format(question=question)
+        q_messages[-1]["content"] = q_messages[-1]["content"].format(
+            question=question)
         normalized_truth_values, unnormalized_truth_values, method_spec_outputs = (
             self._get_truth_value_api(
                 self.truth_methods,

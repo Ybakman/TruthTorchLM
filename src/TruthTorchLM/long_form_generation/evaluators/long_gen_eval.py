@@ -205,8 +205,10 @@ def get_metric_scores_sample_level(
                     eval_result[f"claim_check_methods_{i}_truth_method_{j}"][metric] = {
                         "values": []
                     }
-                for k in range(len(output_dict["claim_correctness"])):  # question index
-                    indices = np.where(output_dict["claim_correctness"][k] != -1)[0]
+                # question index
+                for k in range(len(output_dict["claim_correctness"])):
+                    indices = np.where(
+                        output_dict["claim_correctness"][k] != -1)[0]
                     predictions = [
                         output_dict[f"claim_check_methods_{i}"]["truth_values"][k][m][j]
                         for m in indices
@@ -231,9 +233,12 @@ def get_metric_scores_sample_level(
         else:
             eval_result[f"claim_check_methods_{i}"] = {}
             for metric in eval_metrics:
-                eval_result[f"claim_check_methods_{i}"][metric] = {"values": []}
-            for k in range(len(output_dict["claim_correctness"])):  # question index
-                indices = np.where(output_dict["claim_correctness"][k] != -1)[0]
+                eval_result[f"claim_check_methods_{i}"][metric] = {
+                    "values": []}
+            # question index
+            for k in range(len(output_dict["claim_correctness"])):
+                indices = np.where(
+                    output_dict["claim_correctness"][k] != -1)[0]
                 predictions = np.array(
                     output_dict[f"claim_check_methods_{i}"]["truth_values"][k]
                 )[indices]
@@ -286,8 +291,10 @@ def get_metric_scores_dataset_level(
             ):  # truth method index of the claim check method
                 predictions = []
                 predictions_normalized = []
-                for k in range(len(output_dict["claim_correctness"])):  # question index
-                    indices = np.where(output_dict["claim_correctness"][k] != -1)[0]
+                # question index
+                for k in range(len(output_dict["claim_correctness"])):
+                    indices = np.where(
+                        output_dict["claim_correctness"][k] != -1)[0]
                     predictions.extend(
                         [
                             output_dict[f"claim_check_methods_{i}"]["truth_values"][k][
@@ -310,8 +317,10 @@ def get_metric_scores_dataset_level(
         else:
             predictions = []
             predictions_normalized = []
-            for k in range(len(output_dict["claim_correctness"])):  # question index
-                indices = np.where(output_dict["claim_correctness"][k] != -1)[0]
+            # question index
+            for k in range(len(output_dict["claim_correctness"])):
+                indices = np.where(
+                    output_dict["claim_correctness"][k] != -1)[0]
                 predictions.extend(
                     np.array(
                         output_dict[f"claim_check_methods_{i}"]["truth_values"][k]

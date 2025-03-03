@@ -54,7 +54,8 @@ class SentSAR(TruthMethod):
             for j in range(i + 1, len(generated_texts)):
                 gen_i = question_context + generated_texts[i]
                 gen_j = question_context + generated_texts[j]
-                similarity_i_j = self.model_for_similarity.predict([gen_i, gen_j])
+                similarity_i_j = self.model_for_similarity.predict(
+                    [gen_i, gen_j])
                 similarities[i].append(similarity_i_j)
                 similarities[j].append(similarity_i_j)
 
@@ -67,14 +68,15 @@ class SentSAR(TruthMethod):
                 prob
                 + (
                     (torch.tensor(similarities[idx]) / self.t)
-                    * torch.cat([probs[:idx], probs[idx + 1 :]])
+                    * torch.cat([probs[:idx], probs[idx + 1:]])
                 ).sum()
             )
             sentence_scores.append(w_ent)
         sentence_scores = torch.tensor(sentence_scores)
 
         entropy = (
-            torch.sum(sentence_scores, dim=0) / torch.tensor(sentence_scores.shape[0])
+            torch.sum(sentence_scores, dim=0) /
+            torch.tensor(sentence_scores.shape[0])
         ).item()
         return {
             "truth_value": -entropy,
@@ -121,7 +123,8 @@ class SentSAR(TruthMethod):
                 tokenizer.decode([token])
                 for token in sampled_generations_dict["tokens"][i]
             ]
-            score = self.scoring_function(sampled_generations_dict["logprobs"][i])
+            score = self.scoring_function(
+                sampled_generations_dict["logprobs"][i])
             scores.append(score)  # scores are in log scale
 
         return self._sentsar(
@@ -159,7 +162,8 @@ class SentSAR(TruthMethod):
 
         scores = []
         for i in range(self.number_of_generations):
-            score = self.scoring_function(sampled_generations_dict["logprobs"][i])
+            score = self.scoring_function(
+                sampled_generations_dict["logprobs"][i])
             scores.append(score)  # scores are in log scale
 
         return self._sentsar(

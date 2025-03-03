@@ -22,7 +22,8 @@ def calculate_total_log(generated_outputs: list[str, float], clusters: list[set[
             for output in generated_outputs:
                 if elem == output[0]:
                     score_list.append(output[1])
-        total_output_for_log -= torch.logsumexp(torch.tensor(score_list), dim=0).item()
+        total_output_for_log -= torch.logsumexp(
+            torch.tensor(score_list), dim=0).item()
     return total_output_for_log / len(clusters)
 
 
@@ -113,7 +114,8 @@ class SemanticEntropy(TruthMethod):
 
         for i in range(self.number_of_generations):
             text = generated_texts[i]
-            score = self.scoring_function(sampled_generations_dict["logprobs"][i])
+            score = self.scoring_function(
+                sampled_generations_dict["logprobs"][i])
             scores.append(score)  # scores are in log scale
             generated_outputs.append((text, score))
 
@@ -152,7 +154,8 @@ class SemanticEntropy(TruthMethod):
 
         for i in range(self.number_of_generations):
             text = generated_texts[i]
-            score = self.scoring_function(sampled_generations_dict["logprobs"][i])
+            score = self.scoring_function(
+                sampled_generations_dict["logprobs"][i])
             scores.append(score)  # scores are in log scale
             generated_outputs.append((text, score))
 

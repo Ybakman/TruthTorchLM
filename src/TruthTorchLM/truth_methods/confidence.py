@@ -33,7 +33,8 @@ class Confidence(TruthMethod):
         **kwargs
     ):
 
-        input_ids = tokenizer.encode(input_text, return_tensors="pt").to(model.device)
+        input_ids = tokenizer.encode(
+            input_text, return_tensors="pt").to(model.device)
         model_output = all_ids.to(model.device)
 
         with torch.no_grad():
@@ -41,12 +42,13 @@ class Confidence(TruthMethod):
             logits = outputs.logits  # Logits for each token in the input
 
             # Calculate probabilities from logits
-            logprobs = torch.log_softmax(logits, dim=-1)  # logprobs for each token
+            logprobs = torch.log_softmax(
+                logits, dim=-1)  # logprobs for each token
             logprobs = logprobs[
-                0, len(input_ids[0]) - 1 : -1, :
+                0, len(input_ids[0]) - 1: -1, :
             ]  # logprobs for each token in the generated text
             logprobs = torch.gather(
-                logprobs, dim=1, index=model_output[0][len(input_ids[0]) :].view(-1, 1)
+                logprobs, dim=1, index=model_output[0][len(input_ids[0]):].view(-1, 1)
             )  # logprobs for each token in the generated text
             logprobs = logprobs.view(-1).tolist()  # convert to list
 

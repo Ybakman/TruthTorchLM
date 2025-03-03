@@ -27,7 +27,8 @@ def calibrate_truth_method(
     **kwargs,
 ):
 
-    dataset = get_dataset(dataset, size_of_data=size_of_data, seed=seed, split=split)
+    dataset = get_dataset(
+        dataset, size_of_data=size_of_data, seed=seed, split=split)
 
     output_dict = run_over_dataset(
         dataset,

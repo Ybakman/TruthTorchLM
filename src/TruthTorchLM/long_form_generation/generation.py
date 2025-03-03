@@ -113,7 +113,8 @@ def long_form_generation_with_truth_value_hf_local(
     unnormalized_truth_values = []
     method_spec_outputs = []
     for claim_check_method in claim_check_methods:
-        print("Applying claim check method ", claim_check_method.__class__.__name__)
+        print("Applying claim check method ",
+              claim_check_method.__class__.__name__)
         stmt_normalized_truth_values = []
         stmt_unnormalized_truth_values = []
         stmt_method_spec_outputs = []
@@ -133,7 +134,8 @@ def long_form_generation_with_truth_value_hf_local(
                 **kwargs
             )
 
-            stmt_normalized_truth_values.append(truth_values["normalized_truth_values"])
+            stmt_normalized_truth_values.append(
+                truth_values["normalized_truth_values"])
             stmt_unnormalized_truth_values.append(truth_values["truth_values"])
             stmt_method_spec_outputs.append(truth_values)
         normalized_truth_values.append(stmt_normalized_truth_values)
@@ -200,7 +202,8 @@ def long_form_generation_with_truth_value_api(
     unnormalized_truth_values = []
     method_spec_outputs = []
     for claim_check_method in claim_check_methods:
-        print("Applying claim check method ", claim_check_method.__class__.__name__)
+        print("Applying claim check method ",
+              claim_check_method.__class__.__name__)
         stmt_normalized_truth_values = []
         stmt_unnormalized_truth_values = []
         stmt_method_spec_outputs = []
@@ -216,7 +219,8 @@ def long_form_generation_with_truth_value_api(
                 generation_seed=generation_seed,
                 **kwargs
             )
-            stmt_normalized_truth_values.append(truth_values["normalized_truth_values"])
+            stmt_normalized_truth_values.append(
+                truth_values["normalized_truth_values"])
             stmt_unnormalized_truth_values.append(truth_values["truth_values"])
             stmt_method_spec_outputs.append(truth_values)
         normalized_truth_values.append(stmt_normalized_truth_values)

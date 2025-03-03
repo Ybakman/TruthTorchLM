@@ -3,7 +3,8 @@ from pathlib import Path
 
 
 def get_cache_dir():
-    cache_dir = os.getenv("TTLM_HOME", str(Path.home() / ".cache" / "TruthTorchLM"))
+    cache_dir = os.getenv("TTLM_HOME", str(
+        Path.home() / ".cache" / "TruthTorchLM"))
     os.makedirs(cache_dir, exist_ok=True)
     return cache_dir
 

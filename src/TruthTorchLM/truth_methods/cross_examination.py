@@ -133,11 +133,12 @@ class CrossExamination(TruthMethod):
                 num_beams=self.num_beams,
                 **self.generation_kwargs
             )
-            tokens = model_output[0][len(input_ids[0]) :]
+            tokens = model_output[0][len(input_ids[0]):]
             generated_text = self.tokenizer_examiner.decode(
                 tokens, skip_special_tokens=True
             )
-            examiner_messages.append({"role": "assistant", "content": generated_text})
+            examiner_messages.append(
+                {"role": "assistant", "content": generated_text})
             return examiner_messages
 
     def forward_api(
@@ -169,7 +170,8 @@ class CrossExamination(TruthMethod):
                 ),
             }
         )
-        examinee_response = completion(model=model, messages=messages, **kwargs)
+        examinee_response = completion(
+            model=model, messages=messages, **kwargs)
         messages.append(
             {
                 "role": "assistant",
@@ -189,7 +191,8 @@ class CrossExamination(TruthMethod):
                         ),
                     }
                 )
-                examinee_response = completion(model=model, messages=messages, **kwargs)
+                examinee_response = completion(
+                    model=model, messages=messages, **kwargs)
                 messages.append(
                     {
                         "role": "assistant",
@@ -257,7 +260,8 @@ class CrossExamination(TruthMethod):
         tokenizer, messages = fix_tokenizer_chat(tokenizer, messages)
         print(messages)
         text = tokenizer.apply_chat_template(messages, tokenize=False)
-        input_ids = tokenizer.encode(text, return_tensors="pt").to(model.device)
+        input_ids = tokenizer.encode(
+            text, return_tensors="pt").to(model.device)
         model_output = model.generate(
             input_ids,
             max_new_tokens=self.max_new_tokens,
@@ -266,7 +270,7 @@ class CrossExamination(TruthMethod):
             num_beams=self.num_beams,
             **self.generation_kwargs
         )
-        tokens = model_output[0][len(input_ids[0]) :]
+        tokens = model_output[0][len(input_ids[0]):]
         generated_text = tokenizer.decode(tokens, skip_special_tokens=True)
         messages.append({"role": "assistant", "content": generated_text})
         for i in range(self.follow_up_turns_threshold):
@@ -284,7 +288,8 @@ class CrossExamination(TruthMethod):
                 )
                 tokenizer, messages = fix_tokenizer_chat(tokenizer, messages)
                 text = tokenizer.apply_chat_template(messages, tokenize=False)
-                input_ids = tokenizer.encode(text, return_tensors="pt").to(model.device)
+                input_ids = tokenizer.encode(
+                    text, return_tensors="pt").to(model.device)
                 model_output = model.generate(
                     input_ids,
                     max_new_tokens=self.max_new_tokens,
@@ -293,9 +298,11 @@ class CrossExamination(TruthMethod):
                     num_beams=self.num_beams,
                     **self.generation_kwargs
                 )
-                tokens = model_output[0][len(input_ids[0]) :]
-                generated_text = tokenizer.decode(tokens, skip_special_tokens=True)
-                messages.append({"role": "assistant", "content": generated_text})
+                tokens = model_output[0][len(input_ids[0]):]
+                generated_text = tokenizer.decode(
+                    tokens, skip_special_tokens=True)
+                messages.append(
+                    {"role": "assistant", "content": generated_text})
                 if i + 1 == self.follow_up_turns_threshold:
                     examiner_messages.append(
                         {

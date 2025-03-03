@@ -51,7 +51,8 @@ class GoogleSerperAPIWrapper:
             if results.get("answerBox"):
                 answer_box = results.get("answerBox", {})
                 if answer_box.get("answer"):
-                    element = {"content": answer_box.get("answer"), "source": "None"}
+                    element = {"content": answer_box.get(
+                        "answer"), "source": "None"}
                     return [element]
                 elif answer_box.get("snippet"):
                     element = {
@@ -71,19 +72,22 @@ class GoogleSerperAPIWrapper:
                 title = kg.get("title")
                 entity_type = kg.get("type")
                 if entity_type:
-                    element = {"content": f"{title}: {entity_type}", "source": "None"}
+                    element = {"content": f"{title}: {entity_type}",
+                               "source": "None"}
                     snippets.append(element)
                 description = kg.get("description")
                 if description:
                     element = {"content": description, "source": "None"}
                     snippets.append(element)
                 for attribute, value in kg.get("attributes", {}).items():
-                    element = {"content": f"{attribute}: {value}", "source": "None"}
+                    element = {"content": f"{attribute}: {value}",
+                               "source": "None"}
                     snippets.append(element)
 
             for result in results["organic"][: self.k]:
                 if "snippet" in result:
-                    element = {"content": result["snippet"], "source": result["link"]}
+                    element = {
+                        "content": result["snippet"], "source": result["link"]}
                     snippets.append(element)
                 for attribute, value in result.get("attributes", {}).items():
                     element = {
@@ -121,7 +125,8 @@ class GoogleSerperAPIWrapper:
 
     def run(self, queries: list[str]) -> list[list]:
         """Run query through GoogleSearch and parse result."""
-        results = asyncio.run(self.parallel_searches(queries, gl=self.gl, hl=self.hl))
+        results = asyncio.run(self.parallel_searches(
+            queries, gl=self.gl, hl=self.hl))
         snippets_list = []
         for i in range(len(results)):
             snippets_list.append(self._parse_results(results[i]))

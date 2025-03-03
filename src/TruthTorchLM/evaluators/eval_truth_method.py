@@ -33,7 +33,8 @@ def evaluate_truth_method(
     **kwargs,
 ):
 
-    dataset = get_dataset(dataset, size_of_data=size_of_data, seed=seed, split=split)
+    dataset = get_dataset(
+        dataset, size_of_data=size_of_data, seed=seed, split=split)
 
     for eval_metric in eval_metrics:
         if eval_metric not in AVAILABLE_EVALUATION_METRICS:
@@ -85,7 +86,8 @@ def evaluate_truth_method(
                     }
                 )
 
-            data = [[method, score] for (method, score) in zip(methods, scores)]
+            data = [[method, score]
+                    for (method, score) in zip(methods, scores)]
             table = wandb.Table(data=data, columns=["methods", "scores"])
             wandb.log(
                 {

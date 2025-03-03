@@ -52,7 +52,8 @@ class DirectionalEntailmentGraph(TruthMethod):
                 "No entailment model provided. Loading microsoft/deberta-large-mnli by default."
             )
             nli_model_name = "microsoft/deberta-large-mnli"
-            tokenizer_for_entailment = AutoTokenizer.from_pretrained(nli_model_name)
+            tokenizer_for_entailment = AutoTokenizer.from_pretrained(
+                nli_model_name)
             model_for_entailment = AutoModelForSequenceClassification.from_pretrained(
                 nli_model_name
             ).to(entailment_model_device)
@@ -212,7 +213,8 @@ class DirectionalEntailmentGraph(TruthMethod):
                 #     matrix[i, j] = 1.0
                 # else:
                 if self.method_for_similarity.lower() == "jaccard":
-                    matrix[i, j] = self._jaccard_similarity(responses[i], responses[j])
+                    matrix[i, j] = self._jaccard_similarity(
+                        responses[i], responses[j])
                 # else:
                 #     # Fall back to a placeholder if we want to implement semantic or something
                 #     matrix[i, j] = 0.0

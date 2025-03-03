@@ -15,7 +15,8 @@ class IsotonicRegression(
 
     def fit(self, generation_performance_scores: list, truth_values: list):
         self.iso_reg.fit(truth_values, generation_performance_scores)
-        print(f"Calibrated with the following parameters: {self.iso_reg.get_params()}")
+        print(
+            f"Calibrated with the following parameters: {self.iso_reg.get_params()}")
 
     def __call__(self, truth_value):
         return self.iso_reg.predict([truth_value])[0]

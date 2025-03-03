@@ -5,7 +5,8 @@ from sklearn.metrics import precision_recall_curve
 def f1_picker(correctness: list, truth_values: list):
     truth_values = np.array(truth_values)
     truth_values = np.nan_to_num(truth_values)  # Replace NaN with 0
-    precisions, recalls, thresholds = precision_recall_curve(correctness, truth_values)
+    precisions, recalls, thresholds = precision_recall_curve(
+        correctness, truth_values)
     f1_scores = 2 * (precisions * recalls) / (precisions + recalls)
     # Remove NaN values and find the index of the highest F1 score
     f1_scores = np.nan_to_num(f1_scores)  # Replace NaN with 0
@@ -17,7 +18,8 @@ def f1_picker(correctness: list, truth_values: list):
 
 
 def precision_picker(correctness: list, truth_values: list, precision: float):
-    precisions, recalls, thresholds = precision_recall_curve(correctness, truth_values)
+    precisions, recalls, thresholds = precision_recall_curve(
+        correctness, truth_values)
     # Find the index of the smallest precision that is greater than or equal to the target precision
     index = np.where(precisions >= precision)[0][0]
     # Since precisions is always one element longer than thresholds, we need to adjust the index
@@ -26,7 +28,8 @@ def precision_picker(correctness: list, truth_values: list, precision: float):
 
 
 def recall_picker(correctness: list, truth_values: list, recall: float):
-    precisions, recalls, thresholds = precision_recall_curve(correctness, truth_values)
+    precisions, recalls, thresholds = precision_recall_curve(
+        correctness, truth_values)
     # Find the index of the smallest recall that is greater than or equal to the target recall
     index = np.where(recalls >= recall)[0][0]
     # Since recalls is always one element longer than thresholds, we need to adjust the index

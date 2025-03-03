@@ -55,7 +55,8 @@ def fix_tokenizer_chat(tokenizer, chat):
                         if chat[i + 1]["role"] == "user":
                             chat[i]["role"] = "user"
                             chat[i]["content"] = (
-                                chat[i]["content"] + " " + chat[i + 1]["content"]
+                                chat[i]["content"] + " " +
+                                chat[i + 1]["content"]
                             )
                             chat[i + 1]["role"] = "popped"
                         else:
@@ -64,7 +65,8 @@ def fix_tokenizer_chat(tokenizer, chat):
                     except:
                         chat[i]["role"] = "user"
             # remove popped elements
-            chat = [chat[i] for i in range(len(chat)) if chat[i]["role"] != "popped"]
+            chat = [chat[i]
+                    for i in range(len(chat)) if chat[i]["role"] != "popped"]
 
     return tokenizer, chat
 
@@ -78,9 +80,10 @@ def generate(
     with torch.no_grad():
         inputs = tokenizer(text, return_tensors="pt").to(model.device)
         model_output = model.generate(**inputs, **kwargs)
-        tokens = model_output[0][len(inputs["input_ids"][0]) :]
+        tokens = model_output[0][len(inputs["input_ids"][0]):]
         generated_text = tokenizer.decode(tokens, skip_special_tokens=False)
-        generated_text_return = tokenizer.decode(tokens, skip_special_tokens=True)
+        generated_text_return = tokenizer.decode(
+            tokens, skip_special_tokens=True)
 
     return {
         "generated_text_skip_specials": generated_text_return,
@@ -179,7 +182,8 @@ def check_entailment_with_generation(
         system_prompt is None
     ):  # for some models there is no system prompt in their chat template such as gemma
         chat = [
-            {"role": "user", "content": entailment_prompt.format(question=input_text)}
+            {"role": "user", "content": entailment_prompt.format(
+                question=input_text)}
         ]
     else:
         chat = [
@@ -370,7 +374,8 @@ def calculate_affinity_matrix(
                     texts[i],
                     temperature=temperature,
                 ).item()
-                affinity_matrix[i][j] = affinity_matrix[j][i] = (left + right) / 2
+                affinity_matrix[i][j] = affinity_matrix[j][i] = (
+                    left + right) / 2
     elif method_for_similarity == "jaccard":
         vectorizer = CountVectorizer().fit_transform(texts)
         vectors = vectorizer.toarray()
@@ -580,7 +585,8 @@ def create_kernel(
     elif kernel_type == "matern":
         identity_matrix = np.eye(laplacian.shape[0])
         kernel = (
-            np.linalg.inv((2 * smoothness / scale**2) * identity_matrix + laplacian)
+            np.linalg.inv((2 * smoothness / scale**2)
+                          * identity_matrix + laplacian)
             ** smoothness
         )
     else:
@@ -588,7 +594,8 @@ def create_kernel(
 
     # Converting Kernel into unit trace PSD kernel
     diag_values = np.diag(kernel)
-    normalization_factors = np.outer(np.sqrt(diag_values), np.sqrt(diag_values))
+    normalization_factors = np.outer(
+        np.sqrt(diag_values), np.sqrt(diag_values))
     N = kernel.shape[0]
     density_kernel = kernel / (normalization_factors * N)
     density_kernel = density_kernel / np.trace(density_kernel)
@@ -600,5 +607,6 @@ def calculate_VNE(kernel: np.ndarray):
     eigenvalues = eigenvalues[
         eigenvalues > 0
     ]  # use only positive eigenvalues for log calculation
-    vne = -np.sum(eigenvalues * np.log(eigenvalues))  # calculate von neumann entropy
+    # calculate von neumann entropy
+    vne = -np.sum(eigenvalues * np.log(eigenvalues))
     return vne

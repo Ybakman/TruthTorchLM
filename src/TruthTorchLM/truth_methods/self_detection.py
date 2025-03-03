@@ -67,7 +67,8 @@ class SelfDetection(TruthMethod):
         self.generation_kwargs = generation_kwargs
         self.user_prompt = user_prompt
         if output_type not in ["entropy", "consistency"]:
-            raise ValueError("output_type should be either 'entropy' or 'consistency'")
+            raise ValueError(
+                "output_type should be either 'entropy' or 'consistency'")
         self.output_type = output_type
 
         if method_for_similarity not in ["generation", "semantic", "jaccard"]:
@@ -139,8 +140,10 @@ class SelfDetection(TruthMethod):
                     temperature=self.question_temperature,
                 )
 
-            previous_questions.append(sampled_generations_dict["generated_texts"][0])
-            generated_questions.append(sampled_generations_dict["generated_texts"][0])
+            previous_questions.append(
+                sampled_generations_dict["generated_texts"][0])
+            generated_questions.append(
+                sampled_generations_dict["generated_texts"][0])
         return generated_questions
 
     def _self_detection_output(
@@ -234,11 +237,12 @@ class SelfDetection(TruthMethod):
                 add_generation_prompt=True,
                 continue_final_message=False,
             )
-            input_ids = tokenizer.encode(prompt, return_tensors="pt").to(model.device)
+            input_ids = tokenizer.encode(
+                prompt, return_tensors="pt").to(model.device)
             model_output = model.generate(
                 input_ids, num_return_sequences=1, do_sample=True, **kwargs
             )
-            tokens = model_output[0][len(input_ids[0]) :]
+            tokens = model_output[0][len(input_ids[0]):]
             generated_text = tokenizer.decode(tokens, skip_special_tokens=True)
             generated_texts.append(generated_text)
 

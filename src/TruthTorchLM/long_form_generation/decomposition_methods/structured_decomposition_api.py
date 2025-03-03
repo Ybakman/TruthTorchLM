@@ -63,7 +63,8 @@ class StructuredDecompositionAPI(DecompositionMethod):
             for d in range(1, self.decomposition_depth):
                 temp_claims = []
                 for claim in claims:
-                    temp_claims.extend(self.decompose_facts(claim, level=d + 1))
+                    temp_claims.extend(
+                        self.decompose_facts(claim, level=d + 1))
                 claims = temp_claims
             all_claims.extend(claims)
         return all_claims

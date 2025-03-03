@@ -58,7 +58,8 @@ class LARS(TruthMethod):
             "entropy",
         ], f"ue_type must be one of ['confidence', 'semantic_entropy', 'se', 'entropy'] but it is {ue_type}."
         self.ue_type = ue_type
-        self.number_of_generations = number_of_generations  # number of generations for semantic entropy and entropy
+        # number of generations for semantic entropy and entropy
+        self.number_of_generations = number_of_generations
 
         # lars model
         if lars_model is None or lars_tokenizer is None:
@@ -67,7 +68,8 @@ class LARS(TruthMethod):
             ).to(
                 device
             )  # TODO
-            lars_tokenizer = AutoTokenizer.from_pretrained("duygunuryldz/LARS")  # TODO
+            lars_tokenizer = AutoTokenizer.from_pretrained(
+                "duygunuryldz/LARS")  # TODO
         self.lars_model = lars_model
         self.lars_tokenizer = lars_tokenizer
         self.device = device
@@ -133,10 +135,12 @@ class LARS(TruthMethod):
         a_text = LARS.prepare_answer_text(
             probs, generation_token_texts, self.edges, self.number_of_bins
         )
-        tokenized_input = LARS.tokenize_input(self.lars_tokenizer, question, a_text)
+        tokenized_input = LARS.tokenize_input(
+            self.lars_tokenizer, question, a_text)
 
         input_ids = (
-            torch.tensor(tokenized_input["input_ids"]).reshape(1, -1).to(self.device)
+            torch.tensor(tokenized_input["input_ids"]).reshape(
+                1, -1).to(self.device)
         )
         attention_mask = (
             torch.tensor(tokenized_input["attention_mask"])
@@ -176,7 +180,7 @@ class LARS(TruthMethod):
                 model.device
             )
             model_output = all_ids.to(model.device)
-            tokens = model_output[0][len(input_ids[0]) :]
+            tokens = model_output[0][len(input_ids[0]):]
             tokens_text = [tokenizer.decode([token]) for token in tokens]
 
             # tokens_text = tokenizer.convert_ids_to_tokens(tokens)
@@ -191,10 +195,10 @@ class LARS(TruthMethod):
                     logits, dim=-1
                 )  # probs for each token
                 probs = probs[
-                    0, len(input_ids[0]) - 1 : -1, :
+                    0, len(input_ids[0]) - 1: -1, :
                 ]  # probs for each token in the generated text
                 probs = torch.gather(
-                    probs, dim=1, index=model_output[0][len(input_ids[0]) :].view(-1, 1)
+                    probs, dim=1, index=model_output[0][len(input_ids[0]):].view(-1, 1)
                 )  # probs for each token in the generated text
                 probs = probs.view(-1).tolist()  # convert to list
 
@@ -277,7 +281,8 @@ class LARS(TruthMethod):
 
         if self.ue_type == "confidence":
             lars_score = self._lars(
-                question_context, generated_tokens, torch.exp(torch.tensor(logprobs))
+                question_context, generated_tokens, torch.exp(
+                    torch.tensor(logprobs))
             )
 
         elif self.ue_type in ["semantic_entropy", "se", "entropy"]:
@@ -418,17 +423,21 @@ class LARS(TruthMethod):
             )
 
             train_data[i]["generated_texts"] = most_likely["generated_texts"]
-            train_data[i]["probs"] = [np.exp(most_likely["logprobs"][0]).tolist()]
+            train_data[i]["probs"] = [
+                np.exp(most_likely["logprobs"][0]).tolist()]
             train_data[i]["token_texts"] = [
                 [tokenizer.decode(token) for token in most_likely["tokens"][0]]
             ]
             for j in range(len(sampled["generated_texts"])):
                 if sampled["generated_texts"][j] in train_data[i]["generated_texts"]:
                     continue
-                train_data[i]["generated_texts"].append(sampled["generated_texts"][j])
-                train_data[i]["probs"].append(np.exp(sampled["logprobs"][j]).tolist())
+                train_data[i]["generated_texts"].append(
+                    sampled["generated_texts"][j])
+                train_data[i]["probs"].append(
+                    np.exp(sampled["logprobs"][j]).tolist())
                 train_data[i]["token_texts"].append(
-                    [tokenizer.decode([token]) for token in sampled["tokens"][j]]
+                    [tokenizer.decode([token])
+                     for token in sampled["tokens"][j]]
                 )
             train_data[i]["labels"] = [
                 correctness_evaluator(
@@ -507,7 +516,7 @@ class LARS(TruthMethod):
             for i in range(number_of_bins):
                 idx = number_of_bins - i - 1
                 vector = torch.zeros(embeddings.weight.data[0].shape)
-                vector[num_ones * idx : num_ones * (idx + 1)] = (
+                vector[num_ones * idx: num_ones * (idx + 1)] = (
                     1.0 * scale * number_of_bins
                 )
                 embeddings.weight.data[-(i + 1)] = vector
@@ -529,7 +538,8 @@ class LARS(TruthMethod):
                     ans_text = LARS.prepare_answer_text(
                         d["probs"][i], d["token_texts"][i], edges, number_of_bins
                     )
-                    tokenized_input = LARS.tokenize_input(tokenizer, question, ans_text)
+                    tokenized_input = LARS.tokenize_input(
+                        tokenizer, question, ans_text)
                     all_data.append(
                         {
                             "label": d["labels"][i],
@@ -544,7 +554,8 @@ class LARS(TruthMethod):
             ans_text = LARS.prepare_answer_text(
                 d["probs"], d["token_texts"], edges, number_of_bins
             )
-            tokenized_input = LARS.tokenize_input(tokenizer, d["question"], ans_text)
+            tokenized_input = LARS.tokenize_input(
+                tokenizer, d["question"], ans_text)
             if d["label"] != -1:
                 all_test_data.append(
                     {
@@ -565,15 +576,19 @@ class LARS(TruthMethod):
         cross_loss = torch.nn.BCEWithLogitsLoss()
         for i in range(len(test_data)):
             # test loss code
-            label = torch.tensor(test_data[i]["label"]).reshape(1, -1).to(device)
+            label = torch.tensor(
+                test_data[i]["label"]).reshape(1, -1).to(device)
             input_ids = (
-                torch.tensor(test_data[i]["input_ids"]).reshape(1, -1).to(device)
+                torch.tensor(test_data[i]["input_ids"]
+                             ).reshape(1, -1).to(device)
             )
             attention_mask = (
-                torch.tensor(test_data[i]["attention_mask"]).reshape(1, -1).to(device)
+                torch.tensor(test_data[i]["attention_mask"]).reshape(
+                    1, -1).to(device)
             )
             token_type_ids = (
-                torch.tensor(test_data[i]["token_type_ids"]).reshape(1, -1).to(device)
+                torch.tensor(test_data[i]["token_type_ids"]).reshape(
+                    1, -1).to(device)
             )
 
             logits = model(
@@ -607,7 +622,8 @@ class LARS(TruthMethod):
         test_freq: int = 100,
     ):
 
-        expected_features = {"label", "input_ids", "token_type_ids", "attention_mask"}
+        expected_features = {"label", "input_ids",
+                             "token_type_ids", "attention_mask"}
         assert expected_features.issubset(set(train_dataset.features.keys()))
         assert expected_features.issubset(set(val_dataset.features.keys()))
         assert main_metric in test_metrics
@@ -616,8 +632,10 @@ class LARS(TruthMethod):
 
         def custom_collate_fn(batch):
             # Convert lists to tensors and stack them
-            labels = torch.stack([torch.tensor(item["label"]) for item in batch])
-            inps = torch.stack([torch.tensor(item["input_ids"]) for item in batch])
+            labels = torch.stack([torch.tensor(item["label"])
+                                 for item in batch])
+            inps = torch.stack([torch.tensor(item["input_ids"])
+                               for item in batch])
             types = torch.stack(
                 [torch.tensor(item["token_type_ids"]) for item in batch]
             )
@@ -655,7 +673,8 @@ class LARS(TruthMethod):
                 log += f"  | Test {key}: {val:.2f}"
             print(log)
             if wandb_run:
-                wandb_run.log({"iter": 0, f"test_loss": tloss}.update(metric_scores))
+                wandb_run.log(
+                    {"iter": 0, f"test_loss": tloss}.update(metric_scores))
             model.train()
 
         for epoch in range(epochs):

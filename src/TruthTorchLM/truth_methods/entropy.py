@@ -68,7 +68,8 @@ class Entropy(TruthMethod):
         ]
 
         for i in range(self.number_of_generations):
-            score = self.scoring_function(sampled_generations_dict["logprobs"][i])
+            score = self.scoring_function(
+                sampled_generations_dict["logprobs"][i])
             scores.append(score)  # scores are in log scale
 
         return self._entropy(generated_texts, question_context, scores)
@@ -104,7 +105,8 @@ class Entropy(TruthMethod):
 
         scores = []
         for i in range(self.number_of_generations):
-            score = self.scoring_function(sampled_generations_dict["logprobs"][i])
+            score = self.scoring_function(
+                sampled_generations_dict["logprobs"][i])
             scores.append(score)  # scores are in log scale
 
         return self._entropy(generated_texts, question_context, scores)

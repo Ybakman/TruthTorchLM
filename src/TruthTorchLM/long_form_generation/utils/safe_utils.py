@@ -15,27 +15,23 @@
 # limitations under the License.
 """Class for querying the Google Serper API."""
 
-import random
 import time
+import random
 from typing import Any, Optional, Literal, Union
-
 import requests
-
-_SERPER_URL = "https://google.serper.dev"
-NO_RESULT_MSG = "No good Google Search result was found"
-
-
 import copy
 import io
 import json
 import os
-import random
 import re
 import string
 import types
+import termcolor
 from typing import Any
 
-import termcolor
+
+_SERPER_URL = "https://google.serper.dev"
+NO_RESULT_MSG = "No good Google Search result was found"
 
 
 def strip_string(s: str) -> str:
@@ -62,7 +58,8 @@ def maybe_print_error(
     if not strip_string(str(message)):
         return
 
-    error = type(message).__name__ if isinstance(message, Exception) else "ERROR"
+    error = type(message).__name__ if isinstance(
+        message, Exception) else "ERROR"
     message = f"{error}: {str(message)}"
     message += f"\n{additional_info}" if verbose else ""
     clear_line()
@@ -99,7 +96,8 @@ def maybe_print_error(
     if not strip_string(str(message)):
         return
 
-    error = type(message).__name__ if isinstance(message, Exception) else "ERROR"
+    error = type(message).__name__ if isinstance(
+        message, Exception) else "ERROR"
     message = f"{error}: {str(message)}"
     message += f"\n{additional_info}" if verbose else ""
     clear_line()
@@ -176,7 +174,8 @@ class SerperAPI:
                 response = None
                 num_fails += 1
                 sleep_time = min(sleep_time * 2, 600)
-                sleep_time = random.uniform(1, 10) if not sleep_time else sleep_time
+                sleep_time = random.uniform(
+                    1, 10) if not sleep_time else sleep_time
                 time.sleep(sleep_time)
 
         if not response:

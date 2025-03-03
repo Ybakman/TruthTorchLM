@@ -62,8 +62,10 @@ class UnstructuredDecompositionLocal(DecompositionMethod):
             add_generation_prompt=True,
             continue_final_message=False,
         )
-        generated_output = generate(text, self.model, self.tokenizer, **self.kwargs)
-        generated_text = "\n" + generated_output["generated_text_skip_specials"].strip()
+        generated_output = generate(
+            text, self.model, self.tokenizer, **self.kwargs)
+        generated_text = "\n" + \
+            generated_output["generated_text_skip_specials"].strip()
         claims = self.output_parser(generated_text)
 
         return claims

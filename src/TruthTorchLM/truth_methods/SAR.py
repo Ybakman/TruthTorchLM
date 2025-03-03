@@ -53,7 +53,8 @@ class SAR(TruthMethod):
             for j in range(i + 1, len(generated_texts)):
                 gen_i = question_context + generated_texts[i]
                 gen_j = question_context + generated_texts[j]
-                similarity_i_j = self.model_for_similarity.predict([gen_i, gen_j])
+                similarity_i_j = self.model_for_similarity.predict(
+                    [gen_i, gen_j])
                 similarities[i].append(similarity_i_j)
                 similarities[j].append(similarity_i_j)
 
@@ -66,14 +67,15 @@ class SAR(TruthMethod):
                 prob
                 + (
                     (torch.tensor(similarities[idx]) / self.t)
-                    * torch.cat([probs[:idx], probs[idx + 1 :]])
+                    * torch.cat([probs[:idx], probs[idx + 1:]])
                 ).sum()
             )
             sentence_scores.append(w_ent)
         sentence_scores = torch.tensor(sentence_scores)
 
         entropy = (
-            torch.sum(sentence_scores, dim=0) / torch.tensor(sentence_scores.shape[0])
+            torch.sum(sentence_scores, dim=0) /
+            torch.tensor(sentence_scores.shape[0])
         ).item()
         return {
             "truth_value": -entropy,
@@ -93,7 +95,7 @@ class SAR(TruthMethod):
     ):
         importance_vector = []
         for i in range(len(tokens)):
-            removed_answer_ids = tokens[:i] + tokens[i + 1 :]
+            removed_answer_ids = tokens[:i] + tokens[i + 1:]
             removed_answer = tokenizer.decode(
                 removed_answer_ids, skip_special_tokens=True
             )
@@ -170,7 +172,7 @@ class SAR(TruthMethod):
     ):
         importance_vector = []
         for i in range(len(tokens)):
-            removed_answer = "".join(tokens[:i]) + "".join(tokens[i + 1 :])
+            removed_answer = "".join(tokens[:i]) + "".join(tokens[i + 1:])
             score = self.model_for_similarity.predict(
                 [
                     (

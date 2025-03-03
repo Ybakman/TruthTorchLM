@@ -174,12 +174,14 @@ def metric_score(
 
     if "auarc" in metric_names:
         # area under accuracy-coverage curve
-        auarc = area_under_accuracy_coverage_curve(truth_values, generation_correctness)
+        auarc = area_under_accuracy_coverage_curve(
+            truth_values, generation_correctness)
         eval_dict["auarc"] = auarc
 
     if "accuracy" in metric_names:
         normalized_truth_values = np.array(normalized_truth_values)
-        accuracy = np.mean((normalized_truth_values > 0.5) == generation_correctness)
+        accuracy = np.mean((normalized_truth_values > 0.5)
+                           == generation_correctness)
         eval_dict["accuracy"] = accuracy
 
     if "f1" in metric_names:
@@ -197,11 +199,13 @@ def metric_score(
     if "recall" in metric_names:
         normalized_truth_values = np.array(normalized_truth_values)
         predictions = normalized_truth_values > 0.5
-        recall = recall_score(generation_correctness, predictions, zero_division=1)
+        recall = recall_score(generation_correctness,
+                              predictions, zero_division=1)
         eval_dict["recall"] = recall
 
     if "prr" in metric_names:
-        ue_prr = prediction_rejection_curve(truth_values, generation_correctness)
+        ue_prr = prediction_rejection_curve(
+            truth_values, generation_correctness)
         orc_prr = prediction_rejection_curve(
             generation_correctness, generation_correctness
         )
@@ -268,7 +272,8 @@ def run_over_dataset(
     output_dict["truth_methods"] = []  # save the truth methods
 
     for i in range(len(truth_methods)):
-        output_dict["truth_methods"].append(f"{truth_methods[i].__class__.__name__}")
+        output_dict["truth_methods"].append(
+            f"{truth_methods[i].__class__.__name__}")
         output_dict[f"truth_method_{i}"] = {}
         output_dict[f"truth_method_{i}"]["name"] = str(truth_methods[i])
         output_dict[f"truth_method_{i}"]["truth_values"] = []

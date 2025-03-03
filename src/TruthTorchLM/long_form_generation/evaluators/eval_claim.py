@@ -15,14 +15,15 @@
 # limitations under the License.
 """Rates a single atomic fact for accuracy."""
 
-import re
 import dataclasses
+import re
 from typing import Union, Any
 from litellm import completion
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
-
 import TruthTorchLM.long_form_generation.utils.safe_utils as utils
+from abc import ABC
 from TruthTorchLM.utils.common_utils import generate, fix_tokenizer_chat
+
 
 SUPPORTED_LABEL = "Supported"
 NOT_SUPPORTED_LABEL = "Not Supported"
@@ -69,8 +70,6 @@ KNOWLEDGE:
 STATEMENT:
 {_STATEMENT_PLACEHOLDER}
 """
-
-from abc import ABC
 
 
 class ClaimEvaluator(ABC):
@@ -167,11 +166,13 @@ def maybe_get_next_search(
     """Get the next query from the model."""
     knowledge = "\n".join([s.result for s in past_searches])
     knowledge = "N/A" if not knowledge else knowledge
-    full_prompt = _NEXT_SEARCH_FORMAT.replace(_STATEMENT_PLACEHOLDER, atomic_fact)
+    full_prompt = _NEXT_SEARCH_FORMAT.replace(
+        _STATEMENT_PLACEHOLDER, atomic_fact)
     full_prompt = full_prompt.replace(_KNOWLEDGE_PLACEHOLDER, knowledge)
     full_prompt = utils.strip_string(full_prompt)
     model_response = _generate(full_prompt, model, tokenizer, **kwargs)
-    query = utils.extract_first_code_block(model_response, ignore_language=True)
+    query = utils.extract_first_code_block(
+        model_response, ignore_language=True)
     # print(f'Search query: {query}')
 
     if model_response and query:
@@ -196,7 +197,8 @@ def maybe_get_final_answer(
 ) -> Union[FinalAnswer, None]:
     """Get the final answer from the model."""
     knowledge = "\n".join([search.result for search in searches])
-    full_prompt = _FINAL_ANSWER_FORMAT.replace(_STATEMENT_PLACEHOLDER, atomic_fact)
+    full_prompt = _FINAL_ANSWER_FORMAT.replace(
+        _STATEMENT_PLACEHOLDER, atomic_fact)
     full_prompt = full_prompt.replace(_KNOWLEDGE_PLACEHOLDER, knowledge)
     full_prompt = utils.strip_string(full_prompt)
     model_response = _generate(full_prompt, model, tokenizer, **kwargs)
@@ -244,7 +246,8 @@ def check_atomic_fact(
         else:
             search_results.append(next_search)
 
-    search_dicts = {"google_searches": [dataclasses.asdict(s) for s in search_results]}
+    search_dicts = {"google_searches": [
+        dataclasses.asdict(s) for s in search_results]}
     final_answer, num_tries = None, 0
 
     while not final_answer and num_tries <= max_retries:

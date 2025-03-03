@@ -42,9 +42,10 @@ class TokenSAR(TruthMethod):
         **kwargs
     ):
 
-        input_ids = tokenizer.encode(input_text, return_tensors="pt").to(model.device)
+        input_ids = tokenizer.encode(
+            input_text, return_tensors="pt").to(model.device)
         model_output = all_ids
-        tokens = model_output[0][len(input_ids[0]) :]
+        tokens = model_output[0][len(input_ids[0]):]
         tokens_text = [tokenizer.decode(token) for token in tokens]
 
         with torch.no_grad():
@@ -52,19 +53,20 @@ class TokenSAR(TruthMethod):
             logits = outputs.logits  # Logits for each token in the input
 
             # Calculate probabilities from logits
-            logprobs = torch.log_softmax(logits, dim=-1)  # logprobs for each token
+            logprobs = torch.log_softmax(
+                logits, dim=-1)  # logprobs for each token
             logprobs = logprobs[
-                0, len(input_ids[0]) - 1 : -1, :
+                0, len(input_ids[0]) - 1: -1, :
             ]  # logprobs for each token in the generated text
             logprobs = torch.gather(
-                logprobs, dim=1, index=model_output[0][len(input_ids[0]) :].view(-1, 1)
+                logprobs, dim=1, index=model_output[0][len(input_ids[0]):].view(-1, 1)
             )  # logprobs for each token in the generated text
             logprobs = logprobs.view(-1).tolist()  # convert to list
 
             importance_vector = []
             tokens = tokens.view(-1).tolist()
             for i in range(len(tokens)):
-                removed_answer_ids = tokens[:i] + tokens[i + 1 :]
+                removed_answer_ids = tokens[:i] + tokens[i + 1:]
                 removed_answer = tokenizer.decode(
                     removed_answer_ids, skip_special_tokens=True
                 )
@@ -103,7 +105,7 @@ class TokenSAR(TruthMethod):
         importance_vector = []
         for i in range(len(generated_tokens)):
             removed_answer = "".join(generated_tokens[:i]) + "".join(
-                generated_tokens[i + 1 :]
+                generated_tokens[i + 1:]
             )
             score = self.similarity_model.predict(
                 [

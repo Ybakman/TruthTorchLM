@@ -179,7 +179,8 @@ class SAPLMA(TruthMethod):
             for j in range(len(sampled["generated_texts"])):
                 if sampled["generated_texts"][j] in train_data[i]["generated_texts"]:
                     continue
-                train_data[i]["generated_texts"].append(sampled["generated_texts"][j])
+                train_data[i]["generated_texts"].append(
+                    sampled["generated_texts"][j])
                 train_data[i]["hidden_states"].append(
                     sampled["activations"][j][-1][layer_index]
                     .reshape(-1)
@@ -250,7 +251,8 @@ class SAPLMA(TruthMethod):
                 if train_data[i]["labels"][j] == -1:
                     continue
                 else:
-                    train_data_features.append(train_data[i]["hidden_states"][j])
+                    train_data_features.append(
+                        train_data[i]["hidden_states"][j])
                     train_data_labels.append(train_data[i]["labels"][j])
 
         train_data_features = np.array(train_data_features)

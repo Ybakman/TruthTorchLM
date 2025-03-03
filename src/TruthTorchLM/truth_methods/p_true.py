@@ -60,7 +60,8 @@ class PTrue(TruthMethod):
             )
 
         generated_text = tokenizer.decode(
-            tokenizer.encode(generated_text, return_tensors="pt").view(-1).tolist(),
+            tokenizer.encode(
+                generated_text, return_tensors="pt").view(-1).tolist(),
             skip_special_tokens=True,
         )  # remove special tokens
         ideas = sampled_generations_dict["generated_texts"][: self.number_of_ideas]
@@ -83,20 +84,23 @@ class PTrue(TruthMethod):
         )  # in case some tokenizers don't have chat template and don't support system prompt
 
         prompt = tokenizer.apply_chat_template(chat, tokenize=False)
-        prompt_tokens = tokenizer.encode(prompt, return_tensors="pt").to(model.device)
+        prompt_tokens = tokenizer.encode(
+            prompt, return_tensors="pt").to(model.device)
         with torch.no_grad():
             outputs = model(prompt_tokens)
             logits = outputs.logits  # Logits for each token in the input
 
         logprobs = torch.log_softmax(logits, dim=-1)  # logprobs for each token
-        logprobs = logprobs[0, :-1, :]  # logprobs for each token except the last one
+        # logprobs for each token except the last one
+        logprobs = logprobs[0, :-1, :]
         logprobs = torch.gather(
             logprobs, dim=1, index=prompt_tokens[0][1:].view(-1, 1)
         )  # logprobs for each token in the generated text
         logprobs = logprobs.view(-1).tolist()  # convert to list
 
         # write a function to find the probability of token 'true' in the logprobs
-        indices, texts = find_token_indices(prompt_tokens[0][1:], tokenizer, "true")
+        indices, texts = find_token_indices(
+            prompt_tokens[0][1:], tokenizer, "true")
 
         loss_true = 0
         for index in indices[-1]:  # only look at the last occurence of the word true

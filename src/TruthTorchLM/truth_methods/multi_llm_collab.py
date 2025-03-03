@@ -21,7 +21,8 @@ ALTERNATIVE_ANSWER_SYSTEM_PROMPT = "You are a helpful assistant. Give a possible
 QUESTION = "Question: <question>"
 ANSWER = "Answer: <answer>"
 KNOWLEDGE = "Knowledge: <generated domain knowledge>"
-DOMAINS = ["factual information", "commonsense knowledge", "mathematical knowledge"]
+DOMAINS = ["factual information",
+           "commonsense knowledge", "mathematical knowledge"]
 KNOWLEDGE_COOP_SELF = "for domain in <domains>: Generate some knowledge about the question, focusing on <domain>:"
 FEEDBACK_COOP_SELF = (
     "Please review the proposed answer and provide feedback on its correctness."
@@ -97,7 +98,8 @@ class MultiLLMCollab(TruthMethod):
                 self.feedback_models = feedback_models
                 self.feedback_tokenizers = feedback_tokenizers
             if feedback_api_models is None:
-                self.feedback_api_models = ["gpt-3.5-turbo", "gpt-3.5-turbo-0125"]
+                self.feedback_api_models = [
+                    "gpt-3.5-turbo", "gpt-3.5-turbo-0125"]
                 print('Feedback models set as "gpt-3.5-turbo" and "gpt-3.5-turbo-0125"')
             else:
                 self.feedback_api_models = feedback_api_models
@@ -248,7 +250,8 @@ class MultiLLMCollab(TruthMethod):
 
             # Generate knowledge passage
             text = tokenizer.apply_chat_template(expert_prompt, tokenize=False)
-            inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+            inputs = tokenizer(text, return_tensors="pt",
+                               padding=True, truncation=True)
             input_ids = inputs["input_ids"].to(model.device)
             attention_mask = inputs["attention_mask"].to(model.device)
             model_output = model.generate(
@@ -261,7 +264,7 @@ class MultiLLMCollab(TruthMethod):
                 pad_token_id=tokenizer.pad_token_id,
                 **kwargs,
             )
-            tokens = model_output[0][len(input_ids[0]) :]
+            tokens = model_output[0][len(input_ids[0]):]
             generated_knowledge_passage = tokenizer.decode(
                 tokens, skip_special_tokens=False
             )
@@ -273,13 +276,16 @@ class MultiLLMCollab(TruthMethod):
                 )
                 + "\n"
             )
-            expert_content += QUESTION.replace("<question>", question_context) + "\n"
-            expert_content += ANSWER.replace("<answer>", generated_answer) + "\n"
+            expert_content += QUESTION.replace("<question>",
+                                               question_context) + "\n"
+            expert_content += ANSWER.replace("<answer>",
+                                             generated_answer) + "\n"
             expert_content += FEEDBACK_COOP_SELF
 
             expert_prompt = [{"role": "user", "content": expert_content}]
             text = tokenizer.apply_chat_template(expert_prompt, tokenize=False)
-            inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+            inputs = tokenizer(text, return_tensors="pt",
+                               padding=True, truncation=True)
             input_ids = inputs["input_ids"].to(model.device)
             attention_mask = inputs["attention_mask"].to(model.device)
             model_output = model.generate(
@@ -292,13 +298,15 @@ class MultiLLMCollab(TruthMethod):
                 pad_token_id=tokenizer.pad_token_id,
                 **kwargs,
             )
-            tokens = model_output[0][len(input_ids[0]) :]
-            generated_feedback = tokenizer.decode(tokens, skip_special_tokens=False)
+            tokens = model_output[0][len(input_ids[0]):]
+            generated_feedback = tokenizer.decode(
+                tokens, skip_special_tokens=False)
             feedbacks.append(generated_feedback)
 
         # Judging process
         judge_content = JUDGE_SYSTEM_PROMPT
-        judge_content += QUESTION.replace("<question>", question_context) + "\n"
+        judge_content += QUESTION.replace("<question>",
+                                          question_context) + "\n"
         judge_content += (
             "Proposed " + ANSWER.replace("<answer>", generated_answer) + "\n"
         )
@@ -309,7 +317,8 @@ class MultiLLMCollab(TruthMethod):
         # Judge prompt
         judge_prompt = [{"role": "user", "content": judge_content}]
         text = tokenizer.apply_chat_template(judge_prompt, tokenize=False)
-        inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+        inputs = tokenizer(text, return_tensors="pt",
+                           padding=True, truncation=True)
         input_ids = inputs["input_ids"].to(model.device)
         attention_mask = inputs["attention_mask"].to(model.device)
         model_output = model.generate(
@@ -322,8 +331,9 @@ class MultiLLMCollab(TruthMethod):
             pad_token_id=tokenizer.pad_token_id,
             **kwargs,
         )
-        tokens = model_output[0][len(input_ids[0]) :]
-        generated_final_answer = tokenizer.decode(tokens, skip_special_tokens=False)
+        tokens = model_output[0][len(input_ids[0]):]
+        generated_final_answer = tokenizer.decode(
+            tokens, skip_special_tokens=False)
         if "True" in generated_final_answer:
             abstain = False
         elif "False" in generated_final_answer:
@@ -357,12 +367,15 @@ class MultiLLMCollab(TruthMethod):
 
             expert_content += (
                 KNOWLEDGE.replace(
-                    "<generated domain knowledge>", str(generated_knowledge_passage)
+                    "<generated domain knowledge>", str(
+                        generated_knowledge_passage)
                 )
                 + "\n"
             )
-            expert_content += QUESTION.replace("<question>", question_context) + "\n"
-            expert_content += ANSWER.replace("<answer>", generated_answer) + "\n"
+            expert_content += QUESTION.replace("<question>",
+                                               question_context) + "\n"
+            expert_content += ANSWER.replace("<answer>",
+                                             generated_answer) + "\n"
             expert_content += FEEDBACK_COOP_SELF
 
             expert_prompt = [{"role": "user", "content": expert_content}]
@@ -374,7 +387,8 @@ class MultiLLMCollab(TruthMethod):
 
         # Judging process
         judge_content = JUDGE_SYSTEM_PROMPT
-        judge_content += QUESTION.replace("<question>", question_context) + "\n"
+        judge_content += QUESTION.replace("<question>",
+                                          question_context) + "\n"
         judge_content += (
             "Proposed " + ANSWER.replace("<answer>", generated_answer) + "\n"
         )
@@ -428,7 +442,8 @@ class MultiLLMCollab(TruthMethod):
             expert_content += FEEDBACK_COOP_OTHERS
             expert_prompt = [{"role": "user", "content": expert_content}]
             text = tokenizer.apply_chat_template(expert_prompt, tokenize=False)
-            inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+            inputs = tokenizer(text, return_tensors="pt",
+                               padding=True, truncation=True)
             input_ids = inputs["input_ids"].to(model.device)
             attention_mask = inputs["attention_mask"].to(model.device)
             model_output = model.generate(
@@ -441,21 +456,24 @@ class MultiLLMCollab(TruthMethod):
                 pad_token_id=tokenizer.pad_token_id,
                 **kwargs,
             )
-            tokens = model_output[0][len(input_ids[0]) :]
-            generated_feedback = tokenizer.decode(tokens, skip_special_tokens=False)
+            tokens = model_output[0][len(input_ids[0]):]
+            generated_feedback = tokenizer.decode(
+                tokens, skip_special_tokens=False)
             feedbacks.append(generated_feedback)
 
         # Judging process
         model = qa_model
         tokenizer = qa_tokenizer
         judge_content += QUESTION.replace("<question>", question_context)
-        judge_content += "Proposed " + ANSWER.replace("<answer>", generated_answer)
+        judge_content += "Proposed " + \
+            ANSWER.replace("<answer>", generated_answer)
         for i, feedback in enumerate(feedbacks):
             judge_content += f"Feedback {i+1}:" + feedback
         judge_content += JUDGE_COOP
         judge_prompt = [{"role": "user", "content": judge_content}]
         text = tokenizer.apply_chat_template(judge_prompt, tokenize=False)
-        inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+        inputs = tokenizer(text, return_tensors="pt",
+                           padding=True, truncation=True)
         input_ids = inputs["input_ids"].to(model.device)
         attention_mask = inputs["attention_mask"].to(model.device)
         model_output = model.generate(
@@ -468,8 +486,9 @@ class MultiLLMCollab(TruthMethod):
             pad_token_id=tokenizer.pad_token_id,
             **kwargs,
         )
-        tokens = model_output[0][len(input_ids[0]) :]
-        generated_final_answer = tokenizer.decode(tokens, skip_special_tokens=False)
+        tokens = model_output[0][len(input_ids[0]):]
+        generated_final_answer = tokenizer.decode(
+            tokens, skip_special_tokens=False)
         if "True" in generated_final_answer:
             abstain = False
         elif "False" in generated_final_answer:
@@ -502,7 +521,8 @@ class MultiLLMCollab(TruthMethod):
         # Judging process
         model = qa_model
         judge_content += QUESTION.replace("<question>", question_context)
-        judge_content += "Proposed " + ANSWER.replace("<answer>", generated_answer)
+        judge_content += "Proposed " + \
+            ANSWER.replace("<answer>", generated_answer)
         for i, feedback in enumerate(feedbacks):
             judge_content += f"Feedback {i+1}:" + feedback
         judge_content += JUDGE_COOP
@@ -557,7 +577,8 @@ class MultiLLMCollab(TruthMethod):
             prompt_content += ALTERNATIVE_COMPETE
             prompt = [{"role": "user", "content": prompt_content}]
             text = tokenizer.apply_chat_template(prompt, tokenize=False)
-            inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+            inputs = tokenizer(text, return_tensors="pt",
+                               padding=True, truncation=True)
             input_ids = inputs["input_ids"].to(model.device)
             attention_mask = inputs["attention_mask"].to(model.device)
             model_output = model.generate(
@@ -570,8 +591,9 @@ class MultiLLMCollab(TruthMethod):
                 pad_token_id=tokenizer.pad_token_id,
                 **kwargs,
             )
-            tokens = model_output[0][len(input_ids[0]) :]
-            alternative_answer = tokenizer.decode(tokens, skip_special_tokens=False)
+            tokens = model_output[0][len(input_ids[0]):]
+            alternative_answer = tokenizer.decode(
+                tokens, skip_special_tokens=False)
             alternative_answers.append(alternative_answer)
 
             # Generate Knowledge Passages
@@ -581,7 +603,8 @@ class MultiLLMCollab(TruthMethod):
             )
             prompt = [{"role": "user", "content": prompt_content}]
             text = tokenizer.apply_chat_template(prompt, tokenize=False)
-            inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+            inputs = tokenizer(text, return_tensors="pt",
+                               padding=True, truncation=True)
             input_ids = inputs["input_ids"].to(model.device)
             attention_mask = inputs["attention_mask"].to(model.device)
             model_output = model.generate(
@@ -594,8 +617,9 @@ class MultiLLMCollab(TruthMethod):
                 pad_token_id=tokenizer.pad_token_id,
                 **kwargs,
             )
-            tokens = model_output[0][len(input_ids[0]) :]
-            knowledge_passage = tokenizer.decode(tokens, skip_special_tokens=False)
+            tokens = model_output[0][len(input_ids[0]):]
+            knowledge_passage = tokenizer.decode(
+                tokens, skip_special_tokens=False)
             knowledge_passages.append(knowledge_passage)
 
             # Generate New answer
@@ -607,7 +631,8 @@ class MultiLLMCollab(TruthMethod):
             prompt_content += ANSWER.replace("<answer>", alternative_answer)
             prompt = [{"role": "user", "content": prompt_content}]
             text = tokenizer.apply_chat_template(prompt, tokenize=False)
-            inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+            inputs = tokenizer(text, return_tensors="pt",
+                               padding=True, truncation=True)
             input_ids = inputs["input_ids"].to(model.device)
             attention_mask = inputs["attention_mask"].to(model.device)
             model_output = model.generate(
@@ -620,7 +645,7 @@ class MultiLLMCollab(TruthMethod):
                 pad_token_id=tokenizer.pad_token_id,
                 **kwargs,
             )
-            tokens = model_output[0][len(input_ids[0]) :]
+            tokens = model_output[0][len(input_ids[0]):]
             new_answer = tokenizer.decode(tokens, skip_special_tokens=False)
             new_answers.append(new_answer)
 
@@ -653,7 +678,7 @@ class MultiLLMCollab(TruthMethod):
                     pad_token_id=tokenizer.pad_token_id,
                     **kwargs,
                 )
-                tokens = model_output[0][len(input_ids[0]) :]
+                tokens = model_output[0][len(input_ids[0]):]
                 decision = tokenizer.decode(tokens, skip_special_tokens=False)
                 abstain = False if "Same" in decision else True
                 decisions.append(abstain)

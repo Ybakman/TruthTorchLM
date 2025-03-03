@@ -34,7 +34,8 @@ class AttentionScore(TruthMethod):
             target_attention = output.attentions[self.layer_index].cpu()
             del output
             scores = []
-            for head_index in range(target_attention.shape[1]):  # for each head
+            # for each head
+            for head_index in range(target_attention.shape[1]):
                 attention = target_attention[0][
                     head_index
                 ]  # this values are after softmax

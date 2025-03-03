@@ -40,7 +40,8 @@ class UnstructuredDecompositionAPI(DecompositionMethod):
         for item in messages:
             item["content"] = item["content"].format(TEXT=input_text)
 
-        response = completion(model=self.model, messages=messages, **self.kwargs)
+        response = completion(
+            model=self.model, messages=messages, **self.kwargs)
         generated_text = "\n" + response.choices[0].message["content"]
         claims = self.output_parser(generated_text)
 

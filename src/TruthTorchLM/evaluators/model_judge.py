@@ -58,8 +58,9 @@ class ModelJudge(CorrectnessEvaluator):
                 self.model.device
             )
             model_output = self.model.generate(input_ids)
-            tokens = model_output[0][len(input_ids[0]) :]
-            generated_text = self.tokenizer.decode(tokens, skip_special_tokens=False)
+            tokens = model_output[0][len(input_ids[0]):]
+            generated_text = self.tokenizer.decode(
+                tokens, skip_special_tokens=False)
 
         if "incorrect" in generated_text.lower():
             return 0

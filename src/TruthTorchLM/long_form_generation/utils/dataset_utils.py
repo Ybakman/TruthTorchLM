@@ -74,7 +74,8 @@ def download_file(file_info, local_file_path, headers):
             f.write(response.content)
         # print(f"Downloaded: {file_info['path']}")
     else:
-        print(f"Failed to download {file_info['path']}: {response.status_code}")
+        print(
+            f"Failed to download {file_info['path']}: {response.status_code}")
 
 
 def download_contents(owner, repo, branch, path, local_path, headers):

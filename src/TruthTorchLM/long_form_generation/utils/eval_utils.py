@@ -49,7 +49,8 @@ def run_over_dataset(
             f"{claim_check_methods[i].__class__.__name__}"
         )
         output_dict[f"claim_check_methods_{i}"] = {}
-        output_dict[f"claim_check_methods_{i}"]["name"] = str(claim_check_methods[i])
+        output_dict[f"claim_check_methods_{i}"]["name"] = str(
+            claim_check_methods[i])
         if hasattr(claim_check_methods[i], "truth_methods"):
             output_dict[f"claim_check_methods_{i}"]["truth_methods"] = [
                 tm.__class__.__name__ for tm in claim_check_methods[i].truth_methods
@@ -60,7 +61,8 @@ def run_over_dataset(
         output_dict[f"claim_check_methods_{i}"]["truth_values"] = []
         output_dict[f"claim_check_methods_{i}"]["normalized_truth_values"] = []
         if return_method_details:
-            output_dict[f"claim_check_methods_{i}"]["method_specific_details"] = []
+            output_dict[f"claim_check_methods_{i}"]["method_specific_details"] = [
+            ]
 
     for i in tqdm(range(len(dataset))):
         messages = previous_context.copy()
@@ -86,7 +88,8 @@ def run_over_dataset(
 
         print("Checking for claim support by google search...")
         start_time = time.time()
-        results = [claim_evaluator(atomic_fact=claim) for claim in truth_dict["claims"]]
+        results = [claim_evaluator(atomic_fact=claim)
+                   for claim in truth_dict["claims"]]
         print(f"Time ellapsed for google search: {time.time()-start_time}")
         output_dict["claim_correctness"].append(
             [
@@ -165,7 +168,8 @@ def decompose_and_label_dataset(
 
         print("Checking for claim support by google search...")
         start_time = time.time()
-        results = [claim_evaluator(atomic_fact=claim) for claim in truth_dict["claims"]]
+        results = [claim_evaluator(atomic_fact=claim)
+                   for claim in truth_dict["claims"]]
         print(f"Time ellapsed for google search: {time.time()-start_time}")
 
         new_sample = {}
@@ -210,7 +214,8 @@ def run_over_labelled_dataset(
             f"{claim_check_methods[i].__class__.__name__}"
         )
         output_dict[f"claim_check_methods_{i}"] = {}
-        output_dict[f"claim_check_methods_{i}"]["name"] = str(claim_check_methods[i])
+        output_dict[f"claim_check_methods_{i}"]["name"] = str(
+            claim_check_methods[i])
         if hasattr(claim_check_methods[i], "truth_methods"):
             output_dict[f"claim_check_methods_{i}"]["truth_methods"] = [
                 tm.__class__.__name__ for tm in claim_check_methods[i].truth_methods
@@ -221,7 +226,8 @@ def run_over_labelled_dataset(
         output_dict[f"claim_check_methods_{i}"]["truth_values"] = []
         output_dict[f"claim_check_methods_{i}"]["normalized_truth_values"] = []
         if return_method_details:
-            output_dict[f"claim_check_methods_{i}"]["method_specific_details"] = []
+            output_dict[f"claim_check_methods_{i}"]["method_specific_details"] = [
+            ]
 
     for i in tqdm(range(len(dataset))):
         messages = previous_context.copy()
@@ -318,7 +324,8 @@ def process_sample(
             claim_normalized_truth_values.append(
                 truth_values["normalized_truth_values"]
             )
-            claim_unnormalized_truth_values.append(truth_values["truth_values"])
+            claim_unnormalized_truth_values.append(
+                truth_values["truth_values"])
             claim_method_spec_outputs.append(truth_values)
         normalized_truth_values.append(claim_normalized_truth_values)
         unnormalized_truth_values.append(claim_unnormalized_truth_values)

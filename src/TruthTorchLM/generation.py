@@ -413,7 +413,7 @@ def sample_generations_batch_hf_local(
             temp = torch.stack(
                 [
                     torch.argmax(
-                        (model_output.sequences[:, len(input_ids[0]) :] == eos).to(
+                        (model_output.sequences[:, len(input_ids[0]):] == eos).to(
                             dtype=torch.int
                         ),
                         dim=-1,
@@ -421,23 +421,28 @@ def sample_generations_batch_hf_local(
                     for eos in eos_token_id
                 ]
             ).T
-            indices = [torch.min(temp[i][temp[i] > 0]).item() for i in range(len(temp))]
+            indices = [torch.min(temp[i][temp[i] > 0]).item()
+                       for i in range(len(temp))]
         else:
             indices = torch.argmax(
-                (model_output.sequences[:, len(input_ids[0]) :] == eos_token_id).to(
+                (model_output.sequences[:, len(input_ids[0]):] == eos_token_id).to(
                     dtype=torch.int
                 ),
                 dim=-1,
             )
-        indices[indices == 0] = model_output.sequences.shape[1] - len(input_ids[0]) - 1
+        indices[indices == 0] = model_output.sequences.shape[1] - \
+            len(input_ids[0]) - 1
         if return_text:
             tokens = [
-                seq[len(input_ids[0]) : indices[i] + len(input_ids[0]) + 1].tolist()
+                seq[len(input_ids[0]): indices[i] +
+                    len(input_ids[0]) + 1].tolist()
                 for i, seq in enumerate(model_output.sequences)
             ]
-            generated_texts = tokenizer.batch_decode(tokens, skip_special_tokens=True)
+            generated_texts = tokenizer.batch_decode(
+                tokens, skip_special_tokens=True)
         if return_logprobs or return_logits:
-            logits_list = torch.stack(model_output.logits).cpu().permute(1, 0, 2)
+            logits_list = torch.stack(
+                model_output.logits).cpu().permute(1, 0, 2)
             model_output.logits = None
             if return_logprobs:
                 logprobs = torch.log_softmax(
@@ -446,10 +451,12 @@ def sample_generations_batch_hf_local(
                 logprobs = torch.gather(
                     logprobs,
                     dim=-1,
-                    index=model_output.sequences[:, len(input_ids[0]) :].unsqueeze(-1),
+                    index=model_output.sequences[:, len(
+                        input_ids[0]):].unsqueeze(-1),
                 )  # logprobs for each token in the generated text
                 logprobs = logprobs.squeeze(-1).tolist()  # convert to list
-                logprobs = [logprobs[i][: indices[i] + 1] for i in range(len(logprobs))]
+                logprobs = [logprobs[i][: indices[i] + 1]
+                            for i in range(len(logprobs))]
             if return_logits:
                 logits_list = [
                     logits_list[i][: indices[i] + 1] for i in range(len(logits_list))
@@ -464,7 +471,8 @@ def sample_generations_batch_hf_local(
                 acts = []
                 for j in range(indices[i] + 1):  # token id
                     act = []
-                    for k in range(len(model_output.hidden_states[0])):  # layer id
+                    # layer id
+                    for k in range(len(model_output.hidden_states[0])):
                         act.append(model_output.hidden_states[j][k][i].cpu())
                     acts.append(act)
                 activations_list.append(acts)
@@ -475,7 +483,8 @@ def sample_generations_batch_hf_local(
                 atts = []
                 for j in range(indices[i] + 1):  # token id
                     att = []
-                    for k in range(len(model_output.attentions[0])):  # layer id
+                    # layer id
+                    for k in range(len(model_output.attentions[0])):
                         att.append(model_output.attentions[j][k][i].cpu())
                     atts.append(att)
                 attentions_list.append(atts)
@@ -550,8 +559,9 @@ def sample_generations_sequential_hf_local(
             if return_model_output:
                 model_outputs.append(model_output.sequences)
             if return_text:
-                tokens = model_output.sequences[0][len(input_ids[0]) :]
-                generated_text = tokenizer.decode(tokens, skip_special_tokens=True)
+                tokens = model_output.sequences[0][len(input_ids[0]):]
+                generated_text = tokenizer.decode(
+                    tokens, skip_special_tokens=True)
                 generated_texts.append(generated_text)
                 token_lists.append(tokens.tolist())
             if return_logprobs or return_logits:
@@ -564,7 +574,7 @@ def sample_generations_sequential_hf_local(
                     logprobs = torch.gather(
                         logprobs,
                         dim=1,
-                        index=model_output.sequences[0][len(input_ids[0]) :].view(
+                        index=model_output.sequences[0][len(input_ids[0]):].view(
                             -1, 1
                         ),
                     )  # logprobs for each token in the generated text
@@ -642,10 +652,12 @@ def sample_generations_api(
             generated_texts.append(response.choices[0].message["content"])
         if return_logprobs:
             logprobs_list.append(
-                [token["logprob"] for token in response.choices[0].logprobs["content"]]
+                [token["logprob"]
+                    for token in response.choices[0].logprobs["content"]]
             )
             token_lists.append(
-                [token["token"] for token in response.choices[0].logprobs["content"]]
+                [token["token"]
+                    for token in response.choices[0].logprobs["content"]]
             )
 
     return {
