@@ -18,7 +18,7 @@ class Inside(TruthMethod):
         self.batch_generation = batch_generation
 
     def forward_hf_local(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], 
-        tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, messages:list = [], **kwargs):
+        tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, messages:list = [], context:str = None, **kwargs):
         
         if sampled_generations_dict is None:
             sampled_generations_dict = sample_generations_hf_local(model = model, input_text = input_text, tokenizer = tokenizer, generation_seed=generation_seed, 
@@ -39,7 +39,7 @@ class Inside(TruthMethod):
         eigen_score = -torch.mean(torch.log(eigenvalues)).cpu().item()
         return {"truth_value": eigen_score,   'generated_texts_for_inside': generated_texts}#this output format should be same for all truth methods
 
-    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):
+    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, context:str = None, **kwargs):
         raise ValueError("Inside method cannot be used with black-box API models since it requires access to activations.")
 
         return {"truth_value": 0, 'generated_texts_for_inside': []}#this output format should be same for all truth methods

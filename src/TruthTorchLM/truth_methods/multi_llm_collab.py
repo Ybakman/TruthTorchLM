@@ -73,7 +73,7 @@ class MultiLLMCollab(TruthMethod):
         
 
     def forward_hf_local(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], 
-                         tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, messages:list = [], **kwargs): 
+                         tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, messages:list = [], context:str = None, **kwargs): 
         kwargs = copy.deepcopy(kwargs)
         
         # Get Decision - abstain or not
@@ -95,7 +95,7 @@ class MultiLLMCollab(TruthMethod):
         return {"truth_value": 1.-float(abstain), "generated_text": generated_answer, "feedbacks": feedbacks}
 
 
-    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, **kwargs):
+    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, context:str = None, **kwargs):
         kwargs = copy.deepcopy(kwargs)
         
         # Get Decision - abstain or not

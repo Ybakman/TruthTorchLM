@@ -33,7 +33,7 @@ class TruthMethod(ABC):
         self.normalizer = SigmoidNormalizer(threshold = 0, std = 1.0)#default dummy normalizer
 
     def __call__(self, model:Union[PreTrainedModel, str], input_text:str = '', generated_text:str = '', question_context:str = '', all_ids:Union[list, torch.Tensor] = None, 
-    tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, messages:list = [], logprobs:list=None, generated_tokens:list=None, **kwargs):
+    tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, messages:list = [], logprobs:list=None, generated_tokens:list=None, context:str = '', **kwargs):
         if generation_seed is not None:
             torch.manual_seed(generation_seed)
             random.seed(generation_seed)
@@ -53,11 +53,11 @@ class TruthMethod(ABC):
 
     @abstractmethod
     def forward_hf_local(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], 
-    tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, messages:list = [], **kwargs):
+    tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, messages:list = [], context:str = '', **kwargs):
         raise NotImplementedError("Subclasses must implement this method")
     
     @abstractmethod
-    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):
+    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, context:str = '', **kwargs):
         raise NotImplementedError("Subclasses must implement this method")
 
     def set_normalizer(self, normalizer:Normalizer):

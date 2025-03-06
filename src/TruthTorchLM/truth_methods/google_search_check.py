@@ -78,7 +78,7 @@ class GoogleSearchCheck(TruthMethod):
             return {"truth_value": truth_value,  'evidences':evidences, 'queries':queries, 'evidences':evidences, 'verification':verification_dict}
 
     def forward_hf_local(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], 
-        tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, messages:list = [], **kwargs):
+        tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, messages:list = [], context:str = None, **kwargs):
 
 
         outlines_model = outlines.models.Transformers(model, tokenizer)
@@ -110,7 +110,7 @@ class GoogleSearchCheck(TruthMethod):
         return self._google_search_check(verification, evidences, query)
 
 
-    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):
+    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, context:str = None, **kwargs):
         kwargs = copy.deepcopy(kwargs)
 
         #cerare instructor client object for structured llm output

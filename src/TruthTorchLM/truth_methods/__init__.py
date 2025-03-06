@@ -24,6 +24,8 @@ from .mars import MARS
 from .multi_llm_collab import MultiLLMCollab
 from .directional_entailment_graph import DirectionalEntailmentGraph
 from .SAR import SAR
+from .MiniCheck import MiniCheck
+from .context_check import ContextCheck
 
 
 __all__ = ['Entropy', 'Confidence', 'TruthMethod', 'SemanticEntropy', 'PTrue', 'Inside', 'SentSAR',

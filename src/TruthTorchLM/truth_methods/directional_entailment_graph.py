@@ -102,6 +102,7 @@ class DirectionalEntailmentGraph(TruthMethod):
         generation_seed=None,
         sampled_generations_dict: dict = None,
         messages: list = [],
+        context:str = None, 
         **kwargs
     ):
         """
@@ -133,6 +134,7 @@ class DirectionalEntailmentGraph(TruthMethod):
         sampled_generations_dict: dict = None,
         logprobs: list = None,
         generated_tokens: list = None,
+        context:str = None, 
         **kwargs
     ):
         """

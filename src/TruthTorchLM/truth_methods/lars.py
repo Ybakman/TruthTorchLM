@@ -107,7 +107,7 @@ class LARS(TruthMethod):
 
 
     def forward_hf_local(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], 
-    tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, messages:list = [], **kwargs):
+    tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, messages:list = [], context:str = None, **kwargs):
 
         if self.ue_type == "confidence":
             input_ids = tokenizer.encode(input_text, return_tensors="pt").to(model.device)
@@ -155,7 +155,7 @@ class LARS(TruthMethod):
         return {"truth_value": lars_score,  "generated_text": generated_text}# we shouldn't return generated text. remove it from the output format
     
     @handle_logprobs_error
-    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):
+    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, context:str = None, **kwargs):
 
         if self.ue_type == "confidence":
             lars_score = self._lars(question_context, generated_tokens, torch.exp(torch.tensor(logprobs)))

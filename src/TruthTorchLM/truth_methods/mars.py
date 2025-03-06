@@ -139,7 +139,7 @@ class MARS(TruthMethod):
 
 
     def forward_hf_local(self, model:PreTrainedModel, input_text:str, generated_text:str, question_context:str, all_ids:Union[list, torch.Tensor], 
-    tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, messages:list = [], **kwargs):
+    tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None, generation_seed = None, sampled_generations_dict:dict = None, messages:list = [], context:str = None, **kwargs):
 
         input_ids = tokenizer.encode(input_text, return_tensors="pt").to(model.device)
         
@@ -178,7 +178,7 @@ class MARS(TruthMethod):
         return {"truth_value": score,  "generated_text": generated_text, 'phrases': phrases, 'importance_scores': importance_scores, 'probs': probs, 'merged_importance_vector': merged_importance_vector}
     
     @handle_logprobs_error
-    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, **kwargs):
+    def forward_api(self, model:str, messages:list, generated_text:str, question_context:str, generation_seed = None, sampled_generations_dict:dict = None, logprobs:list=None, generated_tokens:list=None, context:str = None, **kwargs):
 
         probs = np.exp(np.array(logprobs))
 
