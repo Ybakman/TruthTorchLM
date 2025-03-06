@@ -129,18 +129,19 @@ def get_simple_qa(size_of_data:float = 1.0, seed:int = 0, split = 'test'):
     return dataset
 
 
-def get_wikipedia(size_of_data: float = 1.0, seed: int = 0, split='train'):
-    raw_dataset = load_dataset("wikimedia/wikipedia", "20231101.en", split=split)
+def get_wikipedia_factual(size_of_data: float = 1.0, seed: int = 0, split='train'):
+    raw_dataset = load_dataset("achorn123/wikipedia_factual_dataset", split=split)
 
     if size_of_data != 1.0:
         raw_dataset = raw_dataset.train_test_split(train_size=size_of_data, seed=seed)['train']
 
     dataset = []
-    
     for data in tqdm(raw_dataset, desc="Processing Wikipedia dataset"):
-        context = data["text"].strip() 
-        title = data["title"].strip()
-        
-        dataset.append({'context': context, 'title': title})
+        context = data["context"].strip()
+        qa_pairs = data["qa_pairs"]
+        for qa in qa_pairs:
+            question = qa[0].strip()
+            ground_truths = [qa[1].strip()]
+            dataset.append({'context': context, 'question': question, 'ground_truths': ground_truths})
 
     return dataset
