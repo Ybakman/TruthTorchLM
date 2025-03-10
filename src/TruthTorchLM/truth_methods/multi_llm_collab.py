@@ -74,36 +74,12 @@ class MultiLLMCollab(TruthMethod):
             self.question_form = question_form
 
         if collaborate_mode != "coop_self":
-            if feedback_models is None or feedback_tokenizers is None:
-                self.feedback_models = [
-                    AutoModelForCausalLM.from_pretrained(
-                        "meta-llama/Meta-Llama-3-8B-Instruct", use_auth_token=True
-                    ).to("cuda:1"),
-                    AutoModelForCausalLM.from_pretrained(
-                        "mistralai/Mistral-7B-Instruct-v0.1", use_auth_token=True
-                    ).to("cuda:2"),
-                ]
-                self.feedback_tokenizers = [
-                    AutoTokenizer.from_pretrained(
-                        "meta-llama/Meta-Llama-3-8B-Instruct", use_fast=False
-                    ),
-                    AutoTokenizer.from_pretrained(
-                        "mistralai/Mistral-7B-Instruct-v0.1", use_fast=False
-                    ),
-                ]
-                print(
-                    'Feedback models and tokenizers set as "Meta-Llama-3-8B-Instruct" and "Mistral-7B-Instruct-v0.1"'
-                )
+            if (feedback_models is None or feedback_tokenizers is None) and feedback_api_models is None:
+                raise ValueError("Either feedback_models and feedback_tokenizers or feedback_api_models must be provided")
             else:
                 self.feedback_models = feedback_models
                 self.feedback_tokenizers = feedback_tokenizers
-            if feedback_api_models is None:
-                self.feedback_api_models = [
-                    "gpt-3.5-turbo", "gpt-3.5-turbo-0125"]
-                print('Feedback models set as "gpt-3.5-turbo" and "gpt-3.5-turbo-0125"')
-            else:
                 self.feedback_api_models = feedback_api_models
-
         self.max_new_tokens = max_new_tokens
         self.temperature = temperature
         self.top_k = top_k
@@ -118,12 +94,13 @@ class MultiLLMCollab(TruthMethod):
         model: PreTrainedModel,
         input_text: str,
         generated_text: str,
-        question_context: str,
+        question: str,
         all_ids: Union[list, torch.Tensor],
         tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         messages: list = [],
+        context: str = "",
         **kwargs,
     ):
         kwargs = copy.deepcopy(kwargs)
@@ -131,7 +108,7 @@ class MultiLLMCollab(TruthMethod):
         # Get Decision - abstain or not
         if self.collaborate_mode == "coop_self":
             generated_answer, abstain, _, feedbacks = self.coop_self_hf_local(
-                question_context=question_context,
+                question=question,
                 generated_answer=generated_text,
                 model=model,
                 tokenizer=tokenizer,
@@ -143,7 +120,7 @@ class MultiLLMCollab(TruthMethod):
             )
         elif self.collaborate_mode == "coop_others":
             generated_answer, abstain, feedbacks = self.coop_others_hf_local(
-                question_context=question_context,
+                question=question,
                 generated_answer=generated_text,
                 qa_model=model,
                 qa_tokenizer=tokenizer,
@@ -157,7 +134,7 @@ class MultiLLMCollab(TruthMethod):
             )
         elif self.collaborate_mode == "compete":
             generated_answer, abstain, _, feedbacks = self.compete_hf_local(
-                question_context=question_context,
+                question=question,
                 generated_answer=generated_text,
                 feedback_models=self.feedback_models,
                 feedback_tokenizers=self.feedback_tokenizers,
@@ -179,9 +156,10 @@ class MultiLLMCollab(TruthMethod):
         model: str,
         messages: list,
         generated_text: str,
-        question_context: str,
+        question: str,
         generation_seed=None,
         sampled_generations_dict: dict = None,
+        context: str = "",
         **kwargs,
     ):
         kwargs = copy.deepcopy(kwargs)
@@ -189,14 +167,14 @@ class MultiLLMCollab(TruthMethod):
         # Get Decision - abstain or not
         if self.collaborate_mode == "coop_self":
             generated_answer, abstain, _, feedbacks = self.coop_self_api(
-                question_context=question_context,
+                question=question,
                 generated_answer=generated_text,
                 model=model,
                 temperature=self.temperature,
             )
         elif self.collaborate_mode == "coop_others":
             generated_answer, abstain, feedbacks = self.coop_others_api(
-                question_context=question_context,
+                question=question,
                 generated_answer=generated_text,
                 qa_model=model,
                 feedback_models=self.feedback_api_models,
@@ -204,7 +182,7 @@ class MultiLLMCollab(TruthMethod):
             )
         elif self.collaborate_mode == "compete":
             generated_answer, abstain, _, feedbacks = self.compete_api(
-                question_context=question_context,
+                question=question,
                 generated_answer=generated_text,
                 feedback_models=self.feedback_api_models,
                 question_form=self.question_form,
@@ -222,7 +200,7 @@ class MultiLLMCollab(TruthMethod):
     # Coop-self method
     def coop_self_hf_local(
         self,
-        question_context,
+        question,
         generated_answer,
         model,
         tokenizer,
@@ -232,7 +210,7 @@ class MultiLLMCollab(TruthMethod):
         num_beams,
         **kwargs,
     ):
-        knolwedge_passages = []
+        knowledge_passages = []
         feedbacks = []
         abstain = True
         tokenizer.pad_token = tokenizer.eos_token
@@ -268,7 +246,7 @@ class MultiLLMCollab(TruthMethod):
             generated_knowledge_passage = tokenizer.decode(
                 tokens, skip_special_tokens=False
             )
-            knolwedge_passages.append(generated_knowledge_passage)
+            knowledge_passages.append(generated_knowledge_passage)
 
             expert_content = (
                 KNOWLEDGE.replace(
@@ -277,7 +255,7 @@ class MultiLLMCollab(TruthMethod):
                 + "\n"
             )
             expert_content += QUESTION.replace("<question>",
-                                               question_context) + "\n"
+                                               question) + "\n"
             expert_content += ANSWER.replace("<answer>",
                                              generated_answer) + "\n"
             expert_content += FEEDBACK_COOP_SELF
@@ -306,7 +284,7 @@ class MultiLLMCollab(TruthMethod):
         # Judging process
         judge_content = JUDGE_SYSTEM_PROMPT
         judge_content += QUESTION.replace("<question>",
-                                          question_context) + "\n"
+                                          question) + "\n"
         judge_content += (
             "Proposed " + ANSWER.replace("<answer>", generated_answer) + "\n"
         )
@@ -338,10 +316,10 @@ class MultiLLMCollab(TruthMethod):
             abstain = False
         elif "False" in generated_final_answer:
             abstain = True
-        return generated_answer, abstain, knolwedge_passages, feedbacks
+        return generated_answer, abstain, knowledge_passages, feedbacks
 
-    def coop_self_api(self, question_context, generated_answer, model, temperature):
-        knolwedge_passages = []
+    def coop_self_api(self, question, generated_answer, model, temperature):
+        knowledge_passages = []
         feedbacks = []
         abstain = True
 
@@ -363,7 +341,7 @@ class MultiLLMCollab(TruthMethod):
             generated_knowledge_passage = generated_knowledge_passage.choices[
                 0
             ].message.content
-            knolwedge_passages.append(generated_knowledge_passage)
+            knowledge_passages.append(generated_knowledge_passage)
 
             expert_content += (
                 KNOWLEDGE.replace(
@@ -373,7 +351,7 @@ class MultiLLMCollab(TruthMethod):
                 + "\n"
             )
             expert_content += QUESTION.replace("<question>",
-                                               question_context) + "\n"
+                                               question) + "\n"
             expert_content += ANSWER.replace("<answer>",
                                              generated_answer) + "\n"
             expert_content += FEEDBACK_COOP_SELF
@@ -388,7 +366,7 @@ class MultiLLMCollab(TruthMethod):
         # Judging process
         judge_content = JUDGE_SYSTEM_PROMPT
         judge_content += QUESTION.replace("<question>",
-                                          question_context) + "\n"
+                                          question) + "\n"
         judge_content += (
             "Proposed " + ANSWER.replace("<answer>", generated_answer) + "\n"
         )
@@ -406,12 +384,12 @@ class MultiLLMCollab(TruthMethod):
             abstain = False
         elif "False" in generated_final_answer:
             abstain = True
-        return generated_answer, abstain, knolwedge_passages, feedbacks
+        return generated_answer, abstain, knowledge_passages, feedbacks
 
     # Coop-others method
     def coop_others_hf_local(
         self,
-        question_context,
+        question,
         generated_answer,
         qa_model,
         qa_tokenizer,
@@ -437,7 +415,7 @@ class MultiLLMCollab(TruthMethod):
             expert_content = feedback_content
 
             # Generating Feedbacks
-            expert_content += QUESTION.replace("<question>", question_context)
+            expert_content += QUESTION.replace("<question>", question)
             expert_content += ANSWER.replace("<answer>", generated_answer)
             expert_content += FEEDBACK_COOP_OTHERS
             expert_prompt = [{"role": "user", "content": expert_content}]
@@ -464,7 +442,7 @@ class MultiLLMCollab(TruthMethod):
         # Judging process
         model = qa_model
         tokenizer = qa_tokenizer
-        judge_content += QUESTION.replace("<question>", question_context)
+        judge_content += QUESTION.replace("<question>", question)
         judge_content += "Proposed " + \
             ANSWER.replace("<answer>", generated_answer)
         for i, feedback in enumerate(feedbacks):
@@ -496,7 +474,7 @@ class MultiLLMCollab(TruthMethod):
         return generated_answer, abstain, feedbacks
 
     def coop_others_api(
-        self, question_context, generated_answer, qa_model, feedback_models, temperature
+        self, question, generated_answer, qa_model, feedback_models, temperature
     ):
         feedback_content = EXPERT_SYSTEM_PROMPT
         judge_content = JUDGE_SYSTEM_PROMPT
@@ -508,7 +486,7 @@ class MultiLLMCollab(TruthMethod):
             expert_content = feedback_content
 
             # Generating Feedbacks
-            expert_content += QUESTION.replace("<question>", question_context)
+            expert_content += QUESTION.replace("<question>", question)
             expert_content += ANSWER.replace("<answer>", generated_answer)
             expert_content += FEEDBACK_COOP_OTHERS
             expert_prompt = [{"role": "user", "content": expert_content}]
@@ -520,7 +498,7 @@ class MultiLLMCollab(TruthMethod):
 
         # Judging process
         model = qa_model
-        judge_content += QUESTION.replace("<question>", question_context)
+        judge_content += QUESTION.replace("<question>", question)
         judge_content += "Proposed " + \
             ANSWER.replace("<answer>", generated_answer)
         for i, feedback in enumerate(feedbacks):
@@ -546,7 +524,7 @@ class MultiLLMCollab(TruthMethod):
 
     def compete_hf_local(
         self,
-        question_context,
+        question,
         generated_answer,
         feedback_models,
         feedback_tokenizers,
@@ -572,7 +550,7 @@ class MultiLLMCollab(TruthMethod):
             prompt_content = system_prompt_content
 
             # Generating Alternative Answers
-            prompt_content += QUESTION.replace("<question>", question_context)
+            prompt_content += QUESTION.replace("<question>", question)
             prompt_content += ANSWER.replace("<answer>", generated_answer)
             prompt_content += ALTERNATIVE_COMPETE
             prompt = [{"role": "user", "content": prompt_content}]
@@ -597,7 +575,7 @@ class MultiLLMCollab(TruthMethod):
             alternative_answers.append(alternative_answer)
 
             # Generate Knowledge Passages
-            prompt_content = QUESTION.replace("<question>", question_context)
+            prompt_content = QUESTION.replace("<question>", question)
             prompt_content += KNOWLEDGE_COMPETE.replace(
                 "<alternative answer>", alternative_answer
             )
@@ -627,7 +605,7 @@ class MultiLLMCollab(TruthMethod):
             prompt_content += KNOWLEDGE.replace(
                 "<generated domain knowledge>", knowledge_passage
             )
-            prompt_content += QUESTION.replace("<question>", question_context)
+            prompt_content += QUESTION.replace("<question>", question)
             prompt_content += ANSWER.replace("<answer>", alternative_answer)
             prompt = [{"role": "user", "content": prompt_content}]
             text = tokenizer.apply_chat_template(prompt, tokenize=False)
@@ -687,7 +665,7 @@ class MultiLLMCollab(TruthMethod):
 
     def compete_api(
         self,
-        question_context,
+        question,
         generated_answer,
         feedback_models,
         question_form,
@@ -704,7 +682,7 @@ class MultiLLMCollab(TruthMethod):
             prompt_content = system_prompt_content
 
             # Generating Alternative Answers
-            prompt_content += QUESTION.replace("<question>", question_context)
+            prompt_content += QUESTION.replace("<question>", question)
             prompt_content += ANSWER.replace("<answer>", generated_answer)
             prompt_content += ALTERNATIVE_COMPETE
             prompt = [{"role": "user", "content": prompt_content}]
@@ -715,7 +693,7 @@ class MultiLLMCollab(TruthMethod):
             alternative_answers.append(alternative_answer)
 
             # Generate Knowledge Passages
-            prompt_content = QUESTION.replace("<question>", question_context)
+            prompt_content = QUESTION.replace("<question>", question)
             prompt_content += KNOWLEDGE_COMPETE.replace(
                 "<alternative answer>", alternative_answer
             )
@@ -731,7 +709,7 @@ class MultiLLMCollab(TruthMethod):
             prompt_content += KNOWLEDGE.replace(
                 "<generated domain knowledge>", knowledge_passage
             )
-            prompt_content += QUESTION.replace("<question>", question_context)
+            prompt_content += QUESTION.replace("<question>", question)
             prompt_content += ANSWER.replace("<answer>", alternative_answer)
             prompt = [{"role": "user", "content": prompt_content}]
             new_answer = completion(

@@ -19,3 +19,6 @@ transformers
 absl-py
 nltk
 rouge_score
+sentencepiece
+minicheck[llm] @ git+https://github.com/Liyan06/MiniCheck.git@main
+accelerate>=0.26.0

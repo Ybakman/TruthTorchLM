@@ -15,35 +15,38 @@ from TruthTorchLM.utils.common_utils import generate, fix_tokenizer_chat
 def generate_with_truth_value(
     model: Union[PreTrainedModel, str],
     messages: list,
-    question_context: str = None,
+    question: str = None,
     truth_methods: list = [],
     tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
     generation_seed=None,
     batch_generation=True,
     add_generation_prompt=True,
     continue_final_message=False,
+    context: str = "",
     **kwargs
 ) -> dict:
     if type(model) == str:
         return generate_with_truth_value_api(
             model=model,
             messages=messages,
-            question_context=question_context,
+            question=question,
             truth_methods=truth_methods,
             generation_seed=generation_seed,
+            context=context,
             **kwargs
         )
     else:
         return generate_with_truth_value_hf_local(
             model=model,
             messages=messages,
-            question_context=question_context,
+            question=question,
             truth_methods=truth_methods,
             tokenizer=tokenizer,
             generation_seed=generation_seed,
             batch_generation=batch_generation,
             add_generation_prompt=add_generation_prompt,
             continue_final_message=continue_final_message,
+            context=context,
             **kwargs
         )
 
@@ -52,13 +55,14 @@ def generate_with_truth_value(
 def generate_with_truth_value_hf_local(
     model: PreTrainedModel,
     messages: list,
-    question_context: str = None,
+    question: str = None,
     truth_methods: list = [],
     tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
     generation_seed=None,
     batch_generation=True,
     add_generation_prompt=True,
     continue_final_message=False,
+    context: str = "",
     **kwargs
 ) -> dict:
 
@@ -69,12 +73,12 @@ def generate_with_truth_value_hf_local(
         add_generation_prompt=add_generation_prompt,
         continue_final_message=continue_final_message,
     )
-    if question_context == None:
-        question_context = ""
+    if question == None:
+        question = ""
         # search over last user message if exists
         for message in messages[::-1]:
             if message["role"] == "user":
-                question_context = message["content"]
+                question = message["content"]
                 break
 
     generated_output = generate(text, model, tokenizer, **kwargs)
@@ -117,12 +121,13 @@ def generate_with_truth_value_hf_local(
             model=model,
             input_text=text,
             generated_text=generated_text_return,
-            question_context=question_context,
+            question=question,
             all_ids=model_output,
             tokenizer=tokenizer,
             generation_seed=generation_seed,
             sampled_generations_dict=sampled_gen_dict,
             messages=messages,
+            context=context,
             **kwargs
         )
         normalized_truth_values.append(truth_values["normalized_truth_value"])
@@ -149,9 +154,10 @@ def generate_with_truth_value_hf_local(
 def generate_with_truth_value_api(
     model: str,
     messages: list,
-    question_context: str = None,
+    question: str = None,
     truth_methods: list = [],
     generation_seed=None,
+    context: str = "",
     **kwargs
 ) -> dict:
     # Check if the model is an API model
@@ -163,12 +169,12 @@ def generate_with_truth_value_api(
         if truth_method.REQUIRES_LOGPROBS:
             requires_logprobs = True
 
-    if question_context == None:
-        question_context = ""
+    if question == None:
+        question = ""
         # search over last user message if exists
         for message in messages[::-1]:
             if message["role"] == "user":
-                question_context = message["content"]
+                question = message["content"]
                 break
 
     # Generate the main output
@@ -225,11 +231,12 @@ def generate_with_truth_value_api(
             model=model,
             messages=messages,
             generated_text=generated_text,
-            question_context=question_context,
+            question=question,
             generation_seed=generation_seed,
             sampled_generations_dict=sampled_gen_dict,
             logprobs=logprobs,
             generated_tokens=generated_tokens,
+            context=context,
             **kwargs
         )
         normalized_truth_values.append(truth_values["normalized_truth_value"])

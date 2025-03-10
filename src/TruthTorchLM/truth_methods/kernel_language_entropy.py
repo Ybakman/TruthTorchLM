@@ -57,12 +57,13 @@ class KernelLanguageEntropy(TruthMethod):
         model: PreTrainedModel,
         input_text: str,
         generated_text: str,
-        question_context: str,
+        question: str,
         all_ids: Union[list, torch.Tensor],
         tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         messages: list = [],
+        context: str = "",
         **kwargs
     ):
 
@@ -83,7 +84,7 @@ class KernelLanguageEntropy(TruthMethod):
         ]
         semantic_graph, kernel, kernel_entropy = self.calculate_kernel_language_entropy(
             texts=generated_texts,
-            context=question_context,
+            context=question,
             method_for_similarity="kernel",
             model_for_entailment=self.model_for_entailment,
             tokenizer_for_entailment=self.tokenizer_for_entailment,
@@ -106,11 +107,12 @@ class KernelLanguageEntropy(TruthMethod):
         model: str,
         messages: list,
         generated_text: str,
-        question_context: str,
+        question: str,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         logprobs: list = None,
         generated_tokens: list = None,
+        context: str = "",
         **kwargs
     ):
 
@@ -132,7 +134,7 @@ class KernelLanguageEntropy(TruthMethod):
         # # KLE part
         semantic_graph, kernel, kernel_entropy = self.calculate_kernel_language_entropy(
             texts=generated_texts,
-            context=question_context,
+            context=question,
             method_for_similarity="kernel",
             model_for_entailment=self.model_for_entailment,
             tokenizer_for_entailment=self.tokenizer_for_entailment,

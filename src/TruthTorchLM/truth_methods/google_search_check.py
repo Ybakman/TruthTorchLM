@@ -121,12 +121,13 @@ class GoogleSearchCheck(TruthMethod):
         model: PreTrainedModel,
         input_text: str,
         generated_text: str,
-        question_context: str,
+        question: str,
         all_ids: Union[list, torch.Tensor],
         tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         messages: list = [],
+        context: str = "",
         **kwargs
     ):
 
@@ -141,7 +142,7 @@ class GoogleSearchCheck(TruthMethod):
             {
                 "role": "user",
                 "content": self.check_query_user_prompt.format(
-                    question_context=question_context, input=generated_text
+                    question=question, input=generated_text
                 ),
             },
         ]
@@ -161,7 +162,7 @@ class GoogleSearchCheck(TruthMethod):
             {
                 "role": "user",
                 "content": self.check_verification_user_prompt.format(
-                    question_context=question_context,
+                    question=question,
                     claim=generated_text,
                     evidence=evidences,
                 ),
@@ -179,11 +180,12 @@ class GoogleSearchCheck(TruthMethod):
         model: str,
         messages: list,
         generated_text: str,
-        question_context: str,
+        question: str,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         logprobs: list = None,
         generated_tokens: list = None,
+        context: str = "",
         **kwargs
     ):
         kwargs = copy.deepcopy(kwargs)
@@ -197,7 +199,7 @@ class GoogleSearchCheck(TruthMethod):
             {
                 "role": "user",
                 "content": GOOGLE_CHECK_QUERY_USER_PROMPT.format(
-                    question_context=question_context, input=generated_text
+                    question=question, input=generated_text
                 ),
             },
         ]
@@ -216,7 +218,7 @@ class GoogleSearchCheck(TruthMethod):
             {
                 "role": "user",
                 "content": GOOGLE_CHECK_VERIFICATION_USER_PROMPT.format(
-                    question_context=question_context,
+                    question=question,
                     claim=generated_text,
                     evidence=evidences,
                 ),

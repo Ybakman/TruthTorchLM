@@ -25,7 +25,7 @@ class Entropy(TruthMethod):
         self.batch_generation = batch_generation
 
     def _entropy(
-        self, generated_texts: list[str], question_context: str, scores: list[float]
+        self, generated_texts: list[str], question: str, scores: list[float]
     ):
         entropy = -np.sum(scores) / len(scores)
         return {
@@ -40,12 +40,13 @@ class Entropy(TruthMethod):
         model: PreTrainedModel,
         input_text: str,
         generated_text: str,
-        question_context: str,
+        question: str,
         all_ids: Union[list, torch.Tensor],
         tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         messages: list = [],
+        context: str = "",
         **kwargs
     ):
 
@@ -72,7 +73,7 @@ class Entropy(TruthMethod):
                 sampled_generations_dict["logprobs"][i])
             scores.append(score)  # scores are in log scale
 
-        return self._entropy(generated_texts, question_context, scores)
+        return self._entropy(generated_texts, question, scores)
 
     @handle_logprobs_error
     def forward_api(
@@ -80,11 +81,12 @@ class Entropy(TruthMethod):
         model: str,
         messages: list,
         generated_text: str,
-        question_context: str,
+        question: str,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         logprobs: list = None,
         generated_tokens: list = None,
+        context: str = "",
         **kwargs
     ):
 
@@ -109,4 +111,4 @@ class Entropy(TruthMethod):
                 sampled_generations_dict["logprobs"][i])
             scores.append(score)  # scores are in log scale
 
-        return self._entropy(generated_texts, question_context, scores)
+        return self._entropy(generated_texts, question, scores)

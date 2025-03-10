@@ -59,12 +59,13 @@ class MatrixDegreeConfidence(TruthMethod):
         model: PreTrainedModel,
         input_text: str,
         generated_text: str,
-        question_context: str,
+        question: str,
         all_ids: Union[list, torch.Tensor],
         tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         messages: list = [],
+        context: str = "",
         **kwargs
     ):
 
@@ -87,7 +88,7 @@ class MatrixDegreeConfidence(TruthMethod):
         generated_texts.append(generated_text)
 
         output_dict = self._matrix_degree_confidence(
-            generated_texts, question_context, index=len(generated_texts) - 1
+            generated_texts, question, index=len(generated_texts) - 1
         )
         return output_dict
 
@@ -96,11 +97,12 @@ class MatrixDegreeConfidence(TruthMethod):
         model: str,
         messages: list,
         generated_text: str,
-        question_context: str,
+        question: str,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         logprobs: list = None,
         generated_tokens: list = None,
+        context: str = "",
         **kwargs
     ):
 
@@ -120,18 +122,18 @@ class MatrixDegreeConfidence(TruthMethod):
         generated_texts.append(generated_text)
 
         output_dict = self._matrix_degree_confidence(
-            generated_texts, question_context, index=len(generated_texts) - 1
+            generated_texts, question, index=len(generated_texts) - 1
         )
         return output_dict
 
     def _matrix_degree_confidence(
-        self, generated_texts: list, question_context: str, index=-1
+        self, generated_texts: list, question: str, index=-1
     ):
 
         output_dict = {}
         output = calculate_C_deg(
             generated_texts,
-            question_context,
+            question,
             index=index,
             method_for_similarity=self.method_for_similarity,
             temperature=self.temperature,

@@ -43,6 +43,9 @@ def get_dataset(
     elif dataset == "simple_qa":
         dataset = get_simple_qa(
             size_of_data=size_of_data, seed=seed, split=split)
+    elif dataset == "wikipedia_factual":
+        dataset = get_wikipedia_factual(
+            size_of_data=size_of_data, seed=seed, split=split)
 
     return dataset
 
@@ -57,7 +60,7 @@ def get_trivia_qa(size_of_data: float = 1.0, seed: int = 0, split="test"):
     else:
         raise ValueError("Split should be either 'test' or 'train'.")
 
-    if size_of_data != 1.0:
+    if size_of_data != 1.0 or type(size_of_data) != float:
         raw_dataset = raw_dataset.train_test_split(train_size=size_of_data, seed=seed)[
             "train"
         ]
@@ -67,7 +70,7 @@ def get_trivia_qa(size_of_data: float = 1.0, seed: int = 0, split="test"):
     for i in tqdm(range(len(raw_dataset))):
         ground_truths = answers[i]["aliases"]
         dataset.append(
-            {"question": questions[i], "ground_truths": ground_truths})
+            {"context": "", "question": questions[i], "ground_truths": ground_truths})
 
     return dataset
 
@@ -79,7 +82,7 @@ def get_gsm8k(size_of_data: float = 1.0, seed: int = 0, split="test"):
         raw_dataset = load_dataset("openai/gsm8k", "main", split="train")
     else:
         raise ValueError("Split should be either 'test' or 'train'.")
-    if size_of_data != 1.0:
+    if size_of_data != 1.0 or type(size_of_data) != float:
         raw_dataset = raw_dataset.train_test_split(train_size=size_of_data, seed=seed)[
             "train"
         ]
@@ -88,7 +91,7 @@ def get_gsm8k(size_of_data: float = 1.0, seed: int = 0, split="test"):
     questions = raw_dataset["question"]
     for i in tqdm(range(len(raw_dataset))):
         answer = answers[i].split("####")[1].strip()
-        dataset.append({"question": questions[i], "ground_truths": [answer]})
+        dataset.append({"context": "", "question": questions[i], "ground_truths": [answer]})
 
     return dataset
 
@@ -103,7 +106,7 @@ def get_natural_qa(size_of_data: float = 1.0, seed: int = 0, split="test"):
             "google-research-datasets/nq_open", split="train")
     else:
         raise ValueError("Split should be either 'test' or 'train'.")
-    if size_of_data != 1.0:
+    if size_of_data != 1.0 or type(size_of_data) != float:
         raw_dataset = raw_dataset.train_test_split(train_size=size_of_data, seed=seed)[
             "train"
         ]
@@ -111,7 +114,7 @@ def get_natural_qa(size_of_data: float = 1.0, seed: int = 0, split="test"):
     questions = raw_dataset["question"]
     answers = raw_dataset["answer"]
     for i in tqdm(range(len(raw_dataset))):
-        dataset.append({"question": questions[i], "ground_truths": answers[i]})
+        dataset.append({"context": "", "question": questions[i], "ground_truths": answers[i]})
 
     return dataset
 
@@ -124,7 +127,7 @@ def get_pop_qa(size_of_data: float = 1.0, seed: int = 0, split="test"):
         print("Train split is not available for PopQA. Using test split instead.")
     else:
         raise ValueError("Split should be either 'test' or 'train'.")
-    if size_of_data != 1.0:
+    if size_of_data != 1.0 or type(size_of_data) != float:
         raw_dataset = raw_dataset.train_test_split(train_size=size_of_data, seed=seed)[
             "train"
         ]
@@ -133,7 +136,7 @@ def get_pop_qa(size_of_data: float = 1.0, seed: int = 0, split="test"):
     answers = raw_dataset["possible_answers"]
     for i in tqdm(range(len(raw_dataset))):
         dataset.append(
-            {"question": questions[i], "ground_truths": [answers[i]]})
+            {"context": "", "question": questions[i], "ground_truths": [answers[i]]})
 
     return dataset
 
@@ -146,7 +149,7 @@ def get_simple_qa(size_of_data: float = 1.0, seed: int = 0, split="test"):
         print("Train split is not available for PopQA. Using test split instead.")
     else:
         raise ValueError("Split should be either 'test' or 'train'.")
-    if size_of_data != 1.0:
+    if size_of_data != 1.0 or type(size_of_data) != float:
         raw_dataset = raw_dataset.train_test_split(train_size=size_of_data, seed=seed)[
             "train"
         ]
@@ -155,6 +158,23 @@ def get_simple_qa(size_of_data: float = 1.0, seed: int = 0, split="test"):
     answers = raw_dataset["answer"]
     for i in tqdm(range(len(raw_dataset))):
         dataset.append(
-            {"question": questions[i], "ground_truths": [answers[i]]})
+            {"context": "", "question": questions[i], "ground_truths": [answers[i]]})
+
+    return dataset
+
+def get_wikipedia_factual(size_of_data: float = 1.0, seed: int = 0, split='train'):
+    raw_dataset = load_dataset("achorn123/wikipedia_factual_dataset", split='train')  
+
+    if size_of_data != 1.0 or type(size_of_data) != float:
+        raw_dataset = raw_dataset.train_test_split(train_size=size_of_data, seed=seed)['train'] 
+
+    dataset = []
+    for data in tqdm(raw_dataset, desc="Processing Wikipedia dataset"):
+        context = data["context"].strip()
+        qa_pairs = data["qa_pairs"]
+        for qa in qa_pairs:
+            question = qa[0].strip()
+            ground_truths = [qa[1].strip()]
+            dataset.append({'context': context, 'question': question, 'ground_truths': ground_truths})
 
     return dataset

@@ -98,7 +98,7 @@ class QuestionAnswerGeneration(ClaimCheckMethod):
                 "microsoft/deberta-large-mnli"
             )
 
-    def _generate_question(self, claim: str, text_so_far: str, question_context: str):
+    def _generate_question(self, claim: str, text_so_far: str, question: str):
 
         messages = (
             deepcopy(self.first_claim_instruction)
@@ -106,13 +106,13 @@ class QuestionAnswerGeneration(ClaimCheckMethod):
             else deepcopy(self.instruction)
         )
         messages[-1]["content"] = messages[-1]["content"].format(
-            claim=claim, text_so_far=text_so_far, question_context=question_context
+            claim=claim, text_so_far=text_so_far, question=question
         )
 
         if type(self.model) == str:
             response = completion(
                 model=self.model, messages=messages, **self.kwargs)
-            question = response.choices[0].message["content"]
+            gen_question = response.choices[0].message["content"]
         else:
             self.tokenizer, messages = fix_tokenizer_chat(
                 self.tokenizer, messages)
@@ -124,22 +124,22 @@ class QuestionAnswerGeneration(ClaimCheckMethod):
             )
             generated_output = generate(
                 text, self.model, self.tokenizer, **self.kwargs)
-            question = generated_output["generated_text_skip_specials"]
+            gen_question = generated_output["generated_text_skip_specials"]
 
-        return question.strip()
+        return gen_question.strip()
 
-    def _get_questions(self, question_context: str, claim: str, text_so_far: str):
+    def _get_questions(self, question: str, claim: str, text_so_far: str):
         # Generate questions
         questions = []
         question_check = []
         org_seed = self.kwargs.get("seed", None)
         for _ in range(self.num_questions):
-            question = self._generate_question(
-                claim=claim, text_so_far=text_so_far, question_context=question_context
+            gen_question = self._generate_question(
+                claim=claim, text_so_far=text_so_far, question=question
             )
-            if question.lower() not in question_check:
-                question_check.append(question.lower())
-                questions.append(question)
+            if gen_question.lower() not in question_check:
+                question_check.append(gen_question.lower())
+                questions.append(gen_question)
             if type(self.model) == str:
                 seed = self.kwargs.pop("seed", None)
                 self.kwargs["seed"] = (
@@ -176,6 +176,7 @@ class QuestionAnswerGeneration(ClaimCheckMethod):
         model_output,
         generation_seed,
         messages,
+        context,
         **kwargs,
     ):
 
@@ -211,12 +212,13 @@ class QuestionAnswerGeneration(ClaimCheckMethod):
                 model=model,
                 input_text=text,
                 generated_text=answer,
-                question_context=question,
+                question=question,
                 all_ids=model_output,
                 tokenizer=tokenizer,
                 generation_seed=generation_seed,
                 sampled_generations_dict=sampled_gen_dict,
                 messages=messages,
+                context=context,
                 **kwargs,
             )
             normalized_truth_values.append(
@@ -231,18 +233,20 @@ class QuestionAnswerGeneration(ClaimCheckMethod):
         model: PreTrainedModel,
         input_text: str,
         generated_text: str,
-        question_context: str,
+        question: str,
         claim: str,
         text_so_far: str,
         all_ids: Union[list, torch.Tensor],
         tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
         generation_seed=None,
         messages: list = [],
+        context:str = "",
         **kwargs,
     ):
+        main_question = question
 
         all_questions = self._get_questions(
-            question_context=question_context, claim=claim, text_so_far=text_so_far
+            question=main_question, claim=claim, text_so_far=text_so_far
         )
 
         # Get model answers for each question (generate answers until it entails the claim)
@@ -300,6 +304,7 @@ class QuestionAnswerGeneration(ClaimCheckMethod):
                     model_output=model_output,
                     generation_seed=generation_seed,
                     messages=t_messages,
+                    context=context,
                     **kwargs,
                 )
             )
@@ -355,6 +360,7 @@ class QuestionAnswerGeneration(ClaimCheckMethod):
         generation_seed,
         logprobs,
         generated_tokens,
+        context,
         **kwargs,
     ):
 
@@ -388,11 +394,12 @@ class QuestionAnswerGeneration(ClaimCheckMethod):
                 model=model,
                 messages=q_messages,
                 generated_text=answer,
-                question_context=question,
+                question=question,
                 generation_seed=generation_seed,
                 sampled_generations_dict=sampled_gen_dict,
                 logprobs=logprobs,
                 generated_tokens=generated_tokens,
+                context=context,
                 **kwargs,
             )
             normalized_truth_values.append(
@@ -408,15 +415,16 @@ class QuestionAnswerGeneration(ClaimCheckMethod):
         model: str,
         messages: list,
         generated_text: str,
-        question_context: str,
+        question: str,
         claim: str,
         text_so_far: str,
         generation_seed=None,
+        context:str="",
         **kwargs,
     ):
-
+        main_question = question
         all_questions = self._get_questions(
-            question_context=question_context, claim=claim, text_so_far=text_so_far
+            question=main_question, claim=claim, text_so_far=text_so_far
         )
 
         requires_logprobs = False
@@ -489,6 +497,7 @@ class QuestionAnswerGeneration(ClaimCheckMethod):
                     generation_seed=generation_seed,
                     logprobs=logprob,
                     generated_tokens=tokens,
+                    context=context,
                     **kwargs,
                 )
             )

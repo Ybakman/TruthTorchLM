@@ -17,36 +17,39 @@ from TruthTorchLM.error_handler import handle_logprobs_error
 def long_form_generation_with_truth_value(
     model: PreTrainedModel,
     messages: list,
-    question_context: str = None,
+    question: str = None,
     tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
     decomp_method: DecompositionMethod = None,
     claim_check_methods: list[ClaimCheckMethod] = None,
     generation_seed=None,
     add_generation_prompt=True,
     continue_final_message=False,
+    context:str="",
     **kwargs
 ) -> dict:
     if type(model) == str:
         return long_form_generation_with_truth_value_api(
             model=model,
             messages=messages,
-            question_context=question_context,
+            question=question,
             decomp_method=decomp_method,
             claim_check_methods=claim_check_methods,
             generation_seed=generation_seed,
+            context=context,
             **kwargs
         )
     else:
         return long_form_generation_with_truth_value_hf_local(
             model=model,
             messages=messages,
-            question_context=question_context,
+            question=question,
             decomp_method=decomp_method,
             claim_check_methods=claim_check_methods,
             tokenizer=tokenizer,
             generation_seed=generation_seed,
             add_generation_prompt=add_generation_prompt,
             continue_final_message=continue_final_message,
+            context=context,
             **kwargs
         )
 
@@ -55,22 +58,23 @@ def long_form_generation_with_truth_value(
 def long_form_generation_with_truth_value_hf_local(
     model: PreTrainedModel,
     messages: list,
-    question_context: str = None,
+    question: str = None,
     tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
     decomp_method: DecompositionMethod = None,
     claim_check_methods: list[ClaimCheckMethod] = None,
     generation_seed=None,
     add_generation_prompt=True,
     continue_final_message=False,
+    context:str="",
     **kwargs
 ) -> dict:
 
-    if question_context == None:
-        question_context = ""
+    if question == None:
+        question = ""
         # search over last user message if exists
         for message in messages[::-1]:
             if message["role"] == "user":
-                question_context = message["content"]
+                question = message["content"]
                 break
 
     eos_token_id = kwargs.pop("eos_token_id", None)
@@ -124,13 +128,14 @@ def long_form_generation_with_truth_value_hf_local(
                 model=model,
                 input_text=text,
                 generated_text=generated_text,
-                question_context=question_context,
+                question=question,
                 claim=claim,
                 text_so_far=text_so_far,
                 all_ids=model_output,
                 tokenizer=tokenizer,
                 generation_seed=generation_seed,
                 messages=messages,
+                context=context,                
                 **kwargs
             )
 
@@ -165,19 +170,20 @@ def long_form_generation_with_truth_value_hf_local(
 def long_form_generation_with_truth_value_api(
     model: str,
     messages: list,
-    question_context: str = None,
+    question: str = None,
     decomp_method: DecompositionMethod = None,
     claim_check_methods: list[ClaimCheckMethod] = None,
     generation_seed=None,
+    context:str="",
     **kwargs
 ) -> dict:
 
-    if question_context == None:
-        question_context = ""
+    if question == None:
+        question = ""
         # search over last user message if exists
         for message in messages[::-1]:
             if message["role"] == "user":
-                question_context = message["content"]
+                question = message["content"]
                 break
 
     # adjust seeds
@@ -213,10 +219,11 @@ def long_form_generation_with_truth_value_api(
                 model=model,
                 messages=messages,
                 generated_text=generated_text,
-                question_context=question_context,
+                question=question,
                 claim=claim,
                 text_so_far=text_so_far,
                 generation_seed=generation_seed,
+                context=context,                
                 **kwargs
             )
             stmt_normalized_truth_values.append(

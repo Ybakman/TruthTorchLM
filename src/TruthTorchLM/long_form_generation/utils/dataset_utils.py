@@ -57,7 +57,7 @@ def get_longfact(branch: str, size_of_data: int = 100, seed: int = 0):
     for file_name in os.listdir(f"{get_cache_dir()}/datasets/{branch}"):
         with open(f"{get_cache_dir()}/datasets/{branch}/" + file_name, "r") as file:
             for line in file:
-                questions.append({"question": json.loads(line)["prompt"]})
+                questions.append({"question": json.loads(line)["prompt"], "context":""})
 
     if size_of_data < len(questions):
         random.seed(seed)

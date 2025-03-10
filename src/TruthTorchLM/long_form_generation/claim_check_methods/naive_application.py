@@ -41,6 +41,7 @@ class NaiveApplication(ClaimCheckMethod):
         model_output,
         generation_seed,
         messages,
+        context,
         **kwargs,
     ):
 
@@ -76,12 +77,13 @@ class NaiveApplication(ClaimCheckMethod):
                 model=model,
                 input_text=text,
                 generated_text=answer,
-                question_context=question,
+                question=question,
                 all_ids=model_output,
                 tokenizer=tokenizer,
                 generation_seed=generation_seed,
                 sampled_generations_dict=sampled_gen_dict,
                 messages=messages,
+                context=context,
                 **kwargs,
             )
             normalized_truth_values.append(
@@ -96,17 +98,18 @@ class NaiveApplication(ClaimCheckMethod):
         model: PreTrainedModel,
         input_text: str,
         generated_text: str,
-        question_context: str,
+        question: str,
         claim: str,
         text_so_far: str,
         all_ids: Union[list, torch.Tensor],
         tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
         generation_seed=None,
         messages: list = [],
+        context:str="",
         **kwargs,
     ):
 
-        question = question_context if self.use_question else ""
+        question = question if self.use_question else ""
         q_messages = deepcopy(self.generate_answer_instruction)
         q_messages[-1]["content"] = q_messages[-1]["content"].format(
             question=question)
@@ -143,6 +146,7 @@ class NaiveApplication(ClaimCheckMethod):
                 model_output=model_outputs,
                 generation_seed=generation_seed,
                 messages=t_messages,
+                context=context,
                 **kwargs,
             )
         )
@@ -171,6 +175,7 @@ class NaiveApplication(ClaimCheckMethod):
         question,
         answer,
         generation_seed,
+        context,
         **kwargs,
     ):
 
@@ -204,9 +209,10 @@ class NaiveApplication(ClaimCheckMethod):
                 model=model,
                 messages=q_messages,
                 generated_text=answer,
-                question_context=question,
+                question=question,
                 generation_seed=generation_seed,
                 sampled_generations_dict=sampled_gen_dict,
+                context=context,
                 **kwargs,
             )
             normalized_truth_values.append(
@@ -221,10 +227,11 @@ class NaiveApplication(ClaimCheckMethod):
         model: str,
         messages: list,
         generated_text: str,
-        question_context: str,
+        question: str,
         claim: str,
         text_so_far: str,
         generation_seed=None,
+        context:str="",
         **kwargs,
     ):
 
@@ -242,7 +249,7 @@ class NaiveApplication(ClaimCheckMethod):
             )
 
         q_messages = deepcopy(self.generate_answer_instruction)
-        question = question_context if self.use_question else ""
+        question = question if self.use_question else ""
         # Get truth value for truth method
         q_messages[-1]["content"] = q_messages[-1]["content"].format(
             question=question)
@@ -254,6 +261,7 @@ class NaiveApplication(ClaimCheckMethod):
                 question=question,
                 answer=claim,
                 generation_seed=generation_seed,
+                context=context,
                 **kwargs,
             )
         )
@@ -270,7 +278,7 @@ class NaiveApplication(ClaimCheckMethod):
             "claim": claim,
             "normalized_truth_values": normalized_truth_values,
             "truth_values": unnormalized_truth_values,
-            "question": question_context,
+            "question": question,
             "truth_method_spec_outputs": final_method_specific_outputs,
         }
 

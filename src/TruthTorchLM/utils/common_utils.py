@@ -93,10 +93,10 @@ def sigmoid_normalization(x: float, threshold: float = 0.0, std: float = 1.0):
     z = (x - threshold) / std
     if z >= 0:
         # For positive z, compute sigmoid as 1 / (1 + exp(-z)) directly
-        return 1 / (1 + np.exp(-z))
+        return float(1 / (1 + np.exp(-z)))
     else:
         # For negative z, to avoid overflow, use the identity: sigmoid(z) = exp(z) / (1 + exp(z))
-        return np.exp(z) / (1 + np.exp(z))
+        return float(np.exp(z) / (1 + np.exp(z)))
 
 
 # for a target text, find the indices of the tokens that are in the target text.

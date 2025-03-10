@@ -58,7 +58,7 @@ class SemanticEntropy(TruthMethod):
     def _semantic_entropy(
         self,
         generated_texts: list[str],
-        question_context: str,
+        question: str,
         scores: list[float],
         generated_outputs: list,
     ):
@@ -66,7 +66,7 @@ class SemanticEntropy(TruthMethod):
         clusters = bidirectional_entailment_clustering(
             self.model_for_entailment,
             self.tokenizer_for_entailment,
-            question_context,
+            question,
             generated_texts,
         )
         total_output_for_log = calculate_total_log(generated_outputs, clusters)
@@ -84,12 +84,13 @@ class SemanticEntropy(TruthMethod):
         model: PreTrainedModel,
         input_text: str,
         generated_text: str,
-        question_context: str,
+        question: str,
         all_ids: Union[list, torch.Tensor],
         tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         messages: list = [],
+        context: str = "",
         **kwargs
     ):
         if sampled_generations_dict is None:
@@ -119,7 +120,7 @@ class SemanticEntropy(TruthMethod):
             generated_outputs.append((text, score))
 
         return self._semantic_entropy(
-            generated_texts, question_context, scores, generated_outputs
+            generated_texts, question, scores, generated_outputs
         )
 
     def forward_api(
@@ -127,11 +128,12 @@ class SemanticEntropy(TruthMethod):
         model: str,
         messages: list,
         generated_text: str,
-        question_context: str,
+        question: str,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         logprobs: list = None,
         generated_tokens: list = None,
+        context: str = "",
         **kwargs
     ):
         if sampled_generations_dict is None:
@@ -159,5 +161,5 @@ class SemanticEntropy(TruthMethod):
             generated_outputs.append((text, score))
 
         return self._semantic_entropy(
-            generated_texts, question_context, scores, generated_outputs
+            generated_texts, question, scores, generated_outputs
         )

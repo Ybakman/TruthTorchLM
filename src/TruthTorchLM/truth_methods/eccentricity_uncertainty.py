@@ -56,7 +56,7 @@ class EccentricityUncertainty(TruthMethod):
         self.batch_generation = batch_generation
 
     def _eccentricity_uncertainty(
-        self, sampled_generations_dict: dict, question_context: str
+        self, sampled_generations_dict: dict, question: str
     ):
         generated_texts = sampled_generations_dict["generated_texts"][
             : self.number_of_generations
@@ -64,7 +64,7 @@ class EccentricityUncertainty(TruthMethod):
         output_dict = {}
         output = calculate_U_ecc(
             generated_texts,
-            question_context,
+            question,
             method_for_similarity=self.method_for_similarity,
             temperature=self.temperature,
             eigen_threshold=self.eigen_threshold,
@@ -81,12 +81,13 @@ class EccentricityUncertainty(TruthMethod):
         model: PreTrainedModel,
         input_text: str,
         generated_text: str,
-        question_context: str,
+        question: str,
         all_ids: Union[list, torch.Tensor],
         tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         messages: list = [],
+        context: str = "",
         **kwargs
     ):
 
@@ -104,7 +105,7 @@ class EccentricityUncertainty(TruthMethod):
             )
 
         return self._eccentricity_uncertainty(
-            sampled_generations_dict, question_context
+            sampled_generations_dict, question
         )
 
     def forward_api(
@@ -112,11 +113,12 @@ class EccentricityUncertainty(TruthMethod):
         model: str,
         messages: list,
         generated_text: str,
-        question_context: str,
+        question: str,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         logprobs: list = None,
         generated_tokens: list = None,
+        context: str = "",
         **kwargs
     ):
 
@@ -131,5 +133,5 @@ class EccentricityUncertainty(TruthMethod):
             )
 
         return self._eccentricity_uncertainty(
-            sampled_generations_dict, question_context
+            sampled_generations_dict, question
         )

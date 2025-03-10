@@ -36,6 +36,8 @@ from TruthTorchLM.error_handler import handle_logprobs_error
 class LARS(TruthMethod):
 
     REQUIRES_LOGPROBS = True
+    REQUIRES_SAMPLED_TEXT = True
+    REQUIRES_SAMPLED_LOGPROBS = True
 
     def __init__(
         self,
@@ -47,6 +49,7 @@ class LARS(TruthMethod):
         model_for_entailment: PreTrainedModel = None,
         tokenizer_for_entailment: PreTrainedTokenizer = None,
         entailment_model_device="cuda",
+        batch_generation:bool=True, #used only if ue_type is se or entropy
     ):
         super().__init__()
 
@@ -59,6 +62,7 @@ class LARS(TruthMethod):
         self.ue_type = ue_type
         # number of generations for semantic entropy and entropy
         self.number_of_generations = number_of_generations
+        self.batch_generation = batch_generation
 
         # lars model
         if lars_model is None or lars_tokenizer is None:
@@ -91,6 +95,7 @@ class LARS(TruthMethod):
             tokenizer_for_entailment = DebertaTokenizer.from_pretrained(
                 "microsoft/deberta-large-mnli"
             )
+            assert self.number_of_generations > 0, "Number of generations should be bigger that 0 if UE type is SE or Entropy"
 
         self.model_for_entailment = model_for_entailment
         self.tokenizer_for_entailment = tokenizer_for_entailment
@@ -165,12 +170,13 @@ class LARS(TruthMethod):
         model: PreTrainedModel,
         input_text: str,
         generated_text: str,
-        question_context: str,
+        question: str,
         all_ids: Union[list, torch.Tensor],
         tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         messages: list = [],
+        context: str = "",
         **kwargs,
     ):
 
@@ -201,7 +207,7 @@ class LARS(TruthMethod):
                 )  # probs for each token in the generated text
                 probs = probs.view(-1).tolist()  # convert to list
 
-                lars_score = self._lars(question_context, tokens_text, probs)
+                lars_score = self._lars(question, tokens_text, probs)
 
         elif self.ue_type in ["semantic_entropy", "se", "entropy"]:
             if sampled_generations_dict is None:
@@ -228,12 +234,12 @@ class LARS(TruthMethod):
                     for token in sampled_generations_dict["tokens"][i]
                 ]
                 score = torch.log(
-                    self._lars(
-                        question_context,
+                    torch.tensor(self._lars(
+                        question,
                         tokens_text,
-                        torch.exp(sampled_generations_dict["logprobs"][i]),
-                    )
-                )
+                        torch.exp(torch.tensor(sampled_generations_dict["logprobs"][i])),
+                    ))
+                ).item()
                 scores.append(score)  # scores are in log scale
                 generated_outputs.append((generated_texts[i], score))
 
@@ -241,7 +247,7 @@ class LARS(TruthMethod):
                 clusters = bidirectional_entailment_clustering(
                     self.model_for_entailment,
                     self.tokenizer_for_entailment,
-                    question_context,
+                    question,
                     sampled_generations_dict["generated_texts"],
                 )
                 lars_score = -calculate_total_log(generated_outputs, clusters)
@@ -270,17 +276,18 @@ class LARS(TruthMethod):
         model: str,
         messages: list,
         generated_text: str,
-        question_context: str,
+        question: str,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         logprobs: list = None,
         generated_tokens: list = None,
+        context: str = "",
         **kwargs,
     ):
 
         if self.ue_type == "confidence":
             lars_score = self._lars(
-                question_context, generated_tokens, torch.exp(
+                question, generated_tokens, torch.exp(
                     torch.tensor(logprobs))
             )
 
@@ -303,12 +310,12 @@ class LARS(TruthMethod):
 
             for i in range(self.number_of_generations):
                 score = torch.log(
-                    self._lars(
-                        question_context,
+                    torch.tensor(self._lars(
+                        question,
                         sampled_generations_dict["tokens"][i],
-                        torch.exp(sampled_generations_dict["logprobs"][i]),
-                    )
-                )
+                        torch.exp(torch.tensor(sampled_generations_dict["logprobs"][i])),
+                    ))
+                ).item()
                 scores.append(score)  # scores are in log scale
                 generated_outputs.append((generated_texts[i], score))
 
@@ -316,7 +323,7 @@ class LARS(TruthMethod):
                 clusters = bidirectional_entailment_clustering(
                     self.model_for_entailment,
                     self.tokenizer_for_entailment,
-                    question_context,
+                    question,
                     sampled_generations_dict["generated_texts"],
                 )
                 lars_score = -calculate_total_log(generated_outputs, clusters)
@@ -384,7 +391,7 @@ class LARS(TruthMethod):
                 {
                     "role": "user",
                     "content": user_prompt.format(
-                        question_context=train_data[i]["question"]
+                        question=train_data[i]["question"]
                     ),
                 }
             )
@@ -452,7 +459,7 @@ class LARS(TruthMethod):
                 {
                     "role": "user",
                     "content": user_prompt.format(
-                        question_context=val_data[i]["question"]
+                        question=val_data[i]["question"]
                     ),
                 }
             )

@@ -37,12 +37,13 @@ class PTrue(TruthMethod):
         model: PreTrainedModel,
         input_text: str,
         generated_text: str,
-        question_context: str,
+        question: str,
         all_ids: Union[list, torch.Tensor],
         tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         messages: list = [],
+        context: str = "",
         **kwargs
     ):
 
@@ -71,7 +72,7 @@ class PTrue(TruthMethod):
             {
                 "role": "user",
                 "content": self.user_prompt.format(
-                    question_context=question_context,
+                    question=question,
                     ideas=ideas,
                     generated_text=generated_text,
                 ),
@@ -119,11 +120,12 @@ class PTrue(TruthMethod):
         model: str,
         messages: list,
         generated_text: str,
-        question_context: str,
+        question: str,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         logprobs: list = None,
         generated_tokens: list = None,
+        context: str = "",
         **kwargs
     ):
         # make sampling for the ideas
@@ -145,7 +147,7 @@ class PTrue(TruthMethod):
             {
                 "role": "user",
                 "content": self.user_prompt.format(
-                    question_context=question_context,
+                    question=question,
                     ideas=ideas,
                     generated_text=generated_text,
                 ),

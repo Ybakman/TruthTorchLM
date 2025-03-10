@@ -53,7 +53,7 @@ class SumEigenUncertainty(TruthMethod):
         self.temperature = temperature  # temperature for NLI model
         self.batch_generation = batch_generation
 
-    def _sum_eigen_uncertainty(self, sampled_generations_dict, question_context):
+    def _sum_eigen_uncertainty(self, sampled_generations_dict, question):
         generated_texts = sampled_generations_dict["generated_texts"][
             : self.number_of_generations
         ]
@@ -61,7 +61,7 @@ class SumEigenUncertainty(TruthMethod):
         output_dict = {}
         output = calculate_U_eigv(
             generated_texts,
-            question_context,
+            question,
             method_for_similarity=self.method_for_similarity,
             temperature=self.temperature,
             model_for_entailment=self.model_for_entailment,
@@ -77,12 +77,13 @@ class SumEigenUncertainty(TruthMethod):
         model: PreTrainedModel,
         input_text: str,
         generated_text: str,
-        question_context: str,
+        question: str,
         all_ids: Union[list, torch.Tensor],
         tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         messages: list = [],
+        context: str = "",
         **kwargs
     ):
         if sampled_generations_dict is None:
@@ -97,18 +98,19 @@ class SumEigenUncertainty(TruthMethod):
                 **kwargs
             )
 
-        return self._sum_eigen_uncertainty(sampled_generations_dict, question_context)
+        return self._sum_eigen_uncertainty(sampled_generations_dict, question)
 
     def forward_api(
         self,
         model: str,
         messages: list,
         generated_text: str,
-        question_context: str,
+        question: str,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         logprobs: list = None,
         generated_tokens: list = None,
+        context: str = "",
         **kwargs
     ):
 
@@ -122,4 +124,4 @@ class SumEigenUncertainty(TruthMethod):
                 **kwargs
             )
 
-        return self._sum_eigen_uncertainty(sampled_generations_dict, question_context)
+        return self._sum_eigen_uncertainty(sampled_generations_dict, question)

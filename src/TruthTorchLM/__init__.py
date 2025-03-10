@@ -13,8 +13,21 @@ from TruthTorchLM import scoring_methods
 from .truth_methods.truth_method import TruthMethod
 import warnings
 
+warnings.filterwarnings(
+    "ignore",
+    message=".*parse_raw.*deprecated.*",
+    category=DeprecationWarning
+)
+
+warnings.filterwarnings(
+    "ignore",
+    message=".*load_str_bytes.*deprecated.*",
+    category=DeprecationWarning
+)
+
+
 # Suppress specific warnings in the library
-warnings.filterwarnings("ignore")
+#warnings.filterwarnings("once")
 
 
 # __all__ = ['generate_with_truth_value']

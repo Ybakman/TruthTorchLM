@@ -24,7 +24,8 @@ from .mars import MARS
 from .multi_llm_collab import MultiLLMCollab
 from .directional_entailment_graph import DirectionalEntailmentGraph
 from .SAR import SAR
-
+from .mini_check_method import MiniCheckMethod
+from .context_check import ContextCheck
 
 __all__ = [
     "Entropy",
@@ -53,4 +54,5 @@ __all__ = [
     "MultiLLMCollab",
     "DirectionalEntailmentGraph",
     "SAR",
+    "MiniCheck",
 ]

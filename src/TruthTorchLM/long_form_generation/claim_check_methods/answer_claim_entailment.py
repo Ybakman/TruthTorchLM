@@ -79,7 +79,7 @@ class AnswerClaimEntailment(ClaimCheckMethod):
                 "microsoft/deberta-large-mnli"
             )
 
-    def _generate_question(self, claim: str, text_so_far: str, question_context: str):
+    def _generate_question(self, claim: str, text_so_far: str, question: str):
 
         messages = (
             deepcopy(self.first_claim_instruction)
@@ -87,7 +87,7 @@ class AnswerClaimEntailment(ClaimCheckMethod):
             else deepcopy(self.instruction)
         )
         messages[-1]["content"] = messages[-1]["content"].format(
-            claim=claim, text_so_far=text_so_far, question_context=question_context
+            claim=claim, text_so_far=text_so_far, question=question
         )
 
         if type(self.model) == str:
@@ -109,14 +109,14 @@ class AnswerClaimEntailment(ClaimCheckMethod):
 
         return question.strip()
 
-    def _get_questions(self, question_context: str, claim: str, text_so_far: str):
+    def _get_questions(self, question: str, claim: str, text_so_far: str):
         # Generate questions
         questions = []
         question_check = []
         org_seed = self.kwargs.get("seed", None)
         for _ in range(self.num_questions):
             question = self._generate_question(
-                claim=claim, text_so_far=text_so_far, question_context=question_context
+                claim=claim, text_so_far=text_so_far, question=question
             )
             if question.lower() not in question_check:
                 question_check.append(question.lower())
@@ -151,18 +151,19 @@ class AnswerClaimEntailment(ClaimCheckMethod):
         model: PreTrainedModel,
         input_text: str,
         generated_text: str,
-        question_context: str,
+        question: str,
         claim: str,
         text_so_far: str,
         all_ids: Union[list, torch.Tensor],
         tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
         generation_seed=None,
         messages: list = [],
+        context:str="",
         **kwargs,
     ):
 
         questions = self._get_questions(
-            question_context=question_context, claim=claim, text_so_far=text_so_far
+            question=question, claim=claim, text_so_far=text_so_far
         )
         # Get model answers for each question (generate answers until it entails the claim)
         answers = []
@@ -206,15 +207,16 @@ class AnswerClaimEntailment(ClaimCheckMethod):
         model: str,
         messages: list,
         generated_text: str,
-        question_context: str,
+        question: str,
         claim: str,
         text_so_far: str,
         generation_seed=None,
+        context:str="",
         **kwargs,
     ):
 
         questions = self._get_questions(
-            question_context=question_context, claim=claim, text_so_far=text_so_far
+            question=question, claim=claim, text_so_far=text_so_far
         )
         answers = []
         entailment = []

@@ -41,7 +41,7 @@ without adding explanations, introductions, or conversational responses.""",
     },
     {
         "role": "user",
-        "content": """Original question: {question_context}
+        "content": """Original question: {question}
 Claim: {claim}
 Question: """,
     },

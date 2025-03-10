@@ -79,15 +79,15 @@ class SelfDetection(TruthMethod):
 
     def generate_similar_questions(
         self,
-        question_context: str,
+        question: str,
         prompt_for_generating_question: str = None,
         system_prompt: str = None,
         model=None,
         tokenizer=None,
         generation_seed=0,
     ):
-        generated_questions = [question_context]
-        previous_questions = [question_context]
+        generated_questions = [question]
+        previous_questions = [question]
         for i in range(self.number_of_questions - 1):
             if self.system_prompt is not None:
                 chat = [
@@ -95,7 +95,7 @@ class SelfDetection(TruthMethod):
                     {
                         "role": "user",
                         "content": self.prompt_for_generating_question.format(
-                            question=question_context,
+                            question=question,
                             previous_questions=previous_questions,
                         ),
                     },
@@ -105,7 +105,7 @@ class SelfDetection(TruthMethod):
                     {
                         "role": "user",
                         "content": self.prompt_for_generating_question.format(
-                            question=question_context,
+                            question=question,
                             previous_questions=previous_questions,
                         ),
                     }
@@ -151,14 +151,14 @@ class SelfDetection(TruthMethod):
         model,
         tokenizer,
         generated_texts: list,
-        question_context: str,
+        question: str,
         generated_questions,
     ):
         if self.method_for_similarity == "semantic":
             clusters = bidirectional_entailment_clustering(
                 self.model_for_entailment,
                 self.tokenizer_for_entailment,
-                question_context,
+                question,
                 generated_texts,
                 self.method_for_similarity,
                 entailment_prompt=self.prompt_for_entailment,
@@ -168,7 +168,7 @@ class SelfDetection(TruthMethod):
             clusters = bidirectional_entailment_clustering(
                 model,
                 tokenizer,
-                question_context,
+                question,
                 generated_texts,
                 self.method_for_similarity,
                 entailment_prompt=self.prompt_for_entailment,
@@ -203,12 +203,13 @@ class SelfDetection(TruthMethod):
         model: PreTrainedModel,
         input_text: str,
         generated_text: str,
-        question_context: str,
+        question: str,
         all_ids: Union[list, torch.Tensor],
         tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         messages: list = [],
+        context: str = "",
         **kwargs
     ):
         kwargs = copy.deepcopy(kwargs)
@@ -217,7 +218,7 @@ class SelfDetection(TruthMethod):
         kwargs.pop("do_sample", None)
         kwargs.pop("num_return_sequences", None)
         generated_questions = self.generate_similar_questions(
-            question_context=question_context,
+            question=question,
             prompt_for_generating_question=self.prompt_for_generating_question,
             model=model,
             tokenizer=tokenizer,
@@ -228,7 +229,7 @@ class SelfDetection(TruthMethod):
             chat = messages.copy()
             chat[-1] = {
                 "role": "user",
-                "content": self.user_prompt.format(question_context=generated_question),
+                "content": self.user_prompt.format(question=generated_question),
             }
             tokenizer, chat = fix_tokenizer_chat(tokenizer, chat)
             prompt = tokenizer.apply_chat_template(
@@ -247,7 +248,7 @@ class SelfDetection(TruthMethod):
             generated_texts.append(generated_text)
 
         return self._self_detection_output(
-            model, tokenizer, generated_texts, question_context, generated_questions
+            model, tokenizer, generated_texts, question, generated_questions
         )
 
     def forward_api(
@@ -255,11 +256,12 @@ class SelfDetection(TruthMethod):
         model: str,
         messages: list,
         generated_text: str,
-        question_context: str,
+        question: str,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         logprobs: list = None,
         generated_tokens: list = None,
+        context: str = "",
         **kwargs
     ):
 
@@ -267,7 +269,7 @@ class SelfDetection(TruthMethod):
         generated_questions = []
         generated_texts = []
         generated_questions = self.generate_similar_questions(
-            question_context=question_context,
+            question=question,
             prompt_for_generating_question=self.prompt_for_generating_question,
             system_prompt=self.system_prompt,
             model=model,
@@ -278,11 +280,11 @@ class SelfDetection(TruthMethod):
             chat = messages.copy()
             chat[-1] = {
                 "role": "user",
-                "content": self.user_prompt.format(question_context=generated_question),
+                "content": self.user_prompt.format(question=generated_question),
             }
             response = completion(model=model, messages=chat, **kwargs)
             generated_texts.append(response.choices[0].message["content"])
 
         return self._self_detection_output(
-            model, None, generated_texts, question_context, generated_questions
+            model, None, generated_texts, question, generated_questions
         )

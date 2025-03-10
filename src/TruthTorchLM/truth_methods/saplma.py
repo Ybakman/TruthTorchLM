@@ -40,12 +40,13 @@ class SAPLMA(TruthMethod):
         model: PreTrainedModel,
         input_text: str,
         generated_text: str,
-        question_context: str,
+        question: str,
         all_ids: Union[list, torch.Tensor],
         tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         messages: list = [],
+        context: str = "",
         **kwargs
     ):
 
@@ -69,11 +70,12 @@ class SAPLMA(TruthMethod):
         model: str,
         messages: list,
         generated_text: str,
-        question_context: str,
+        question: str,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         logprobs: list = None,
         generated_tokens: list = None,
+        context: str = "",
         **kwargs
     ):
         raise ValueError(
@@ -129,7 +131,7 @@ class SAPLMA(TruthMethod):
                 {
                     "role": "user",
                     "content": user_prompt.format(
-                        question_context=train_data[i]["question"]
+                        question=train_data[i]["question"]
                     ),
                 }
             )
@@ -199,7 +201,7 @@ class SAPLMA(TruthMethod):
                 {
                     "role": "user",
                     "content": user_prompt.format(
-                        question_context=val_data[i]["question"]
+                        question=val_data[i]["question"]
                     ),
                 }
             )

@@ -14,13 +14,14 @@ class ClaimCheckMethod(ABC):
         model: Union[PreTrainedModel, str],
         input_text: str = "",
         generated_text: str = "",
-        question_context: str = "",
+        question: str = "",
         claim: str = "",
         text_so_far: str = "",
         all_ids: Union[list, torch.Tensor] = None,
         tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
         generation_seed=None,
         messages: list = [],
+        context:str = "",
         **kwargs
     ) -> dict:
         if generation_seed is not None:
@@ -31,10 +32,11 @@ class ClaimCheckMethod(ABC):
                 model=model,
                 messages=messages,
                 generated_text=generated_text,
-                question_context=question_context,
+                question=question,
                 claim=claim,
                 text_so_far=text_so_far,
                 generation_seed=generation_seed,
+                context=context,
                 **kwargs
             )
         else:
@@ -42,13 +44,14 @@ class ClaimCheckMethod(ABC):
                 model=model,
                 input_text=input_text,
                 generated_text=generated_text,
-                question_context=question_context,
+                question=question,
                 claim=claim,
                 text_so_far=text_so_far,
                 all_ids=all_ids,
                 tokenizer=tokenizer,
                 generation_seed=generation_seed,
                 messages=messages,
+                context=context,
                 **kwargs
             )
 
@@ -60,13 +63,14 @@ class ClaimCheckMethod(ABC):
         model: PreTrainedModel,
         input_text: str,
         generated_text: str,
-        question_context: str,
+        question: str,
         claim: str,
         text_so_far: str,
         all_ids: Union[list, torch.Tensor],
         tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
         generation_seed=None,
         messages: list = [],
+        context:str = "",
         **kwargs
     ) -> dict:
         raise NotImplementedError("Subclasses must implement this method")
@@ -77,10 +81,11 @@ class ClaimCheckMethod(ABC):
         model: str,
         messages: list,
         generated_text: str,
-        question_context: str,
+        question: str,
         claim: str,
         text_so_far: str,
         generation_seed=None,
+        context:str = "",
         **kwargs
     ) -> dict:
         raise NotImplementedError("Subclasses must implement this method")

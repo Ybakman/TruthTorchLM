@@ -40,7 +40,7 @@ class SAR(TruthMethod):
     def _sentsar(
         self,
         generated_texts: list[str],
-        question_context: str,
+        question: str,
         scores: list[float],
         sampled_generations_dict: dict,
     ):
@@ -51,8 +51,8 @@ class SAR(TruthMethod):
 
         for i in range(len(generated_texts)):
             for j in range(i + 1, len(generated_texts)):
-                gen_i = question_context + generated_texts[i]
-                gen_j = question_context + generated_texts[j]
+                gen_i = question + generated_texts[i]
+                gen_j = question + generated_texts[j]
                 similarity_i_j = self.model_for_similarity.predict(
                     [gen_i, gen_j])
                 similarities[i].append(similarity_i_j)
@@ -87,7 +87,7 @@ class SAR(TruthMethod):
 
     def _tokensar_local(
         self,
-        question_context: str,
+        question: str,
         generated_text: str,
         tokens: list[int],
         logprobs: list[float],
@@ -102,8 +102,8 @@ class SAR(TruthMethod):
             score = self.model_for_similarity.predict(
                 [
                     (
-                        question_context + " " + removed_answer,
-                        question_context + " " + generated_text,
+                        question + " " + removed_answer,
+                        question + " " + generated_text,
                     )
                 ]
             )
@@ -118,12 +118,13 @@ class SAR(TruthMethod):
         model: PreTrainedModel,
         input_text: str,
         generated_text: str,
-        question_context: str,
+        question: str,
         all_ids: Union[list, torch.Tensor],
         tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         messages: list = [],
+        context: str = "",
         **kwargs
     ):
 
@@ -151,7 +152,7 @@ class SAR(TruthMethod):
         scores = []
         for i in range(self.number_of_generations):
             score = self._tokensar_local(
-                question_context,
+                question,
                 generated_texts[i],
                 generated_tokens[i],
                 logprobs[i],
@@ -160,12 +161,12 @@ class SAR(TruthMethod):
             scores.append(score)  # scores are in log scale
 
         return self._sentsar(
-            generated_texts, question_context, scores, sampled_generations_dict
+            generated_texts, question, scores, sampled_generations_dict
         )
 
     def _tokensar_api(
         self,
-        question_context: str,
+        question: str,
         generated_text: str,
         tokens: list[str],
         logprobs: list[float],
@@ -176,8 +177,8 @@ class SAR(TruthMethod):
             score = self.model_for_similarity.predict(
                 [
                     (
-                        question_context + " " + removed_answer,
-                        question_context + " " + generated_text,
+                        question + " " + removed_answer,
+                        question + " " + generated_text,
                     )
                 ]
             )
@@ -193,11 +194,12 @@ class SAR(TruthMethod):
         model: str,
         messages: list,
         generated_text: str,
-        question_context: str,
+        question: str,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         logprobs: list = None,
         generated_tokens: list = None,
+        context: str = "",
         **kwargs
     ):
 
@@ -223,10 +225,10 @@ class SAR(TruthMethod):
         scores = []
         for i in range(self.number_of_generations):
             score = self._tokensar_api(
-                question_context, generated_texts[i], generated_tokens[i], logprobs[i]
+                question, generated_texts[i], generated_tokens[i], logprobs[i]
             )
             scores.append(score)  # scores are in log scale
 
         return self._sentsar(
-            generated_texts, question_context, scores, sampled_generations_dict
+            generated_texts, question, scores, sampled_generations_dict
         )

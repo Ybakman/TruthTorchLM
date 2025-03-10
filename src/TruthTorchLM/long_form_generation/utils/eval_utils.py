@@ -11,12 +11,13 @@ from TruthTorchLM.long_form_generation.claim_check_methods.claim_check_method im
 )
 
 import time
+import warnings
 from tqdm import tqdm
 from typing import Union
 
 
 def run_over_dataset(
-    dataset: Union[str, list],
+    dataset: list,
     model: Union[str, PreTrainedModel],
     tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
     decomp_method: DecompositionMethod = None,
@@ -33,6 +34,12 @@ def run_over_dataset(
     continue_final_message=False,
     **kwargs,
 ):
+    
+    if dataset[0]["context"] != "" and user_prompt.find("context") == -1:
+        user_prompt = "Context: {context}\n" + user_prompt 
+        #show warning
+        warnings.warn("Context is not in the user prompt but it is provided in the dataset. Adding context to the user prompt. Unexpecting behavior may occur.")
+        
     output_dict = {}
     output_dict["previous_context"] = previous_context
     output_dict["user_prompt"] = user_prompt
@@ -40,6 +47,7 @@ def run_over_dataset(
     output_dict["claims"] = []
     output_dict["claim_correctness"] = []
     output_dict["question_text"] = []
+    output_dict["context"] = []
     output_dict["claim_check_methods"] = []  # save the truth methods
     if return_calim_eval_details:
         output_dict["claim_correctness_details"] = []
@@ -66,23 +74,32 @@ def run_over_dataset(
 
     for i in tqdm(range(len(dataset))):
         messages = previous_context.copy()
-        messages.append(
-            {
-                "role": "user",
-                "content": user_prompt.format(question_context=dataset[i]["question"]),
-            }
-        )
+        if dataset[i]["context"] != "":
+            messages.append(
+                {
+                    "role": "user",
+                    "content": user_prompt.format(context=dataset[i]["context"], question=dataset[i]["question"]),
+                }
+            )
+        else:
+            messages.append(
+                {
+                    "role": "user",
+                    "content": user_prompt.format(question=dataset[i]["question"]),
+                }
+            )
 
         truth_dict = long_form_generation_with_truth_value(
             model=model,
             messages=messages,
-            question_context=dataset[i]["question"],
+            question=dataset[i]["question"],
             tokenizer=tokenizer,
             decomp_method=decomp_method,
             claim_check_methods=claim_check_methods,
             generation_seed=seed,
             add_generation_prompt=add_generation_prompt,
             continue_final_message=continue_final_message,
+            context=dataset[i]["context"],
             **kwargs,
         )
 
@@ -103,6 +120,7 @@ def run_over_dataset(
         output_dict["generation"].append(truth_dict["generated_text"])
         output_dict["claims"].append(truth_dict["claims"])
         output_dict["question_text"].append(dataset[i]["question"])
+        output_dict["context"].append(dataset[i]["context"])
 
         for j in range(len(claim_check_methods)):
             output_dict[f"claim_check_methods_{j}"]["truth_values"].append(
@@ -120,7 +138,7 @@ def run_over_dataset(
 
 
 def decompose_and_label_dataset(
-    dataset: Union[str, list],
+    dataset: list,
     model: Union[str, PreTrainedModel],
     tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
     decomp_method: DecompositionMethod = None,
@@ -135,15 +153,30 @@ def decompose_and_label_dataset(
     continue_final_message=False,
     **kwargs,
 ):
+    
+    if dataset[0]["context"] != "" and user_prompt.find("context") == -1:
+        user_prompt = "Context: {context}\n" + user_prompt 
+        #show warning
+        warnings.warn("Context is not in the user prompt but it is provided in the dataset. Adding context to the user prompt. Unexpecting behavior may occur.")
+        
+
     new_dataset = []
     for i in tqdm(range(len(dataset))):
         messages = previous_context.copy()
-        messages.append(
-            {
-                "role": "user",
-                "content": user_prompt.format(question_context=dataset[i]["question"]),
-            }
-        )
+        if dataset[i]["context"] != "":
+            messages.append(
+                {
+                    "role": "user",
+                    "content": user_prompt.format(context=dataset[i]["context"], question=dataset[i]["question"]),
+                }
+            )
+        else:
+            messages.append(
+                {
+                    "role": "user",
+                    "content": user_prompt.format(question=dataset[i]["question"]),
+                }
+            )
 
         if "generated_text" in dataset[i]:
             print("Decomposing the generated text...")
@@ -156,13 +189,14 @@ def decompose_and_label_dataset(
             truth_dict = long_form_generation_with_truth_value(
                 model=model,
                 messages=messages,
-                question_context=dataset[i]["question"],
+                question=dataset[i]["question"],
                 tokenizer=tokenizer,
                 decomp_method=decomp_method,
                 claim_check_methods=[],
                 generation_seed=seed,
                 add_generation_prompt=add_generation_prompt,
                 continue_final_message=continue_final_message,
+                context=dataset[i]["context"],
                 **kwargs,
             )
 
@@ -174,6 +208,7 @@ def decompose_and_label_dataset(
 
         new_sample = {}
         new_sample["question"] = dataset[i]["question"]
+        new_sample["context"] = dataset[i]["context"]
         new_sample["generation"] = truth_dict["generated_text"]
         new_sample["claims"] = truth_dict["claims"]
         new_sample["claim_correctness"] = [
@@ -188,7 +223,7 @@ def decompose_and_label_dataset(
 
 
 def run_over_labelled_dataset(
-    dataset: Union[str, list],
+    dataset: list,
     model: Union[str, PreTrainedModel],
     tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
     claim_check_methods: list[ClaimCheckMethod] = None,
@@ -208,6 +243,12 @@ def run_over_labelled_dataset(
     output_dict["claim_correctness"] = []
     output_dict["question_text"] = []
     output_dict["claim_check_methods"] = []  # save the truth methods
+
+    if dataset[0]["context"] != "" and user_prompt.find("context") == -1:
+        user_prompt = "Context: {context}\n" + user_prompt 
+        #show warning
+        warnings.warn("Context is not in the user prompt but it is provided in the dataset. Adding context to the user prompt. Unexpecting behavior may occur.")
+        
 
     for i in range(len(claim_check_methods)):
         output_dict["claim_check_methods"].append(
@@ -231,12 +272,21 @@ def run_over_labelled_dataset(
 
     for i in tqdm(range(len(dataset))):
         messages = previous_context.copy()
-        messages.append(
-            {
-                "role": "user",
-                "content": user_prompt.format(question_context=dataset[i]["question"]),
-            }
-        )
+        if dataset[i]["context"] != "":
+            messages.append(
+                {
+                    "role": "user",
+                    "content": user_prompt.format(context=dataset[i]["context"], question=dataset[i]["question"]),
+                }
+            )
+        else:
+            messages.append(
+                {
+                    "role": "user",
+                    "content": user_prompt.format(question=dataset[i]["question"]),
+                }
+            )
+        
         claims = dataset[i]["claims"]
         claim_correctness = dataset[i]["claim_correctness"]
         generated_text = (
@@ -246,11 +296,12 @@ def run_over_labelled_dataset(
         truth_dict = process_sample(
             claim_check_methods=claim_check_methods,
             claims=claims,
-            question_context=dataset[i]["question"],
+            question=dataset[i]["question"],
             generated_text=generated_text,
             model=model,
             tokenizer=tokenizer,
             generation_seed=seed,
+            context=dataset[i]["context"],
             **kwargs,
         )
 
@@ -278,11 +329,12 @@ def run_over_labelled_dataset(
 def process_sample(
     claim_check_methods: list[ClaimCheckMethod],
     claims: list[str],
-    question_context: str,
+    question: str,
     generated_text: str,
     model: Union[str, PreTrainedModel],
     tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
     generation_seed: int = 0,
+    context:str="",
     **kwargs,
 ):
     # Get truth score for each claim.
@@ -301,10 +353,11 @@ def process_sample(
                     model=model,
                     messages=None,
                     generated_text=generated_text,
-                    question_context=question_context,
+                    question=question,
                     claim=claim,
                     text_so_far=text_so_far,
                     generation_seed=generation_seed,
+                    context=context,
                     **kwargs,
                 )
             else:
@@ -312,13 +365,14 @@ def process_sample(
                     model=model,
                     input_text=None,
                     generated_text=generated_text,
-                    question_context=question_context,
+                    question=question,
                     claim=claim,
                     text_so_far=text_so_far,
                     all_ids=None,
                     tokenizer=tokenizer,
                     generation_seed=generation_seed,
                     messages=None,
+                    context=context,
                     **kwargs,
                 )
             claim_normalized_truth_values.append(

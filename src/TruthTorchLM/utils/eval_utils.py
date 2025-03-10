@@ -14,6 +14,7 @@ from sklearn.metrics import (
 )
 import pandas as pd
 import numpy as np
+import warnings
 
 
 def area_under_accuracy_coverage_curve(t_s, acc):
@@ -261,6 +262,12 @@ def run_over_dataset(
     Returns:
         dict: Dictionary containing all evaluation results and generations
     """
+
+    if dataset[0]["context"] != "" and user_prompt.find("context") == -1:
+        user_prompt = "Context: {context}\n" + user_prompt 
+        #show warning
+        warnings.warn("Context is not in the user prompt but it is provided in the dataset. Adding context to the user prompt. Unexpecting behavior may occur.")
+        
     output_dict = {}
     output_dict["previous_context"] = previous_context
     output_dict["user_prompt"] = user_prompt
@@ -295,28 +302,37 @@ def run_over_dataset(
 
     for i in tqdm(range(len(dataset))):
         messages = previous_context.copy()
-        messages.append(
-            {
-                "role": "user",
-                "content": user_prompt.format(question_context=dataset[i]["question"]),
-            }
-        )
+        if dataset[i]["context"] != "":
+            messages.append(
+                {
+                    "role": "user",
+                    "content": user_prompt.format(context=dataset[i]["context"], question=dataset[i]["question"]),
+                }
+            )
+        else:
+            messages.append(
+                {
+                    "role": "user",
+                    "content": user_prompt.format(question=dataset[i]["question"]),
+                }
+            )
 
-        print(messages)
+        
 
         truth_dict = generate_with_truth_value(
             model=model,
             messages=messages,
-            question_context=dataset[i]["question"],
+            question=dataset[i]["question"],
             truth_methods=truth_methods,
             tokenizer=tokenizer,
             generation_seed=seed,
             batch_generation=batch_generation,
             add_generation_prompt=add_generation_prompt,
             continue_final_message=continue_final_message,
+            context=dataset[i]["context"],
             **kwargs,
         )
-        print(truth_dict["generated_text"])
+        
 
         is_correct = correctness_evaluator(
             dataset[i]["question"],

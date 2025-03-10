@@ -41,7 +41,7 @@ class TruthMethod(ABC):
         model: Union[PreTrainedModel, str],
         input_text: str = "",
         generated_text: str = "",
-        question_context: str = "",
+        question: str = "",
         all_ids: Union[list, torch.Tensor] = None,
         tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
         generation_seed=None,
@@ -49,6 +49,7 @@ class TruthMethod(ABC):
         messages: list = [],
         logprobs: list = None,
         generated_tokens: list = None,
+        context: str = "",
         **kwargs,
     ):
         if generation_seed is not None:
@@ -59,11 +60,12 @@ class TruthMethod(ABC):
                 model=model,
                 messages=messages,
                 generated_text=generated_text,
-                question_context=question_context,
+                question=question,
                 generation_seed=generation_seed,
                 sampled_generations_dict=sampled_generations_dict,
                 logprobs=logprobs,
                 generated_tokens=generated_tokens,
+                context=context,
                 **kwargs,
             )
         else:
@@ -72,21 +74,22 @@ class TruthMethod(ABC):
                 model=model,
                 input_text=input_text,
                 generated_text=generated_text,
-                question_context=question_context,
+                question=question,
                 all_ids=all_ids,
                 tokenizer=tokenizer,
                 generation_seed=generation_seed,
                 sampled_generations_dict=sampled_generations_dict,
                 messages=messages,
+                context=context,
                 **kwargs,
             )
 
         if self.REQUIRES_NORMALIZATION:
-            output_dict["normalized_truth_value"] = self.normalizer(
+            output_dict["normalized_truth_value"] = float(self.normalizer(
                 output_dict["truth_value"]
-            )
+            ))
         else:
-            output_dict["normalized_truth_value"] = output_dict["truth_value"]
+            output_dict["normalized_truth_value"] = float(output_dict["truth_value"])   
         return output_dict
 
     @abstractmethod
@@ -95,12 +98,13 @@ class TruthMethod(ABC):
         model: PreTrainedModel,
         input_text: str,
         generated_text: str,
-        question_context: str,
+        question: str,
         all_ids: Union[list, torch.Tensor],
         tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         messages: list = [],
+        context: str = "",
         **kwargs,
     ):
         raise NotImplementedError("Subclasses must implement this method")
@@ -111,11 +115,12 @@ class TruthMethod(ABC):
         model: str,
         messages: list,
         generated_text: str,
-        question_context: str,
+        question: str,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         logprobs: list = None,
         generated_tokens: list = None,
+        context: str = "",
         **kwargs,
     ):
         raise NotImplementedError("Subclasses must implement this method")

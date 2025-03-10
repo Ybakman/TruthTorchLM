@@ -56,12 +56,12 @@ class EccentricityConfidence(TruthMethod):
         self.batch_generation = batch_generation
 
     def _eccentricity_confidence(
-        self, generated_texts: list, question_context: str, index=-1
+        self, generated_texts: list, question: str, index=-1
     ):
         output_dict = {}
         output = calculate_C_ecc(
             generated_texts,
-            question_context,
+            question,
             method_for_similarity=self.method_for_similarity,
             temperature=self.temperature,
             eigen_threshold=self.eigen_threshold,
@@ -78,12 +78,13 @@ class EccentricityConfidence(TruthMethod):
         model: PreTrainedModel,
         input_text: str,
         generated_text: str,
-        question_context: str,
+        question: str,
         all_ids: Union[list, torch.Tensor],
         tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         messages: list = [],
+        context: str = "",
         **kwargs
     ):
 
@@ -105,7 +106,7 @@ class EccentricityConfidence(TruthMethod):
         generated_texts.append(generated_text)
 
         return self._eccentricity_confidence(
-            generated_texts, question_context, index=len(generated_texts) - 1
+            generated_texts, question, index=len(generated_texts) - 1
         )
 
     def forward_api(
@@ -113,11 +114,12 @@ class EccentricityConfidence(TruthMethod):
         model: str,
         messages: list,
         generated_text: str,
-        question_context: str,
+        question: str,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         logprobs: list = None,
         generated_tokens: list = None,
+        context: str = "",
         **kwargs
     ):
 
@@ -137,5 +139,5 @@ class EccentricityConfidence(TruthMethod):
         generated_texts.append(generated_text)
 
         return self._eccentricity_confidence(
-            generated_texts, question_context, index=len(generated_texts) - 1
+            generated_texts, question, index=len(generated_texts) - 1
         )

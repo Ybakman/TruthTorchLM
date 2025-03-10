@@ -63,7 +63,7 @@ class DirectionalEntailmentGraph(TruthMethod):
         self.entailment_model_device = entailment_model_device
 
     def _compute_directional_entailment_uncertainty(
-        self, sampled_generations_dict, question_context
+        self, sampled_generations_dict, question
     ):
         """
         Core logic that:
@@ -105,12 +105,13 @@ class DirectionalEntailmentGraph(TruthMethod):
         model: PreTrainedModel,
         input_text: str,
         generated_text: str,
-        question_context: str,
+        question: str,
         all_ids: Union[list, torch.Tensor],
         tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         messages: list = [],
+        context: str = "",
         **kwargs
     ):
         """
@@ -131,7 +132,7 @@ class DirectionalEntailmentGraph(TruthMethod):
             )
 
         return self._compute_directional_entailment_uncertainty(
-            sampled_generations_dict, question_context
+            sampled_generations_dict, question
         )
 
     def forward_api(
@@ -139,11 +140,12 @@ class DirectionalEntailmentGraph(TruthMethod):
         model: str,
         messages: list,
         generated_text: str,
-        question_context: str,
+        question: str,
         generation_seed=None,
         sampled_generations_dict: dict = None,
         logprobs: list = None,
         generated_tokens: list = None,
+        context: str = "",
         **kwargs
     ):
         """
@@ -162,7 +164,7 @@ class DirectionalEntailmentGraph(TruthMethod):
             )
 
         return self._compute_directional_entailment_uncertainty(
-            sampled_generations_dict, question_context
+            sampled_generations_dict, question
         )
 
     # "Private" utility methods. We can put them in `utils` if they are going to be used somewhere else
