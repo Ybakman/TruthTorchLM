@@ -3,9 +3,9 @@ from typing import Union
 import copy
 from .truth_method import TruthMethod
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast, AutoModelForCausalLM, AutoTokenizer
-from minicheck.minicheck import MiniCheck
 import contextlib
 import io
+from minicheck.minicheck import MiniCheck
 
 
 # paper link: https://arxiv.org/abs/2404.10774
@@ -22,7 +22,6 @@ class MiniCheckMethod(TruthMethod):
     
     def __init__(self, minicheck_model:str = 'flan-t5-large'):
         super().__init__()
-        
         if minicheck_model not in ['roberta-large', 'deberta-v3-large', 'flan-t5-large', 'Bespoke-MiniCheck-7B']:
             raise ValueError("Available Minicheck models are one of: 'roberta-large', 'deberta-v3-large', 'flan-t5-large', 'Bespoke-MiniCheck-7B'")
         else:
