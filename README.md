@@ -8,7 +8,7 @@
 
 ## Features  
 
-- **State-of-the-Art Methods**: Offers more than 25 **truth methods** that are designed to assess/predict the truthfulness of LLM generations. These methods range from Google search check to uncertainty estimation and multi-LLM collaboration techniques.
+- **State-of-the-Art Methods**: Offers more than 30 **truth methods** that are designed to assess/predict the truthfulness of LLM generations. These methods range from Google search check to uncertainty estimation and multi-LLM collaboration techniques.
 - **Integration**: Fully compatible with **Huggingface** and **LiteLLM**, enabling users to integrate truthfulness assessment/prediction into their workflows with **minimal code changes**.  
 - **Evaluation Tools**: Benchmark truth methods using various metrics including AUROC, AUPRC, PRR, and Accuracy.  
 - **Calibration**: Normalize and calibrate truth methods for interpretable and comparable outputs.  
@@ -28,6 +28,13 @@ Then, install TruthTorchLM using pip:
 ```bash
 pip install TruthTorchLM
 ```
+Or, alternatively
+
+```bash
+git clone https://github.com/Ybakman/TruthTorchLM.git
+pip -r requirements.txt
+```
+
 
 ---
 
