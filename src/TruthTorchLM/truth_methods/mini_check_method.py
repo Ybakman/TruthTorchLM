@@ -5,7 +5,6 @@ from .truth_method import TruthMethod
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast, AutoModelForCausalLM, AutoTokenizer
 import contextlib
 import io
-from minicheck.minicheck import MiniCheck
 
 
 # paper link: https://arxiv.org/abs/2404.10774
@@ -22,11 +21,15 @@ class MiniCheckMethod(TruthMethod):
     
     def __init__(self, minicheck_model:str = 'flan-t5-large'):
         super().__init__()
+        try:
+            from minicheck.minicheck import MiniCheck
+        except ImportError:
+            raise ImportError("minicheck is not installed. Please install it using 'pip install minicheck[llm]@git+https://github.com/Liyan06/MiniCheck.git@main' ")
         if minicheck_model not in ['roberta-large', 'deberta-v3-large', 'flan-t5-large', 'Bespoke-MiniCheck-7B']:
             raise ValueError("Available Minicheck models are one of: 'roberta-large', 'deberta-v3-large', 'flan-t5-large', 'Bespoke-MiniCheck-7B'")
         else:
             self.minicheck_model = MiniCheck(model_name=minicheck_model)
-            print(f'Using Minicheck model: {self.minicheck_model}')
+            
         
 
         

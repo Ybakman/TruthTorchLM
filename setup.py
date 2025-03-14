@@ -23,13 +23,12 @@ requirements = ["aiohttp",
                 "rouge_score",
                 "wandb",
                 "sentencepiece",
-                "minicheck[llm]@git+https://github.com/Liyan06/MiniCheck.git@main",
                 "accelerate>=0.26.0"]
 
 
 setup(
     name="TruthTorchLM",  # Your package name
-    version="0.1.16",           # Package version
+    version="0.1.17",           # Package version
     author="Yavuz Faruk Bakman",
     author_email="ybakman@usc.edu",
     description="TruthTorchLM is an open-source library designed to assess truthfulness in language models' outputs. The library integrates state-of-the-art methods, offers comprehensive benchmarking tools across various tasks, and enables seamless integration with popular frameworks like Huggingface and LiteLLM.",
