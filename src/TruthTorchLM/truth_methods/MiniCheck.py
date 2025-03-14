@@ -5,6 +5,7 @@ from .truth_method import TruthMethod
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast, AutoModelForCausalLM, AutoTokenizer
 from minicheck.minicheck import MiniCheck
 
+# download minicheck by pip install "minicheck[llm] @ git+https://github.com/Liyan06/MiniCheck.git@main"
 # paper link: https://arxiv.org/abs/2404.10774
 # hugginface link: https://huggingface.co/bespokelabs/Bespoke-MiniCheck-7B
 
