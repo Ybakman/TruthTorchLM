@@ -32,4 +32,4 @@ __all__ = ['Entropy', 'Confidence', 'TruthMethod', 'SemanticEntropy', 'PTrue', '
 'GoogleSearchCheck', 'EccentricityUncertainty', 'MatrixDegreeUncertainty', 'NumSemanticSetUncertainty', 
 'SumEigenUncertainty', 'SelfDetection', 'TokenSAR', "LARS", 'KernelLanguageEntropy', 'CrossExamination', 
 'SAPLMA', 'VerbalizedConfidence', 'EccentricityConfidence', 'MatrixDegreeConfidence', 'AttentionScore', 
-'MARS', 'MultiLLMCollab', 'DirectionalEntailmentGraph', 'SAR']
+'MARS', 'MultiLLMCollab', 'DirectionalEntailmentGraph', 'SAR', 'MiniCheck', 'ContextCheck']
