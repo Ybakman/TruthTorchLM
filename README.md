@@ -3,7 +3,7 @@
 </p>
 <p align="left">
     
-## TruthTorchLM: A Comprehensive Library for Assessing/Predicting Truthfulness in LLM Outputs
+## TruthTorchLM: A Comprehensive Package for Assessing/Predicting Truthfulness in LLM Outputs
 ---
 
 ## Features  
@@ -225,6 +225,7 @@ results = LFG.evaluate_truth_method_long_form(dataset='longfact_objects', model=
 - **MARS**: [MARS: Meaning-Aware Response Scoring for Uncertainty Estimation in Generative LLMs](https://aclanthology.org/2024.acl-long.419.pdf). 
 - **MatrixDegreeConfidence**: [Generating with Confidence: Uncertainty Quantification for Black-box Large Language Models](https://arxiv.org/pdf/2305.19187). 
 - **MatrixDegreeUncertainty**: [Generating with Confidence: Uncertainty Quantification for Black-box Large Language Models](https://arxiv.org/pdf/2305.19187).
+- **MiniCheck**: [MiniCheck: Efficient Fact-Checking of LLMs on Grounding Documents](https://arxiv.org/pdf/2404.10774)
 - **MultiLLMCollab**: [Don’t Hallucinate, Abstain: Identifying LLM Knowledge Gaps via Multi-LLM Collaboration](https://arxiv.org/pdf/2402.00367). 
 - **NumSemanticSetUncertainty**: [Semantic Uncertainty: Linguistic Invariances for Uncertainty Estimation in Natural Language Generation](https://arxiv.org/pdf/2302.09664). 
 - **PTrue**: [Language Models (Mostly) Know What They Know](https://arxiv.org/pdf/2207.05221). 
