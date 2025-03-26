@@ -46,6 +46,9 @@ def get_dataset(
     elif dataset == "wikipedia_factual":
         dataset = get_wikipedia_factual(
             size_of_data=size_of_data, seed=seed, split=split)
+    elif dataset == "narrative_qa":
+        dataset = get_narrative_qa(
+            size_of_data=size_of_data, seed=seed, split=split)
 
     return dataset
 
@@ -162,19 +165,43 @@ def get_simple_qa(size_of_data: float = 1.0, seed: int = 0, split="test"):
 
     return dataset
 
+
 def get_wikipedia_factual(size_of_data: float = 1.0, seed: int = 0, split='train'):
-    raw_dataset = load_dataset("achorn123/wikipedia_factual_dataset", split='train')  
+    raw_dataset = load_dataset("achorn123/wikipedia_factual_dataset_500", split='train')
 
     if size_of_data != 1.0 or type(size_of_data) != float:
-        raw_dataset = raw_dataset.train_test_split(train_size=size_of_data, seed=seed)['train'] 
+        raw_dataset = raw_dataset.train_test_split(train_size=size_of_data, seed=seed)['train']
 
     dataset = []
-    for data in tqdm(raw_dataset, desc="Processing Wikipedia dataset"):
+    for data in tqdm(raw_dataset, desc="Processing Wikipedia factual 500"):
         context = data["context"].strip()
-        qa_pairs = data["qa_pairs"]
-        for qa in qa_pairs:
-            question = qa[0].strip()
-            ground_truths = [qa[1].strip()]
-            dataset.append({'context': context, 'question': question, 'ground_truths': ground_truths})
+        question = data["question"].strip()
+        answer = data["answer"].strip()
+        dataset.append({
+            'context': context,
+            'question': question,
+            'ground_truths': [answer]
+        })
 
+    return dataset
+
+
+def get_narrative_qa(size_of_data: float = 1.0, seed: int = 0, split='train'):
+    raw_dataset = load_dataset("deepmind/narrativeqa", split=split)
+
+    if size_of_data != 1.0 or type(size_of_data) != float:
+        raw_dataset = raw_dataset.train_test_split(train_size=size_of_data, seed=seed)['train']
+
+    dataset = []
+    for data in tqdm(raw_dataset, desc="Processing NarrativeQA"):
+        context = data["document"]["text"].strip()
+        question = data["question"]["text"].strip()
+        answer = data["answers"][0]["text"].strip() if data["answers"] else ""
+
+        dataset.append({
+            "context": context,
+            "question": question,
+            "ground_truths": [answer]
+        })
+        
     return dataset
