@@ -186,7 +186,7 @@ def get_wikipedia_factual(size_of_data: float = 1.0, seed: int = 0, split='train
     return dataset
 
 
-def get_narrative_qa(size_of_data: float = 1.0, seed: int = 0, split='train'):
+def get_narrative_qa(size_of_data: float = 1.0, seed: int = 0, split='test'):
     raw_dataset = load_dataset("deepmind/narrativeqa", split=split)
 
     if size_of_data != 1.0 or type(size_of_data) != float:
