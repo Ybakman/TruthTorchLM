@@ -427,6 +427,14 @@ def sample_generations_batch_hf_local(
                     for eos in eos_token_id
                 ]
             ).T
+            for i in range(len(temp)):
+                if_eos = False
+                for j in range(len(temp[i])):
+                    if temp[i][j] != 0:
+                        if_eos = True
+                        break
+                if if_eos == False:#if it doesn't contain eos token
+                    temp[i][-1] = model_output.sequences.shape[1] - len(input_ids[0])  - 1
             indices = [torch.min(temp[i][temp[i] > 0]).item()
                        for i in range(len(temp))]
         else:
