@@ -117,7 +117,6 @@ class ContextCheck(TruthMethod):
             input_ids=input_ids,
             attention_mask=attention_mask,
             temperature=self.temperature,
-            pad_token_id=tokenizer.pad_token_id,
             **self.generation_kwargs
         )
         tokens = model_output[0][len(input_ids[0]):]
