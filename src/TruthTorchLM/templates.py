@@ -8,7 +8,37 @@ DEFAULT_USER_PROMPT = "Question: {question} Answer:"
 
 PTRUE_SYSTEM_PROMPT = 'You are a helpful, respectful and honest question-answer evaluator. You will be given a question, some brainstormed ideas and a generated answer. Evaluate the generate answer as true or false considering the question and brainstormed ideas. Output "The generated answer is true" or "The generated answer is false".'
 PTRUE_USER_PROMPT = "Question:{question}\nHere are some ideas that were brainstormed:{ideas}\nGenerated answer:{generated_text}"
+PTRUE_USER_PROMPT_WITH_CONTEXT = "Context:{context}\nQuestion:{question}\nHere are some ideas that were brainstormed:{ideas}\nGenerated answer:{generated_text}"
 PTRUE_MODEL_OUTPUT = "The generated answer is true"
+
+VC_SYSTEM_PROMPT = "You are a helpful, respectful and honest confidence estimator."
+VC_USER_PROMPT = """You will be provided with a question and a corresponding answer that you generated. Your task is to evaluate your confidence in the accuracy of the provided answer. The confidence indicates how likely you think your answer is true.
+
+The output must be a single number between 0 and 100:
+- 100 indicates maximum confidence.
+- 0 indicates no confidence.
+
+Output format: Only the number, without any additional text or explanation.
+
+Question: {question}
+Generated Answer: {generated_text}
+
+Your confidence score:"""
+
+VC_USER_PROMPT_WITH_CONTEXT = """You will be provided with a question, context and a corresponding answer that you generated. Your task is to evaluate your confidence in the accuracy of the provided answer regarding the context. The confidence indicates how likely you think your answer is true regarding the context.
+
+The output must be a single number between 0 and 100:
+- 100 indicates maximum confidence.
+- 0 indicates no confidence.
+
+Output format: Only the number, without any additional text or explanation.
+
+Context: {context}
+Question: {question}
+Generated Answer: {generated_text}
+
+Your confidence score:"""
+
 
 
 DEFAULT_JUDGE_SYSTEM_PROMPT = """You are a question answer evaluator."""

@@ -4,24 +4,12 @@ from typing import Union
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 from TruthTorchLM.utils.common_utils import generate
 from ..generation import sample_generations_api
-
+from TruthTorchLM.templates import VC_SYSTEM_PROMPT, VC_USER_PROMPT, VC_USER_PROMPT_WITH_CONTEXT
 import torch
 import copy
 
 
-VC_SYSTEM_PROMPT = "You are a helpful, respectful and honest confidence estimator."
-VC_USER_PROMPT = """You will be provided with a question and a corresponding answer that you generated. Your task is to evaluate your confidence in the accuracy of the provided answer. The confidence indicates how likely you think your answer is true.
 
-The output must be a single number between 0 and 100:
-- 100 indicates maximum confidence.
-- 0 indicates no confidence.
-
-Output format: Only the number, without any additional text or explanation.
-
-Question: {question}
-Generated Answer: {generated_text}
-
-Your confidence score:"""
 
 
 class VerbalizedConfidence(TruthMethod):
@@ -30,6 +18,7 @@ class VerbalizedConfidence(TruthMethod):
         self,
         system_prompt: str = VC_SYSTEM_PROMPT,
         user_prompt: str = VC_USER_PROMPT,
+        with_context: bool = False,
         max_new_tokens=1024,
         **generation_kwargs
     ):
@@ -38,6 +27,11 @@ class VerbalizedConfidence(TruthMethod):
         self.user_prompt = user_prompt
         self.max_new_tokens = max_new_tokens
         self.generation_kwargs = generation_kwargs
+        self.with_context = with_context
+
+        if with_context and '{context}' not in self.user_prompt:#check if the prompt has a context field
+            print("Context field is required in user prompt for with_context=True, swithing to the default user prompt with context")
+            self.user_prompt = VC_USER_PROMPT_WITH_CONTEXT
 
     def extract_confidence(self, confidence_text):
         """Extracts the confidence value from the confidence text. The text may include non-numeric characters."""
@@ -64,16 +58,27 @@ class VerbalizedConfidence(TruthMethod):
         context: str = "",
         **kwargs
     ):
+        if self.with_context == False:
+            chat = [
+                {"role": "system", "content": self.system_prompt},
+                {
+                    "role": "user",
+                    "content": self.user_prompt.format(
+                        question=question, generated_text=generated_text
+                    ),
+                },
+            ]
+        else:
+            chat = [
+                {"role": "system", "content": self.system_prompt},
+                {
+                    "role": "user",
+                    "content": self.user_prompt.format(
+                        question=question, generated_text=generated_text, context=context
+                    ),
+                },
+            ]
 
-        chat = [
-            {"role": "system", "content": self.system_prompt},
-            {
-                "role": "user",
-                "content": self.user_prompt.format(
-                    question=question, generated_text=generated_text
-                ),
-            },
-        ]
         tokenizer, chat = fix_tokenizer_chat(
             tokenizer, chat
         )  # in case some tokenizers don't have chat template and don't support system prompt
@@ -113,15 +118,26 @@ class VerbalizedConfidence(TruthMethod):
         context: str = "",
         **kwargs
     ):
-        chat = [
-            {"role": "system", "content": self.system_prompt},
-            {
-                "role": "user",
-                "content": self.user_prompt.format(
-                    question=question, generated_text=generated_text
-                ),
-            },
-        ]
+        if self.with_context == False:
+            chat = [
+                {"role": "system", "content": self.system_prompt},
+                {
+                    "role": "user",
+                    "content": self.user_prompt.format(
+                        question=question, generated_text=generated_text
+                    ),
+                },
+            ]
+        else:
+            chat = [
+                {"role": "system", "content": self.system_prompt},
+                {
+                    "role": "user",
+                    "content": self.user_prompt.format(
+                        question=question, generated_text=generated_text, context=context
+                    ),
+                },
+            ]
 
         sampled_generations_dict = sample_generations_api(
             model=model,

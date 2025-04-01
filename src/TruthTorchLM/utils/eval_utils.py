@@ -271,10 +271,11 @@ def run_over_dataset(
     output_dict = {}
     output_dict["previous_context"] = previous_context
     output_dict["user_prompt"] = user_prompt
-    output_dict["generation"] = []
-    output_dict["generation_correctness"] = []
+    output_dict["generations"] = []
+    output_dict["generations_correctness"] = []
     output_dict["question_text"] = []
     output_dict["ground_truths"] = []
+    output_dict['contexts'] = []
 
     output_dict["truth_methods"] = []  # save the truth methods
 
@@ -339,9 +340,10 @@ def run_over_dataset(
             truth_dict["generated_text"],
             dataset[i]["ground_truths"],
         )
-        output_dict["generation_correctness"].append(is_correct)
-        output_dict["generation"].append(truth_dict["generated_text"])
+        output_dict["generations_correctness"].append(is_correct)
+        output_dict["generations"].append(truth_dict["generated_text"])
         output_dict["question_text"].append(dataset[i]["question"])
+        output_dict["contexts"].append(dataset[i]["context"])
         output_dict["ground_truths"].append(dataset[i]["ground_truths"])
 
         for j in range(len(truth_methods)):

@@ -6,6 +6,7 @@ from TruthTorchLM.templates import (
     PTRUE_SYSTEM_PROMPT,
     PTRUE_USER_PROMPT,
     PTRUE_MODEL_OUTPUT,
+    PTRUE_USER_PROMPT_WITH_CONTEXT,
 )
 from ..generation import sample_generations_hf_local, sample_generations_api
 
@@ -24,6 +25,7 @@ class PTrue(TruthMethod):
         user_prompt: str = PTRUE_USER_PROMPT,
         model_output: str = PTRUE_MODEL_OUTPUT,
         batch_generation=True,
+        with_context: bool = False,
     ):
         super().__init__()
         self.number_of_ideas = number_of_ideas
@@ -31,6 +33,10 @@ class PTrue(TruthMethod):
         self.user_prompt = user_prompt
         self.model_output = model_output
         self.batch_generation = batch_generation
+        self.with_context = with_context
+        if with_context and '{context}' not in self.user_prompt:#check if the prompt has a context field
+            print("Context field is required in user prompt for with_context=True, swithing to the default user prompt with context")
+            self.user_prompt = PTRUE_USER_PROMPT_WITH_CONTEXT
 
     def forward_hf_local(
         self,
@@ -67,18 +73,33 @@ class PTrue(TruthMethod):
         ideas = sampled_generations_dict["generated_texts"][: self.number_of_ideas]
         ideas = "\n".join(ideas)
 
-        chat = [
-            {"role": "system", "content": self.system_prompt},
-            {
-                "role": "user",
-                "content": self.user_prompt.format(
-                    question=question,
-                    ideas=ideas,
-                    generated_text=generated_text,
-                ),
-            },
-            {"role": "assistant", "content": self.model_output},
-        ]
+        if self.with_context == False:
+            chat = [
+                {"role": "system", "content": self.system_prompt},
+                {
+                    "role": "user",
+                    "content": self.user_prompt.format(
+                        question=question,
+                        ideas=ideas,
+                        generated_text=generated_text,
+                    ),
+                },
+                {"role": "assistant", "content": self.model_output},
+            ]
+        else:
+            chat = [
+                {"role": "system", "content": self.system_prompt},
+                {
+                    "role": "user",
+                    "content": self.user_prompt.format(
+                        question=question,
+                        ideas=ideas,
+                        generated_text=generated_text,
+                        context=context,
+                    ),
+                },
+                {"role": "assistant", "content": self.model_output},    
+            ]
         tokenizer, chat = fix_tokenizer_chat(
             tokenizer, chat
         )  # in case some tokenizers don't have chat template and don't support system prompt
@@ -141,15 +162,29 @@ class PTrue(TruthMethod):
 
         ideas = sampled_generations_dict["generated_texts"][: self.number_of_ideas]
         ideas = "\n".join(ideas)
-
-        chat = [
-            {"role": "system", "content": self.system_prompt},
-            {
+    
+        if self.with_context == False:
+            chat = [
+                {"role": "system", "content": self.system_prompt},
+                {
                 "role": "user",
                 "content": self.user_prompt.format(
                     question=question,
                     ideas=ideas,
                     generated_text=generated_text,
+                ),
+            },
+        ]
+        else:
+            chat = [
+                {"role": "system", "content": self.system_prompt},
+                {
+                "role": "user",
+                "content": self.user_prompt.format(
+                    question=question,
+                    ideas=ideas,
+                    generated_text=generated_text,
+                    context=context,
                 ),
             },
         ]

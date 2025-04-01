@@ -67,8 +67,8 @@ def evaluate_truth_method(
     if wandb_run:
         wandb_run.log(
             {
-                "model_accuracy": sum(output_dict["generation_correctness"])
-                / len(output_dict["generation_correctness"])
+                "model_accuracy": sum(output_dict["generations_correctness"])
+                / len(output_dict["generations_correctness"])
             }
         )
 
@@ -109,7 +109,7 @@ def get_metric_scores(output_dict: dict, eval_metrics: list[str], seed: int = 0)
     for i in range(len(truth_methods)):
         eval_dict = metric_score(
             eval_metrics,
-            output_dict["generation_correctness"],
+            output_dict["generations_correctness"],
             output_dict[f"truth_method_{i}"]["truth_values"],
             output_dict[f"truth_method_{i}"]["normalized_truth_values"],
             seed=seed,

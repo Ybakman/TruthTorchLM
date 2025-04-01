@@ -49,7 +49,7 @@ def calibrate_truth_method(
         truth_values = output_dict[f"truth_method_{i}"]["truth_values"]
         truth_values = np.array(truth_values)
         truth_values[np.isnan(truth_values)] = 0
-        correctness = output_dict["generation_correctness"]
+        correctness = output_dict["generations_correctness"]
         # if generation_correctness is -1, it means that the model didn't attempt to generate an answer, remove those from the evaluation
         truth_method.normalizer.calibrate(
             generation_performance_scores=correctness, truth_values=truth_values
