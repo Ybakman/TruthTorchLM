@@ -28,22 +28,38 @@ class ModelJudge(CorrectnessEvaluator):
         question_text: str,
         generated_text: str,
         ground_truths: list[str],
+        context: str = "",
         seed: int = None,
     ) -> bool:
         if seed == None:
             seed = random.randint(0, 1000000)
+        model_generation = generated_text
+        if self.prompt.find("context") == -1:
+            chat = [
+                {"role": "system", "content": self.system_prompt},
+                {
+                    "role": "user",
+                    "content": self.prompt.format(
+                        question=question_text,
+                        ground_truths=", ".join(ground_truths),
+                        answer=generated_text,
+                    ),
+                },
+            ]
+        else:
+            chat = [
+                {"role": "system", "content": self.system_prompt},
+                {
+                    "role": "user",
+                    "content": self.prompt.format(
+                        question=question_text,
+                        ground_truths=", ".join(ground_truths),
+                        answer=generated_text,
+                        context=context,
+                    ),
+                },
+            ]
 
-        chat = [
-            {"role": "system", "content": self.system_prompt},
-            {
-                "role": "user",
-                "content": self.prompt.format(
-                    question=question_text,
-                    ground_truths=", ".join(ground_truths),
-                    answer=generated_text,
-                ),
-            },
-        ]
         if type(self.model) == str:
             response = completion(
                 model=self.model, messages=chat, seed=seed, num_retries=self.num_retries
@@ -60,7 +76,6 @@ class ModelJudge(CorrectnessEvaluator):
             tokens = model_output[0][len(input_ids[0]):]
             generated_text = self.tokenizer.decode(
                 tokens, skip_special_tokens=False)
-
         if "incorrect" in generated_text.lower():
             return 0
         elif "correct" in generated_text.lower():

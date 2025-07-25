@@ -1,7 +1,7 @@
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 from typing import Union
 from TruthTorchLM.truth_methods import TruthMethod
-from TruthTorchLM.evaluators import CorrectnessEvaluator, ROUGE
+from TruthTorchLM.evaluators import CorrectnessEvaluator, ExactMatch
 from TruthTorchLM.templates import DEFAULT_SYSTEM_BENCHMARK_PROMPT, DEFAULT_USER_PROMPT
 from TruthTorchLM.utils.dataset_utils import get_dataset
 from TruthTorchLM.utils.eval_utils import run_over_dataset
@@ -13,16 +13,14 @@ def calibrate_truth_method(
     model: Union[str, PreTrainedModel],
     truth_methods: list[TruthMethod],
     tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
-    correctness_evaluator: CorrectnessEvaluator = ROUGE(0.7),
+    correctness_evaluator: CorrectnessEvaluator = ExactMatch(),
     size_of_data: float = 1.0,
     previous_context: list = [
         {"role": "system", "content": DEFAULT_SYSTEM_BENCHMARK_PROMPT}
     ],
     user_prompt: str = DEFAULT_USER_PROMPT,
     seed: int = 0,
-    wandb_run=None,
     return_method_details: bool = False,
-    wandb_push_method_details: bool = False,
     split="train",
     **kwargs,
 ):
@@ -40,8 +38,6 @@ def calibrate_truth_method(
         user_prompt=user_prompt,
         seed=seed,
         return_method_details=return_method_details,
-        wandb_run=wandb_run,
-        wandb_push_method_details=wandb_push_method_details,
         **kwargs,
     )
 

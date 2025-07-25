@@ -54,5 +54,6 @@ __all__ = [
     "MultiLLMCollab",
     "DirectionalEntailmentGraph",
     "SAR",
-    "MiniCheck",
+    "MiniCheckMethod",
+    "ContextCheck",
 ]

@@ -244,6 +244,7 @@ def run_over_labelled_dataset(
     output_dict["question_text"] = []
     output_dict["claim_check_methods"] = []  # save the truth methods
 
+    print(dataset[0])
     if dataset[0]["context"] != "" and user_prompt.find("context") == -1:
         user_prompt = "Context: {context}\n" + user_prompt 
         #show warning

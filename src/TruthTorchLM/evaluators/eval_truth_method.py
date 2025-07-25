@@ -2,7 +2,7 @@ from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokeniz
 from typing import Union
 from TruthTorchLM.truth_methods import TruthMethod
 from .correctness_evaluator import CorrectnessEvaluator
-from .rouge import ROUGE
+from .exact_match import ExactMatch
 from TruthTorchLM.availability import AVAILABLE_EVALUATION_METRICS
 from TruthTorchLM.templates import DEFAULT_SYSTEM_BENCHMARK_PROMPT, DEFAULT_USER_PROMPT
 from TruthTorchLM.utils.dataset_utils import get_dataset
@@ -16,7 +16,7 @@ def evaluate_truth_method(
     truth_methods: list[TruthMethod],
     tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
     eval_metrics: list[str] = ["auroc"],
-    correctness_evaluator: CorrectnessEvaluator = ROUGE(0.7),
+    correctness_evaluator: CorrectnessEvaluator = ExactMatch(),
     size_of_data=1.0,
     previous_context: list = [
         {"role": "system", "content": DEFAULT_SYSTEM_BENCHMARK_PROMPT}
@@ -24,8 +24,6 @@ def evaluate_truth_method(
     user_prompt: str = DEFAULT_USER_PROMPT,
     seed: int = 0,
     return_method_details: bool = False,
-    wandb_run=None,
-    wandb_push_method_details: bool = False,
     batch_generation=True,
     add_generation_prompt=True,
     continue_final_message=False,
@@ -52,8 +50,6 @@ def evaluate_truth_method(
         user_prompt=user_prompt,
         seed=seed,
         return_method_details=return_method_details,
-        wandb_run=wandb_run,
-        wandb_push_method_details=wandb_push_method_details,
         batch_generation=batch_generation,
         add_generation_prompt=add_generation_prompt,
         continue_final_message=continue_final_message,
@@ -63,42 +59,6 @@ def evaluate_truth_method(
     eval_list = get_metric_scores(
         output_dict=output_dict, eval_metrics=eval_metrics, seed=seed
     )
-
-    if wandb_run:
-        wandb_run.log(
-            {
-                "model_accuracy": sum(output_dict["generations_correctness"])
-                / len(output_dict["generations_correctness"])
-            }
-        )
-
-        eval_dict = eval_list[0]
-        for key, _ in eval_dict.items():
-            methods = []
-            scores = []
-            for i, cur_eval_dict in enumerate(eval_list):
-                score = cur_eval_dict[key]
-                scores.append(score)
-                methods.append(str(truth_methods[i].__class__.__name__))
-                wandb_run.log(
-                    {
-                        f"{key}_of_method_{i}_{str(truth_methods[i].__class__.__name__)}": score
-                    }
-                )
-
-            data = [[method, score]
-                    for (method, score) in zip(methods, scores)]
-            table = wandb.Table(data=data, columns=["methods", "scores"])
-            wandb.log(
-                {
-                    f"{key}": wandb.plot.bar(
-                        table,
-                        "methods",
-                        "scores",
-                        title=f"{key} Scores of Truth Methods",
-                    )
-                }
-            )
 
     return {"eval_list": eval_list, "output_dict": output_dict}
 

@@ -12,6 +12,7 @@ class CorrectnessEvaluator(ABC):
         question_text: str,
         generated_text: str,
         ground_truth_text: list[str],
+        context: str = "",
         seed: int = None,
     ) -> int:
         raise NotImplementedError("Subclasses must implement this method")

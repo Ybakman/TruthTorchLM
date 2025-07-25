@@ -196,12 +196,14 @@ def get_narrative_qa(size_of_data: float = 1.0, seed: int = 0, split='test'):
     for data in tqdm(raw_dataset, desc="Processing NarrativeQA"):
         context = data["document"]["text"].strip()
         question = data["question"]["text"].strip()
-        answer = data["answers"][0]["text"].strip() if data["answers"] else ""
+        answers = []
+        for answer in data["answers"]:
+            answers.append(answer["text"].strip())
 
         dataset.append({
             "context": context,
             "question": question,
-            "ground_truths": [answer]
+            "ground_truths": answers
         })
         
     return dataset

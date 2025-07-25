@@ -14,6 +14,7 @@ class ROUGE(CorrectnessEvaluator):
         question_text: str,
         generated_text: str,
         ground_truths: list[str],
+        context: str = "",
         seed: int = None,
     ) -> bool:
         for i in range(len(ground_truths)):

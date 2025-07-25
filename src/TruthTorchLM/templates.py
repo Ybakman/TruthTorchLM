@@ -96,7 +96,7 @@ ENTAILMENT_PROMPT = "Determine whether the answer {seq1} is Contradicted or Same
 
 
 DEFAULT_JUDGE_PROMPT = """
-Your job is to look at a question, gold targets, and a predicted answer, and then assign a
+Your job is to look at a question, gold targets (there may be multiple gold targets), and a predicted answer, and then assign a
 grade of either ["CORRECT", "INCORRECT", "NOT_ATTEMPTED"].
 First, I will give examples of each grade, and then you will grade a new example.
 The following are examples of CORRECT predicted answers.
@@ -191,7 +191,7 @@ apologize or correct yourself if there was a mistake; we are just trying to grad
 answer.
 ‘‘‘
 Question: {question}
-Gold target: {ground_truths}
+Gold targets: {ground_truths}
 Predicted answer: {answer}
 ‘‘‘
 Grade the predicted answer of this new question as one of:

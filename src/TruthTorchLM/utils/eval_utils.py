@@ -1,7 +1,7 @@
 from tqdm import tqdm
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 from typing import Union
-from TruthTorchLM.generation import generate_with_truth_value
+from TruthTorchLM.generation import generate_with_truth_value, generate_api_or_hf_local, run_truth_methods
 from TruthTorchLM.templates import DEFAULT_SYSTEM_BENCHMARK_PROMPT, DEFAULT_USER_PROMPT
 import wandb
 from sklearn.metrics import (
@@ -221,48 +221,21 @@ def metric_score(
     return eval_dict
 
 
-def run_over_dataset(
-    dataset: Union[str, list],
+def eval_model_over_dataset(dataset: Union[str, list],
     model: Union[str, PreTrainedModel],
-    truth_methods: list,
     tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
     correctness_evaluator=None,
-    previous_context: list = [
-        {"role": "system", "content": DEFAULT_SYSTEM_BENCHMARK_PROMPT}
-    ],
+    truth_methods: list = [],
+    previous_context: list = [],
     user_prompt: str = DEFAULT_USER_PROMPT,
     seed: int = 0,
-    return_method_details: bool = False,
-    wandb_run=None,
-    wandb_push_method_details: bool = False,
-    batch_generation=True,
     add_generation_prompt=True,
     continue_final_message=False,
     **kwargs,
 ):
     """
-    Runs truth value estimation over a dataset and collects results.
-
-    Args:
-        dataset (Union[str, list]): Dataset to evaluate on
-        model (Union[str,PreTrainedModel]): Model to use for generation
-        truth_methods (list): List of truth value estimation methods to evaluate
-        tokenizer (Union[PreTrainedTokenizer, PreTrainedTokenizerFast], optional): Tokenizer for the model. Defaults to None.
-        correctness_evaluator (callable, optional): Function to evaluate correctness of generations. Defaults to None.
-        previous_context (list, optional): Previous conversation context. Defaults to system prompt.
-        user_prompt (str, optional): Template for user prompts. Defaults to DEFAULT_USER_PROMPT.
-        seed (int, optional): Random seed. Defaults to 0.
-        return_method_details (bool, optional): Whether to return detailed method outputs. Defaults to False.
-        wandb_run (optional): Weights & Biases run for logging. Defaults to None.
-        wandb_push_method_details (bool, optional): Whether to log detailed method outputs to W&B. Defaults to False.
-        batch_generation (bool, optional): Whether to use batch generation. Defaults to True.
-        add_generation_prompt (bool, optional): Whether to add generation prompt. Defaults to True.
-        continue_final_message (bool, optional): Whether to continue from final message. Defaults to False.
-
-    Returns:
-        dict: Dictionary containing all evaluation results and generations
+    Evaluates a model over a dataset.
     """
-
     if dataset[0]["context"] != "" and user_prompt.find("context") == -1:
         user_prompt = "Context: {context}\n" + user_prompt 
         #show warning
@@ -277,29 +250,7 @@ def run_over_dataset(
     output_dict["ground_truths"] = []
     output_dict['contexts'] = []
 
-    output_dict["truth_methods"] = []  # save the truth methods
-
-    for i in range(len(truth_methods)):
-        output_dict["truth_methods"].append(
-            f"{truth_methods[i].__class__.__name__}")
-        output_dict[f"truth_method_{i}"] = {}
-        output_dict[f"truth_method_{i}"]["name"] = str(truth_methods[i])
-        output_dict[f"truth_method_{i}"]["truth_values"] = []
-        output_dict[f"truth_method_{i}"]["normalized_truth_values"] = []
-        if return_method_details:
-            output_dict[f"truth_method_{i}"]["method_specific_details"] = []
-
-    if wandb_run is not None:
-        logged_data = []
-        # add method names to the columns
-        names = []
-        columns = []
-        for i in range(len(truth_methods)):
-            names.append(str(truth_methods[i]))
-            columns.append(f"truth_method_{i}")
-
-        names_table = wandb.Table(data=[names], columns=columns)
-        wandb_run.log({"method_names": names_table})
+    generation_dicts = []
 
     for i in tqdm(range(len(dataset))):
         messages = previous_context.copy()
@@ -318,34 +269,97 @@ def run_over_dataset(
                 }
             )
 
-        
-
-        truth_dict = generate_with_truth_value(
+               
+        generation_dict = generate_api_or_hf_local(
             model=model,
             messages=messages,
-            question=dataset[i]["question"],
             truth_methods=truth_methods,
+            question=dataset[i]["question"],
             tokenizer=tokenizer,
             generation_seed=seed,
-            batch_generation=batch_generation,
             add_generation_prompt=add_generation_prompt,
             continue_final_message=continue_final_message,
-            context=dataset[i]["context"],
             **kwargs,
         )
-        
+        generation_dicts.append(generation_dict)
 
         is_correct = correctness_evaluator(
             dataset[i]["question"],
-            truth_dict["generated_text"],
+            generation_dict["generated_text"],
             dataset[i]["ground_truths"],
+            dataset[i]["context"],
         )
         output_dict["generations_correctness"].append(is_correct)
-        output_dict["generations"].append(truth_dict["generated_text"])
+        output_dict["generations"].append(generation_dict["generated_text"])
         output_dict["question_text"].append(dataset[i]["question"])
         output_dict["contexts"].append(dataset[i]["context"])
         output_dict["ground_truths"].append(dataset[i]["ground_truths"])
+    
+    output_dict['generation_dicts'] = generation_dicts
 
+    return output_dict
+
+
+def run_truth_methods_over_dataset( output_dict: dict,
+    model: Union[str, PreTrainedModel],
+    tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
+    truth_methods: list = [],
+    batch_generation=True,
+    seed: int = 0,
+    return_method_details: bool = False):
+
+    output_dict["truth_methods"] = [] 
+    for i in range(len(truth_methods)):
+        output_dict["truth_methods"].append(
+            f"{truth_methods[i].__class__.__name__}")
+        output_dict[f"truth_method_{i}"] = {}
+        output_dict[f"truth_method_{i}"]["name"] = str(truth_methods[i])
+        output_dict[f"truth_method_{i}"]["truth_values"] = []
+        output_dict[f"truth_method_{i}"]["normalized_truth_values"] = []
+        if return_method_details:
+            output_dict[f"truth_method_{i}"]["method_specific_details"] = []
+
+    generation_dicts = output_dict['generation_dicts']
+    #go over output_dict and generation_dicts
+    for i in tqdm(range(len(generation_dicts))):
+        question = output_dict["question_text"][i]
+        context = output_dict["contexts"][i]
+        messages = generation_dicts[i]["messages"]
+        kwargs = generation_dicts[i]['kwargs']
+        if type(model) == str:
+            response = generation_dicts[i]['response']
+            generated_text= generation_dicts[i]['generated_text']
+            logprobs = generation_dicts[i]['logprobs']
+            generated_tokens = generation_dicts[i]['generated_tokens']
+            
+            
+            truth_dict = run_truth_methods(model = model,
+                                            messages = messages,
+                                            generated_text = generated_text,
+                                            question=question,
+                                            truth_methods = truth_methods,
+                                            generation_seed = seed,
+                                            context = context,
+                                            logprobs=logprobs,
+                                            generated_tokens=generated_tokens,
+                                            **kwargs)
+        else:
+            model_output = generation_dicts[i]['model_output']
+            generated_text= generation_dicts[i]['generated_text']
+            text = generation_dicts[i]['text']
+            truth_dict = run_truth_methods(model = model,
+                                   messages = messages,
+                                   question=question,
+                                   truth_methods = truth_methods,
+                                   tokenizer = tokenizer,
+                                   generation_seed = seed,   
+                                   context = context,
+                                   text = text,
+                                   generated_text = generated_text,
+                                   model_output = model_output,
+                                   batch_generation = batch_generation,
+                                   **kwargs)
+            
         for j in range(len(truth_methods)):
             output_dict[f"truth_method_{j}"]["truth_values"].append(
                 truth_dict["unnormalized_truth_values"][j]
@@ -357,36 +371,69 @@ def run_over_dataset(
                 output_dict[f"truth_method_{j}"]["method_specific_details"].append(
                     truth_dict["method_specific_outputs"][j]
                 )
+    return output_dict
+    
 
-        if wandb_push_method_details and wandb_run is not None:
-            columns = [
-                "truth_values",
-                "normalized_truth_values",
-                "generation_correctness",
-                "question_text",
-                "ground_truths",
-                "generated_text",
-                "index",
-                "method_specific_details",
-            ]
-            data = [
-                str(truth_dict["unnormalized_truth_values"]),
-                str(truth_dict["normalized_truth_values"]),
-                is_correct,
-                dataset[i]["question"],
-                (", ").join(dataset[i]["ground_truths"]),
-                truth_dict["generated_text"],
-                i,
-                str(truth_dict["method_specific_outputs"]),
-            ]
-            logged_data.extend([data])
-            summary_table = wandb.Table(data=logged_data, columns=columns)
-            wandb_run.log(
-                {
-                    "accuracy": is_correct,
-                    "index": i,
-                }
-            )
-            wandb.log({"run_summary": summary_table})
+
+def run_over_dataset(
+    dataset: Union[str, list],
+    model: Union[str, PreTrainedModel],
+    truth_methods: list,
+    tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = None,
+    correctness_evaluator=None,
+    previous_context: list = [
+        {"role": "system", "content": DEFAULT_SYSTEM_BENCHMARK_PROMPT}
+    ],
+    user_prompt: str = DEFAULT_USER_PROMPT,
+    seed: int = 0,
+    return_method_details: bool = False,
+    batch_generation=True,
+    add_generation_prompt=True,
+    continue_final_message=False,
+    **kwargs,
+):
+    """
+    Runs truth value estimation over a dataset and collects results.
+
+    Args:
+        dataset (Union[str, list]): Dataset to evaluate on
+        model (Union[str,PreTrainedModel]): Model to use for generation
+        truth_methods (list): List of truth value estimation methods to evaluate
+        tokenizer (Union[PreTrainedTokenizer, PreTrainedTokenizerFast], optional): Tokenizer for the model. Defaults to None.
+        correctness_evaluator (callable, optional): Function to evaluate correctness of generations. Defaults to None.
+        previous_context (list, optional): Previous conversation context. Defaults to system prompt.
+        user_prompt (str, optional): Template for user prompts. Defaults to DEFAULT_USER_PROMPT.
+        seed (int, optional): Random seed. Defaults to 0.
+        return_method_details (bool, optional): Whether to return detailed method outputs. Defaults to False.
+        batch_generation (bool, optional): Whether to use batch generation. Defaults to True.
+        add_generation_prompt (bool, optional): Whether to add generation prompt. Defaults to True.
+        continue_final_message (bool, optional): Whether to continue from final message. Defaults to False.
+
+    Returns:
+        dict: Dictionary containing all evaluation results and generations
+    """
+
+    print(f'Running Model over dataset with {len(dataset)} examples')
+    output_dict = eval_model_over_dataset(
+        dataset=dataset,
+        model=model,
+        tokenizer=tokenizer,
+        correctness_evaluator=correctness_evaluator,
+        truth_methods=truth_methods,
+        previous_context=previous_context,
+        user_prompt=user_prompt,
+        seed=seed,
+        add_generation_prompt=add_generation_prompt,
+        continue_final_message=continue_final_message,
+        **kwargs,
+    )
+    
+    output_dict = run_truth_methods_over_dataset(output_dict, 
+                                                 model = model, 
+                                                 tokenizer = tokenizer, 
+                                                 truth_methods = truth_methods, 
+                                                 batch_generation = batch_generation, 
+                                                 seed = seed, 
+                                                 return_method_details = return_method_details)
 
     return output_dict
