@@ -162,7 +162,7 @@ def generate_hf_local(
    tokens = generated_output["tokens"]
    model_output = generated_output["all_ids"]
    output = {}
-   output['model_output'] = model_output
+   output['model_output'] = model_output.cpu()
    output['tokens'] = tokens
    output['generated_text'] = generated_text
    output['text'] = text
