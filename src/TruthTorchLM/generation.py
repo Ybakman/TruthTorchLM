@@ -710,7 +710,7 @@ def sample_generations_sequential_hf_local(
            model_output = model.generate(
                **inputs,
                num_return_sequences=1,
-               do_sample=do_sample,
+               do_sample=True,
                return_dict_in_generate=True,
                output_attentions=return_attentions,
                output_hidden_states=return_activations,
