@@ -157,13 +157,13 @@ def metric_score(
     normalized_truth_values = normalized_truth_values  # convert to list
 
     if "auroc" in metric_names:
-        try:
-            auroc = roc_auc_score(generation_correctness, truth_values)
-        except:
+        if len(np.unique(generation_correctness)) == 1:
+            auroc = 0.5
             print(
                 "Auroc couldn't be calculated because there is only one class. Returning 0.5 as auroc."
             )
-            auroc = 0.5
+        else:
+            auroc = roc_auc_score(generation_correctness, truth_values)
         eval_dict["auroc"] = auroc
 
     if "auprc" in metric_names:
@@ -205,18 +205,24 @@ def metric_score(
         eval_dict["recall"] = recall
 
     if "prr" in metric_names:
-        ue_prr = prediction_rejection_curve(
-            truth_values, generation_correctness)
-        orc_prr = prediction_rejection_curve(
-            generation_correctness, generation_correctness
-        )
-        rand_prr = get_random_scores(
-            prediction_rejection_curve, generation_correctness, seed=seed
-        )
+        if len(np.unique(generation_correctness)) == 1:
+            print(
+                "PRR couldn't be calculated because there is only one class. Returning 0.0 as prr."
+            )
+            eval_dict["prr"] = 0.0
+        else:
+            ue_prr = prediction_rejection_curve(
+                truth_values, generation_correctness)
+            orc_prr = prediction_rejection_curve(
+                generation_correctness, generation_correctness
+            )
+            rand_prr = get_random_scores(
+                prediction_rejection_curve, generation_correctness, seed=seed
+            )
 
-        if not (orc_prr == rand_prr):
-            ue_prr = (ue_prr - rand_prr) / (orc_prr - rand_prr)
-        eval_dict["prr"] = ue_prr
+            if not (orc_prr == rand_prr):
+                ue_prr = (ue_prr - rand_prr) / (orc_prr - rand_prr)
+            eval_dict["prr"] = ue_prr
 
     return eval_dict
 
@@ -435,5 +441,33 @@ def run_over_dataset(
                                                  batch_generation = batch_generation, 
                                                  seed = seed, 
                                                  return_method_details = return_method_details)
+
+    # Write results to a text file
+    with open('evaluation_results.txt', 'w') as f:
+        f.write(f"Evaluation Results\n{'='*20}\n\n")
+        
+        # Write dataset info
+        f.write(f"Dataset size: {len(dataset)} examples\n\n")
+        
+        # Write truth method results
+        f.write("Truth Method Results\n{'-'*20}\n")
+        for i, method in enumerate(truth_methods):
+            method_name = output_dict[f"truth_method_{i}"]["name"]
+            truth_values = output_dict[f"truth_method_{i}"]["truth_values"]
+            normalized_values = output_dict[f"truth_method_{i}"]["normalized_truth_values"]
+            
+            f.write(f"\nMethod {i+1}: {method_name}\n")
+            f.write(f"Average truth value: {np.mean(truth_values):.4f}\n")
+            f.write(f"Average normalized truth value: {np.mean(normalized_values):.4f}\n")
+        
+        # Write generation correctness stats
+        correct_count = sum(1 for x in output_dict["generations_correctness"] if x == 1)
+        total_count = len(output_dict["generations_correctness"])
+        accuracy = correct_count / total_count if total_count > 0 else 0
+        
+        f.write(f"\nGeneration Statistics\n{'-'*20}\n")
+        f.write(f"Total generations: {total_count}\n")
+        f.write(f"Correct generations: {correct_count}\n")
+        f.write(f"Accuracy: {accuracy:.4f}\n")
 
     return output_dict
