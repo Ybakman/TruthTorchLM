@@ -49,6 +49,9 @@ def get_dataset(
     elif dataset == "narrative_qa":
         dataset = get_narrative_qa(
             size_of_data=size_of_data, seed=seed, split=split)
+    elif dataset == "web_questions":
+        dataset = get_web_questions(
+            size_of_data=size_of_data, seed=seed, split=split)
 
     return dataset
 
@@ -206,4 +209,24 @@ def get_narrative_qa(size_of_data: float = 1.0, seed: int = 0, split='test'):
             "ground_truths": answers
         })
         
+    return dataset
+
+def get_web_questions(size_of_data: float = 1.0, seed: int = 0, split="test"):
+    if split == "test":
+        raw_dataset = load_dataset("stanfordnlp/web_questions", split="test")
+    elif split == "train":
+        raw_dataset = load_dataset("stanfordnlp/web_questions", split="train")
+    else:
+        raise ValueError("Split should be either 'test' or 'train'.")
+    if size_of_data != 1.0 or type(size_of_data) != float:
+        raw_dataset = raw_dataset.train_test_split(train_size=size_of_data, seed=seed)[
+            "train"
+        ]
+    dataset = []
+    questions = raw_dataset["question"]
+    answers = raw_dataset["answers"]
+    for i in tqdm(range(len(raw_dataset))):
+        dataset.append(
+            {"context": "", "question": questions[i], "ground_truths": answers[i]})
+
     return dataset
