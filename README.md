@@ -3,7 +3,7 @@
 </p>
 <p align="left">
     
-## TruthTorchLM: A Comprehensive Package for Assessing/Predicting Truthfulness in LLM Outputs
+##  TruthTorchLM: A Comprehensive Package for Assessing/Predicting Truthfulness in LLM Outputs (EMNLP - 2025)
 ---
 
 ## Features  
@@ -255,12 +255,31 @@ results = LFG.evaluate_truth_method_long_form(dataset='longfact_objects', model=
 If you use TruthTorchLM in your research, please cite:  
 
 ```bibtex
-@misc{truthtorchlm2025,
-  title={TruthTorchLM: A Comprehensive Library for Assessing Truthfulness in LLM Outputs},
-  author={Yavuz Faruk Bakman, Duygu Nur Yaldiz,Sungmin Kang, Alperen Ozis, Hayrettin Eren Yildiz,Mitash Shah,Salman Avestimehr},
-  year={2025},
-  howpublished={GitHub},
-  url={https://github.com/Ybakman/TruthTorchLM}
+@inproceedings{yaldiz-etal-2025-truthtorchlm,
+    title = "{T}ruth{T}orch{LM}: A Comprehensive Library for Predicting Truthfulness in {LLM} Outputs",
+    author = {Yaldiz, Duygu Nur  and
+      Bakman, Yavuz Faruk  and
+      Kang, Sungmin  and
+      {\"O}zi{\c{s}}, Alperen  and
+      Yildiz, Hayrettin Eren  and
+      Shah, Mitash Ashish  and
+      Huang, Zhiqi  and
+      Kumar, Anoop  and
+      Samuel, Alfy  and
+      Liu, Daben  and
+      Karimireddy, Sai Praneeth  and
+      Avestimehr, Salman},
+    editor = {Habernal, Ivan  and
+      Schulam, Peter  and
+      Tiedemann, J{\"o}rg},
+    booktitle = "Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing: System Demonstrations",
+    month = nov,
+    year = "2025",
+    address = "Suzhou, China",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2025.emnlp-demos.54/",
+    pages = "717--728",
+    ISBN = "979-8-89176-334-0",
 }
 ```
 
