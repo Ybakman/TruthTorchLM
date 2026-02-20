@@ -199,6 +199,10 @@ def run_truth_methods(model: PreTrainedModel,
        return_activations,
    ) = get_sampling_properties(truth_methods)
 
+   try:
+       model_output = model_output.to(model.device)
+   except:
+       pass
    if type(model) == str:
        sampled_gen_dict = sample_generations_api(
            model,
