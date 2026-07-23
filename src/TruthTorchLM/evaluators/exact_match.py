@@ -12,8 +12,11 @@ class ExactMatch(CorrectnessEvaluator):
         context: str = "",
         seed: int = None,
     ) -> bool:
+        # Upstream indexed the loop but compared against the whole list --
+        # `ground_truths.strip()` raises AttributeError on a list, so the default
+        # correctness evaluator crashed on its first call. Fixed to index the element.
         for i in range(len(ground_truths)):
-            matched = generated_text.strip().lower() == ground_truths.strip().lower()
+            matched = generated_text.strip().lower() == str(ground_truths[i]).strip().lower()
             if matched:
                 return 1
         return 0

@@ -1,0 +1,36 @@
+# DisAAD proxy-training config (Stage 1, teacher -> student). GPU SERVER ONLY.
+# This drives hc_benchmark/disaad_train.py, which shells out to the official DisAAD
+# scripts in the submodule. No proxy is trained locally in round one -- this file records
+# the teacher/student choice and hyperparameters for the cluster run.
+#
+# Usage on the server:
+#   git submodule update --init --recursive --depth 1
+#   python -c "from hc_benchmark.disaad_train import DisAADTrainingConfig, train_proxy; \
+#              import yaml; cfg=DisAADTrainingConfig(**yaml.safe_load(open('hc_benchmark/configs/disaad.yaml'))); \
+#              train_proxy(cfg)"
+# then load the trained proxy for scoring:
+#   TruthTorchLM.truth_methods.DisAAD.from_pretrained('hc_benchmark/disaad/proxy', mode='au')
+
+teacher_model: gpt-4o-mini        # the target we distil (set to your primary target)
+teacher_is_api: true              # gpt-4o-mini is an API teacher -> data_builder api path
+student_model: llama-3.2-3b       # the small open proxy to train (DisAAD's own proxy scale)
+
+dataset: tqa
+ori_dataset_path: third_party/DisAAD/datasets/mixed_questions/wild_tqa
+sft_dataset_path: hc_benchmark/disaad/sft_data
+proxy_output_path: hc_benchmark/disaad/proxy
+cache_dir: hc_benchmark/disaad/cache
+
+num_samples: 140
+train_num_samples: 100
+val_num_samples: 50
+epochs: 1
+seed: 42
+gpu_ids: "0,1,2,3"
+
+temperature: 0.7
+top_p: 0.9
+
+# For an API teacher, set the key via env and paste here at run time (do not commit a key):
+api_key: ""
+api_base: https://api.openai.com/v1

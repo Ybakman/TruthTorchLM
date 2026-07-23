@@ -7,6 +7,12 @@ from .p_true import PTrue
 from .eccentricity_uncertainty import EccentricityUncertainty
 from .matrix_degree_uncertainty import MatrixDegreeUncertainty
 from .num_semantic_set_uncertainty import NumSemanticSetUncertainty
+from .discrete_semantic_entropy import DiscreteSemanticEntropy
+from .lexical_similarity import LexicalSimilarity
+from .eigv import EigV
+from .spuq import SPUQ
+from .disaad import DisAAD, evidential_aleatoric, evidential_epistemic, max_softmax_probability, softmax_entropy
+from .neighbor_consistency_belief import neighbor_consistency_belief, aggregate_neighbor_probs, dominant_answer_probability, neighbor_accuracy
 from .sum_eigen_uncertainty import SumEigenUncertainty
 from .self_detection import SelfDetection
 from .inside import Inside
@@ -39,6 +45,15 @@ __all__ = [
     "EccentricityUncertainty",
     "MatrixDegreeUncertainty",
     "NumSemanticSetUncertainty",
+    "DiscreteSemanticEntropy",
+    "LexicalSimilarity",
+    "EigV",
+    "SPUQ",
+    "DisAAD",
+    "neighbor_consistency_belief",
+    "aggregate_neighbor_probs",
+    "dominant_answer_probability",
+    "neighbor_accuracy",
     "SumEigenUncertainty",
     "SelfDetection",
     "TokenSAR",

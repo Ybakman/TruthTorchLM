@@ -23,15 +23,21 @@ requirements = ["aiohttp",
                 "rouge_score",
                 "wandb",
                 "sentencepiece",
-                "accelerate>=0.26.0"]
+                "accelerate>=0.26.0",
+                # --- TruthTorchLM-HC additions ---
+                "datasets",      # dataset loaders (utils/dataset_utils.py)
+                "pyarrow",       # Stage-A generation cache (Parquet)
+                "matplotlib"]    # accuracy-latency frontier plots
 
 
 setup(
-    name="TruthTorchLM",  # Your package name
-    version="0.1.19",           # Package version
-    author="Yavuz Faruk Bakman",
+    # Renamed from upstream "TruthTorchLM" so this research fork can never be confused
+    # with, or published over, the upstream distribution. The *import* name is unchanged.
+    name="TruthTorchLM-HC",
+    version="0.1.19",           # tracks the upstream version this fork is based on
+    author="Yavuz Faruk Bakman (upstream); Jason Lucas (HC fork)",
     author_email="ybakman@usc.edu",
-    description="TruthTorchLM is an open-source library designed to assess truthfulness in language models' outputs. The library integrates state-of-the-art methods, offers comprehensive benchmarking tools across various tasks, and enables seamless integration with popular frameworks like Huggingface and LiteLLM.",
+    description="TruthTorchLM-HC: a health-coaching research fork of TruthTorchLM, adding a pure black-box UQ benchmark (latency instrumentation, calibration/safety metrics, cached Stage A-D harness, and health datasets).",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     package_dir={"": "src"},         # Maps the base package directory

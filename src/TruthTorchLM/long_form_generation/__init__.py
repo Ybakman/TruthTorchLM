@@ -4,3 +4,4 @@ from .claim_check_methods import *
 from .evaluators import *
 from .utils import *
 from .templates import *
+from .iuq import InterrogativeUQ, iuq_score, compute_impacts, compute_faithfulness

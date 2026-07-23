@@ -1,3 +1,6 @@
+# Latency instrumentation (HC fork, benchmark protocol §5). Imported first because it has
+# no intra-package dependencies, and inert until explicitly enabled.
+from TruthTorchLM import instrumentation
 from TruthTorchLM import utils  # TODO do we really need to import this?
 from TruthTorchLM import long_form_generation
 from TruthTorchLM import normalizers

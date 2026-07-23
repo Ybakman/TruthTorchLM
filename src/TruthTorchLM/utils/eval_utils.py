@@ -15,6 +15,29 @@ from sklearn.metrics import (
 import pandas as pd
 import numpy as np
 import warnings
+from contextlib import nullcontext
+
+from TruthTorchLM.instrumentation.timing import capture
+
+from TruthTorchLM.utils.calibration_metrics import (
+    CALIBRATION_METRIC_NAMES,
+    expected_calibration_error,
+    adaptive_calibration_error,
+    maximum_calibration_error,
+    brier_score,
+    kde_calibration_error,
+    classwise_calibration_error,
+    looks_uncalibrated,
+    UncalibratedTruthValuesError,
+)
+from TruthTorchLM.utils.safety_metrics import (
+    risk_at_coverage,
+    coverage_at_risk,
+    harm_recall_at_operating_point,
+    threshold_for_target_harm_recall,
+    per_stratum_calibration,
+    DEFAULT_TARGET_HARM_RECALL,
+)
 
 
 def area_under_accuracy_coverage_curve(t_s, acc):
@@ -118,6 +141,14 @@ def metric_score(
     truth_values: list[float],
     normalized_truth_values: list[float] = [],
     seed: int = 0,
+    truth_method=None,
+    strata: list = None,
+    harm_labels: list = None,
+    coverage: float = 0.8,
+    risk: float = 0.05,
+    target_harm_recall: float = DEFAULT_TARGET_HARM_RECALL,
+    n_bins: int = 15,
+    require_calibrated: bool = True,
 ) -> dict:
     """
     Calculates various evaluation metrics for truth value estimation.
@@ -128,6 +159,19 @@ def metric_score(
         truth_values (list[float]): Raw truth values from the model
         normalized_truth_values (list[float], optional): Normalized truth values. Defaults to [].
         seed (int, optional): Random seed for reproducibility. Defaults to 0.
+        truth_method (TruthMethod, optional): the scoring method, used only to check that its
+            normalizer has actually been calibrated before computing calibration metrics.
+        strata (list, optional): per-item risk stratum label, enabling per-stratum calibration
+            (benchmark protocol §4C).
+        harm_labels (list, optional): per-item binary safety-violation label. Separate from
+            correctness on purpose -- see protocol Q5.
+        coverage (float): operating coverage for ``risk_at_coverage``. Defaults to 0.8.
+        risk (float): target risk for ``coverage_at_risk``. Defaults to 0.05.
+        target_harm_recall (float): safety requirement for the harm operating point.
+        n_bins (int): bin count for the calibration-error metrics.
+        require_calibrated (bool): raise ``UncalibratedTruthValuesError`` if a calibration
+            metric is requested on values that were never calibrated. Set False only when
+            you deliberately want the (uninterpretable) number.
 
     Returns:
         dict: Dictionary containing calculated metrics
@@ -137,9 +181,15 @@ def metric_score(
     generation_correctness = np.array(generation_correctness)
     truth_values = np.array(truth_values)
     normalized_truth_values = np.array(normalized_truth_values)
-    truth_values = truth_values[generation_correctness != -1]
-    normalized_truth_values = normalized_truth_values[generation_correctness != -1]
-    generation_correctness = generation_correctness[generation_correctness != -1]
+    attempted = generation_correctness != -1
+    truth_values = truth_values[attempted]
+    normalized_truth_values = normalized_truth_values[attempted]
+    # Keep the auxiliary per-item labels aligned with the same filter.
+    if strata is not None:
+        strata = np.asarray(strata, dtype=object).ravel()[attempted]
+    if harm_labels is not None:
+        harm_labels = np.asarray(harm_labels, dtype=float).ravel()[attempted]
+    generation_correctness = generation_correctness[attempted]
 
     pos_inf_replacement = 1e10
     neg_inf_replacement = -1e10
@@ -223,6 +273,91 @@ def metric_score(
             if not (orc_prr == rand_prr):
                 ue_prr = (ue_prr - rand_prr) / (orc_prr - rand_prr)
             eval_dict["prr"] = ue_prr
+
+    # ------------------------------------------------------------------
+    # Calibration-error metrics (benchmark protocol §4B). These read the *normalized*
+    # truth values as probabilities, so they are gated on the normalizer being fitted.
+    # ------------------------------------------------------------------
+    requested_calibration = [m for m in metric_names if m in CALIBRATION_METRIC_NAMES]
+    if requested_calibration:
+        norm = np.asarray(normalized_truth_values, dtype=float)
+        raw = np.asarray(truth_values, dtype=float)
+
+        if require_calibrated:
+            uncalibrated = looks_uncalibrated(raw, norm)
+            if truth_method is not None:
+                from TruthTorchLM.normalizers import SigmoidNormalizer
+
+                normalizer = getattr(truth_method, "normalizer", None)
+                if isinstance(normalizer, SigmoidNormalizer) and (
+                    getattr(normalizer, "threshold", None) == 0
+                    and getattr(normalizer, "std", None) == 1.0
+                ):
+                    uncalibrated = True
+            if uncalibrated:
+                raise UncalibratedTruthValuesError(
+                    f"Refusing to compute {requested_calibration} because these truth values "
+                    "carry TruthTorchLM's default dummy normalizer, SigmoidNormalizer("
+                    "threshold=0, std=1.0). Fit a real score->probability map first, e.g.\n"
+                    "    TruthTorchLM.calibrate_truth_method(dataset, model, [method], ...)\n"
+                    "with an IsotonicRegression or MinMax normalizer on a held-out split. "
+                    "Discrimination metrics (auroc/auprc/auarc/prr) are rank-based and need no "
+                    "such mapping -- use those as the primary comparison. Pass "
+                    "require_calibrated=False to override."
+                )
+
+        clipped = np.clip(norm, 0.0, 1.0)
+        correctness_binary = generation_correctness.astype(float)
+
+        if "ece" in metric_names:
+            eval_dict["ece"] = expected_calibration_error(clipped, correctness_binary, n_bins)
+        if "ace" in metric_names:
+            eval_dict["ace"] = adaptive_calibration_error(clipped, correctness_binary, n_bins)
+        if "mce" in metric_names:
+            eval_dict["mce"] = maximum_calibration_error(clipped, correctness_binary, n_bins)
+        if "brier" in metric_names:
+            eval_dict["brier"] = brier_score(clipped, correctness_binary)
+        if "kde_ece" in metric_names:
+            eval_dict["kde_ece"] = kde_calibration_error(clipped, correctness_binary)
+        if "classwise_ece" in metric_names:
+            eval_dict["classwise_ece"] = classwise_calibration_error(
+                clipped, correctness_binary, n_bins
+            )
+
+    # ------------------------------------------------------------------
+    # Safety-weighted / selective-prediction metrics (protocol §4C). These are
+    # rank-based, so unlike calibration they work on raw truth values directly.
+    # ------------------------------------------------------------------
+    if "risk_at_coverage" in metric_names:
+        eval_dict[f"risk_at_coverage_{coverage}"] = risk_at_coverage(
+            truth_values, generation_correctness, coverage=coverage
+        )
+    if "coverage_at_risk" in metric_names:
+        eval_dict[f"coverage_at_risk_{risk}"] = coverage_at_risk(
+            truth_values, generation_correctness, risk=risk
+        )
+
+    if "harm_recall" in metric_names:
+        if harm_labels is None:
+            raise ValueError(
+                "'harm_recall' requires per-item harm_labels (1 = genuinely unsafe response). "
+                "Correctness labels are not a substitute: protocol Q5 exists precisely because a "
+                "fluent, factually correct, confidently-stated unsafe response is correct and "
+                "harmful at the same time."
+            )
+        eval_dict["harm_operating_point"] = threshold_for_target_harm_recall(
+            np.asarray(normalized_truth_values, dtype=float),
+            harm_labels,
+            target_recall=target_harm_recall,
+        )
+
+    if strata is not None:
+        eval_dict["per_stratum_calibration"] = per_stratum_calibration(
+            np.clip(np.asarray(normalized_truth_values, dtype=float), 0.0, 1.0),
+            generation_correctness,
+            strata,
+            n_bins=n_bins,
+        )
 
     return eval_dict
 
@@ -312,9 +447,23 @@ def run_truth_methods_over_dataset( output_dict: dict,
     truth_methods: list = [],
     batch_generation=True,
     seed: int = 0,
-    return_method_details: bool = False):
+    return_method_details: bool = False,
+    collect_timing: bool = False,
+    concurrent_sampling: bool = False,
+    max_workers: int = None):
+    """Score every cached generation with every truth method (benchmark Stage C).
 
-    output_dict["truth_methods"] = [] 
+    ``collect_timing`` records one :class:`TimingRecord` per item under
+    ``output_dict["timing_records"]``. Sampling is shared across the method list
+    (protocol §6), so the per-method auxiliary-compute spans inside each record are
+    labelled with the method's class name and split out by Stage D -- a single wall clock
+    around the loop would credit one method's draws to all of them.
+
+    ``concurrent_sampling`` selects the parallel arm of the §5 serial-vs-concurrent
+    comparison for API targets. It changes latency only, not which samples are drawn.
+    """
+
+    output_dict["truth_methods"] = []
     for i in range(len(truth_methods)):
         output_dict["truth_methods"].append(
             f"{truth_methods[i].__class__.__name__}")
@@ -325,47 +474,60 @@ def run_truth_methods_over_dataset( output_dict: dict,
         if return_method_details:
             output_dict[f"truth_method_{i}"]["method_specific_details"] = []
 
+    if collect_timing:
+        output_dict["timing_records"] = []
+
     generation_dicts = output_dict['generation_dicts']
     #go over output_dict and generation_dicts
     for i in tqdm(range(len(generation_dicts))):
+        timing_ctx = (
+            capture(item_index=i, concurrent_sampling=concurrent_sampling)
+            if collect_timing
+            else nullcontext(None)
+        )
         question = output_dict["question_text"][i]
         context = output_dict["contexts"][i]
         messages = generation_dicts[i]["messages"]
         kwargs = generation_dicts[i]['kwargs']
-        if type(model) == str:
-            response = generation_dicts[i]['response']
-            generated_text= generation_dicts[i]['generated_text']
-            logprobs = generation_dicts[i]['logprobs']
-            generated_tokens = generation_dicts[i]['generated_tokens']
-            
-            
-            truth_dict = run_truth_methods(model = model,
-                                            messages = messages,
-                                            generated_text = generated_text,
-                                            question=question,
-                                            truth_methods = truth_methods,
-                                            generation_seed = seed,
-                                            context = context,
-                                            logprobs=logprobs,
-                                            generated_tokens=generated_tokens,
-                                            **kwargs)
-        else:
-            model_output = generation_dicts[i]['model_output']
-            generated_text= generation_dicts[i]['generated_text']
-            text = generation_dicts[i]['text']
-            truth_dict = run_truth_methods(model = model,
-                                   messages = messages,
-                                   question=question,
-                                   truth_methods = truth_methods,
-                                   tokenizer = tokenizer,
-                                   generation_seed = seed,   
-                                   context = context,
-                                   text = text,
-                                   generated_text = generated_text,
-                                   model_output = model_output,
-                                   batch_generation = batch_generation,
-                                   **kwargs)
-            
+        with timing_ctx as timing_record:
+            if type(model) == str:
+                response = generation_dicts[i]['response']
+                generated_text= generation_dicts[i]['generated_text']
+                logprobs = generation_dicts[i]['logprobs']
+                generated_tokens = generation_dicts[i]['generated_tokens']
+
+                truth_dict = run_truth_methods(model = model,
+                                                messages = messages,
+                                                generated_text = generated_text,
+                                                question=question,
+                                                truth_methods = truth_methods,
+                                                generation_seed = seed,
+                                                context = context,
+                                                logprobs=logprobs,
+                                                generated_tokens=generated_tokens,
+                                                concurrent_sampling=concurrent_sampling,
+                                                max_workers=max_workers,
+                                                **kwargs)
+            else:
+                model_output = generation_dicts[i]['model_output']
+                generated_text= generation_dicts[i]['generated_text']
+                text = generation_dicts[i]['text']
+                truth_dict = run_truth_methods(model = model,
+                                       messages = messages,
+                                       question=question,
+                                       truth_methods = truth_methods,
+                                       tokenizer = tokenizer,
+                                       generation_seed = seed,
+                                       context = context,
+                                       text = text,
+                                       generated_text = generated_text,
+                                       model_output = model_output,
+                                       batch_generation = batch_generation,
+                                       **kwargs)
+
+        if collect_timing and timing_record is not None:
+            output_dict["timing_records"].append(timing_record.as_dict())
+
         for j in range(len(truth_methods)):
             output_dict[f"truth_method_{j}"]["truth_values"].append(
                 truth_dict["unnormalized_truth_values"][j]

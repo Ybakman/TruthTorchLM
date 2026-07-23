@@ -3,6 +3,30 @@ from TruthTorchLM.availability import AVAILABLE_DATASETS
 from typing import Union
 from tqdm import tqdm
 
+from TruthTorchLM.utils.hc_datasets import (
+    get_bioasq,
+    get_hotpot_qa,
+    get_kqa,
+    get_medlfqa,
+    get_medqa,
+    get_mmlu_med,
+    get_squad_v2,
+    get_truthful_qa,
+)
+
+#: Loaders added by the HC fork (benchmark D axis). Kept as a table so the dispatcher in
+#: get_dataset stays a lookup rather than another elif chain.
+HC_DATASET_LOADERS = {
+    "hotpot_qa": get_hotpot_qa,
+    "truthful_qa": get_truthful_qa,
+    "squad_v2": get_squad_v2,
+    "medqa": get_medqa,
+    "mmlu_med": get_mmlu_med,
+    "kqa": get_kqa,
+    "medlfqa": get_medlfqa,
+    "bioasq": get_bioasq,
+}
+
 
 def get_dataset(
     dataset: Union[str, list], size_of_data: float = 1.0, seed: int = 0, split="test"
@@ -51,6 +75,10 @@ def get_dataset(
             size_of_data=size_of_data, seed=seed, split=split)
     elif dataset == "web_questions":
         dataset = get_web_questions(
+            size_of_data=size_of_data, seed=seed, split=split)
+    elif dataset in HC_DATASET_LOADERS:
+        # HC fork additions: health, MCQ, extractive, multi-hop (benchmark D axis).
+        dataset = HC_DATASET_LOADERS[dataset](
             size_of_data=size_of_data, seed=seed, split=split)
 
     return dataset

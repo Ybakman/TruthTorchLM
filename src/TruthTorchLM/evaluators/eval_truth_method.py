@@ -57,14 +57,36 @@ def evaluate_truth_method(
     )
 
     eval_list = get_metric_scores(
-        output_dict=output_dict, eval_metrics=eval_metrics, seed=seed
+        output_dict=output_dict,
+        eval_metrics=eval_metrics,
+        seed=seed,
+        truth_method_objects=truth_methods,
     )
 
     return {"eval_list": eval_list, "output_dict": output_dict}
 
 
-def get_metric_scores(output_dict: dict, eval_metrics: list[str], seed: int = 0):
+def get_metric_scores(
+    output_dict: dict,
+    eval_metrics: list[str],
+    seed: int = 0,
+    truth_method_objects: list = None,
+    **metric_kwargs,
+):
+    """Score every truth method in ``output_dict`` against ``eval_metrics``.
+
+    ``truth_method_objects`` (the live ``TruthMethod`` instances, in the same order) is
+    optional but recommended: it lets ``metric_score`` verify a normalizer was actually
+    fitted before it computes a calibration metric. ``metric_kwargs`` forwards the
+    benchmark's per-item context -- ``strata``, ``harm_labels``, ``coverage``, ``risk``,
+    ``n_bins`` -- through to ``metric_score``.
+    """
     truth_methods = output_dict["truth_methods"]
+    # Strata / harm labels ride along on the output dict when Stage A recorded them.
+    for key in ("strata", "harm_labels"):
+        if key not in metric_kwargs and key in output_dict:
+            metric_kwargs[key] = output_dict[key]
+
     eval_list = []
     for i in range(len(truth_methods)):
         eval_dict = metric_score(
@@ -73,6 +95,10 @@ def get_metric_scores(output_dict: dict, eval_metrics: list[str], seed: int = 0)
             output_dict[f"truth_method_{i}"]["truth_values"],
             output_dict[f"truth_method_{i}"]["normalized_truth_values"],
             seed=seed,
+            truth_method=(
+                truth_method_objects[i] if truth_method_objects is not None else None
+            ),
+            **metric_kwargs,
         )
         eval_list.append(eval_dict)
     return eval_list

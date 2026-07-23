@@ -1,0 +1,30 @@
+# Google Gemini target (black-box, via LiteLLM). Set GEMINI_API_KEY.
+# `generator` resolves to the LiteLLM string `gemini/gemini-2.5-pro`. gemini-2.5-pro is
+# GA-stable through 2026-10-16; for the newer fast line use gemini-3.6-flash (verify the
+# exact id at ai.google.dev before a real run — the flash line versions quickly).
+dataset: bioasq
+generator: gemini-2.5-pro
+generator_backend: litellm
+
+n_max: 20
+n_sweep: [1, 3, 5, 10, 20]
+seeds: [0, 1, 2]
+size_of_data: 1.0
+
+decoding:
+  temperature: 0.0
+  top_p: 1.0
+  max_tokens: 256
+  sample_temperature: 0.7
+  sample_top_p: 0.9
+
+execution_modes: [serial, concurrent]
+max_workers: 8
+sla_budgets_ms: [500.0, 1000.0, 2000.0]
+
+correctness_criteria: [llm_judge, bleurt]
+bleurt_threshold: 0.5
+
+hardware: "API target — our compute is scoring only"
+api_endpoint: "gemini:gemini-2.5-pro"
+notes: "Gemini black-box target; confirms the black-box story holds across a third API."

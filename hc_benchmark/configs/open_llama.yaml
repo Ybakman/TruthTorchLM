@@ -1,0 +1,35 @@
+# Open-weights target (white-box, HuggingFace). This is the model that enables the
+# white-box REFERENCE LINE (protocol §6) — a scorer run on the target's own logits,
+# clearly labelled "not available in deployment", used only to size the black-box gap.
+#
+# NOTE: the huggingface backend needs a loaded model + tokenizer passed from the launch
+# script (see hc_benchmark/README.md). Stage A's API path does not cover it; run this on
+# the GPU cluster with the model loaded, not against an endpoint.
+dataset: bioasq
+generator: llama-3.1-8b
+generator_backend: huggingface
+
+n_max: 20
+n_sweep: [1, 3, 5, 10, 20]
+seeds: [0, 1, 2]
+size_of_data: 1.0
+
+decoding:
+  temperature: 0.0
+  top_p: 1.0
+  max_tokens: 256
+  sample_temperature: 0.7
+  sample_top_p: 0.9
+
+# Open models give a small, controlled `g` on our own hardware, so batching is the
+# open-model analogue of the API's serial-vs-concurrent axis.
+execution_modes: [serial, concurrent]
+max_workers: 8
+sla_budgets_ms: [500.0, 1000.0, 2000.0]
+
+correctness_criteria: [llm_judge, bleurt]
+bleurt_threshold: 0.5
+
+hardware: "TODO: record GPU model + count"
+api_endpoint: "local:meta-llama/Llama-3.1-8B-Instruct"
+notes: "Open target -> white-box reference line + proxy substrate for the P family."

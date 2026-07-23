@@ -1,0 +1,31 @@
+# Anthropic Claude target (black-box, via LiteLLM). Set ANTHROPIC_API_KEY.
+# `generator` is a registry key from hc_benchmark/generators.py — the harness resolves it
+# to the LiteLLM model string `anthropic/claude-opus-4-8`. Swap for claude-sonnet-5 or
+# claude-haiku-4-5 to sweep the tier. Claude is a thinking model; the guardrail scores the
+# answer only (reasoning_trace=answer_only) — the raw trace is never returned by the API.
+dataset: bioasq
+generator: claude-opus-4-8
+generator_backend: litellm
+
+n_max: 20
+n_sweep: [1, 3, 5, 10, 20]
+seeds: [0, 1, 2]
+size_of_data: 1.0
+
+decoding:
+  temperature: 0.0
+  top_p: 1.0
+  max_tokens: 256
+  sample_temperature: 0.7
+  sample_top_p: 0.9
+
+execution_modes: [serial, concurrent]
+max_workers: 8               # respect Anthropic per-minute request caps
+sla_budgets_ms: [500.0, 1000.0, 2000.0]
+
+correctness_criteria: [llm_judge, bleurt]
+bleurt_threshold: 0.5
+
+hardware: "API target — our compute is scoring only"
+api_endpoint: "anthropic:claude-opus-4-8"
+notes: "Claude black-box target; §5 predicts the costly SC x closed-LRM cell here."

@@ -1,0 +1,21 @@
+[submodule "third_party/DisAAD"]
+	path = third_party/DisAAD
+	url = https://github.com/huizi-Cui/DisAAD.git
+[submodule "third_party/UQ-NLG"]
+	path = third_party/UQ-NLG
+	url = https://github.com/zlin7/UQ-NLG.git
+[submodule "third_party/semantic_uncertainty"]
+	path = third_party/semantic_uncertainty
+	url = https://github.com/jlko/semantic_uncertainty.git
+[submodule "third_party/IUQ"]
+	path = third_party/IUQ
+	url = https://github.com/louisfanhz/IUQ.git
+[submodule "third_party/belief-neighborhood-consistency"]
+	path = third_party/belief-neighborhood-consistency
+	url = https://github.com/zjunlp/belief.git
+[submodule "third_party/SPUQ"]
+	path = third_party/SPUQ
+	url = https://github.com/intuit-ai-research/SPUQ.git
+[submodule "third_party/rag_safety_pca"]
+	path = third_party/rag_safety_pca
+	url = https://github.com/toastedqu/rag_safety_pca.git

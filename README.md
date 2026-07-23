@@ -6,6 +6,50 @@
 ##  TruthTorchLM: A Comprehensive Package for Assessing/Predicting Truthfulness in LLM Outputs (EMNLP - 2025)
 ---
 
+# ⚕️ TruthTorchLM-HC — health-coaching research fork
+
+> This repository is a **research fork** of [`Ybakman/TruthTorchLM`](https://github.com/Ybakman/TruthTorchLM)
+> (MIT, Bakman et al., [arXiv:2507.08203](https://arxiv.org/pdf/2507.08203)). All upstream
+> documentation below is retained unchanged. **Everything upstream still works exactly as
+> documented** — the fork only adds.
+
+It implements the **pure black-box UQ benchmark** for an inline health-coaching guardrail
+specified in [`docs/benchmark_protocol.md`](docs/benchmark_protocol.md): under a *text-output-only*
+constraint (no weights, no hidden states, no token log-probabilities), how do candidate UQ methods
+trade **accuracy** against **user-facing latency**?
+
+### What this fork adds
+
+| Area | Addition |
+| :--- | :--- |
+| **V** — evaluation | Calibration-error metrics (**ECE, ACE, MCE, Brier, KDE-ECE, class-wise ECE**) and safety-weighted metrics (per-stratum calibration, **harm recall at the operating point**, risk@coverage / coverage@risk). Upstream ships normalizers but no calibration-*error* metrics. |
+| **V** — latency | A full **wall-clock instrumentation layer** (`TruthTorchLM.instrumentation`): per-stage ms, marginal UQ cost `t − g`, overhead ratio, p50/p95/p99, serial **and** concurrent sampling, SLA pass/fail. Upstream times nothing. |
+| **Harness** | `hc_benchmark/` — cached **Stage A→D** pipeline (generate → label → score → evaluate) with a shared generation cache and an `N ∈ {1,3,5,10,20}` sample-budget sweep, producing the accuracy-vs-latency frontier. |
+| **D** — datasets | Health (BioASQ, MedQA, MMLU-med, K-QA/MedLFQA) and missing general sets (HotpotQA, TruthfulQA, SQuAD 2.0), plus MCQ and extractive formats. |
+| **M** — methods | *(round two)* DisAAD, Discrete Semantic Entropy, Lexical Similarity, EigV, IUQ, NeighborhoodConsistency, SPUQ, OOD gate — each via the authors' **official** implementation. |
+
+### Provenance policy
+
+Every reproduced method comes from the **authors' official implementation**, pinned as an
+unmodified git submodule under `third_party/` and wrapped by a thin adapter. Where no official
+source exists, we either don't build it, or we build it and label it **"novel — this work"** — never
+as a reproduction. See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for the full table of
+sources, commit SHAs, licenses, and exclusions.
+
+```bash
+git clone https://github.com/jsl5710/TruthTorchLM-HC.git
+cd TruthTorchLM-HC
+git submodule update --init --recursive --depth 1   # official reference implementations
+pip install -r requirements.txt && pip install -e .
+```
+
+The distribution is named `TruthTorchLM-HC` and is **not** published to PyPI; the import name
+remains `TruthTorchLM`, so upstream code and notebooks run unmodified.
+
+---
+
+<p align="left">
+
 ## Features  
 
 - **State-of-the-Art Methods**: Offers more than 30 **truth methods** that are designed to assess/predict the truthfulness of LLM generations. These methods range from Google search check to uncertainty estimation and multi-LLM collaboration techniques.

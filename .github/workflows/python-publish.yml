@@ -8,9 +8,12 @@
 
 name: Upload Python Package
 
+# NOTE (TruthTorchLM-HC fork): the automatic `on: release` trigger is deliberately
+# disabled. This is a research fork; it must never publish to PyPI under the upstream
+# `TruthTorchLM` name. The distribution is renamed to `TruthTorchLM-HC` in setup.py, and
+# publishing is manual-only via workflow_dispatch.
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
 
 permissions:
   contents: read

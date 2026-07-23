@@ -1,0 +1,31 @@
+# Smoke-test config: the smallest run that exercises Stages A-D end to end.
+# 50 items x one API generator x two black-box methods x N in {1, 5}, both execution modes.
+# This is the acceptance test for the round-one infrastructure, not a research run.
+dataset: trivia_qa
+generator: gpt-4o-mini
+generator_backend: litellm
+
+n_max: 5
+n_sweep: [1, 5]
+seeds: [0]
+size_of_data: 0.01          # ~50 items of TriviaQA validation
+
+decoding:
+  temperature: 0.0
+  top_p: 1.0
+  max_tokens: 64
+  sample_temperature: 0.7
+  sample_top_p: 0.9
+
+execution_modes: [serial, concurrent]
+max_workers: 5
+sla_budgets_ms: [500.0, 1000.0, 2000.0]
+latency_trials: 100
+latency_warmup: 5
+
+correctness_criteria: [llm_judge, bleurt]
+bleurt_threshold: 0.5
+
+hardware: "local dev (API target -- our compute is scoring only)"
+api_endpoint: "openai:gpt-4o-mini"
+notes: "round-one smoke test"

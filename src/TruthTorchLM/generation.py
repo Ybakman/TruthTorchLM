@@ -12,6 +12,16 @@ from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokeniz
 # from .truth_methods.truth_method import TruthMethod
 from TruthTorchLM.utils.common_utils import generate, fix_tokenizer_chat
 
+# Latency instrumentation (benchmark protocol §5). Inert unless explicitly enabled --
+# every `stage(...)` below is a no-op that reads no clock when instrumentation is off.
+from TruthTorchLM.instrumentation.timing import (
+    Stage,
+    stage,
+    begin_stage,
+    end_stage,
+    record_metadata,
+)
+
 
 def generate_with_truth_value(
    model: Union[PreTrainedModel, str],
@@ -106,9 +116,20 @@ def generate_api(
    kwargs["seed"] = seed  # a random seed is generated if seed is not specified
 
 
-   response = completion(
-       model=model, messages=messages, logprobs=requires_logprobs, **kwargs
-   )
+   # Stage 1 of the §5 decomposition: `g`, the answer the user gets anyway. Measured,
+   # but excluded from marginal latency.
+   with stage(Stage.TARGET_GENERATION, label="generate_api", model=model) as event:
+       response = completion(
+           model=model, messages=messages, logprobs=requires_logprobs, **kwargs
+       )
+       if event is not None:
+           # §5 measurement hygiene: for API targets, separate our compute from network
+           # and queue, and record the output token count, since latency scales with it.
+           # LiteLLM exposes its own round-trip measurement as `_response_ms`.
+           event.metadata["litellm_response_ms"] = getattr(response, "_response_ms", None)
+           usage = getattr(response, "usage", None)
+           event.metadata["completion_tokens"] = getattr(usage, "completion_tokens", None)
+           event.metadata["prompt_tokens"] = getattr(usage, "prompt_tokens", None)
    generated_text = response.choices[0].message["content"]
 
 
@@ -157,7 +178,16 @@ def generate_hf_local(
             if message["role"] == "user":
                 question = message["content"]
                 break
-   generated_output = generate(text, model, tokenizer, **kwargs)
+   # Stage 1 of the §5 decomposition, local-model arm: `g` on our own hardware, where it
+   # is small and controlled -- unlike the large, variable `g` of a closed API.
+   with stage(
+       Stage.TARGET_GENERATION,
+       label="generate_hf_local",
+       model=getattr(getattr(model, "config", None), "_name_or_path", None),
+   ) as event:
+       generated_output = generate(text, model, tokenizer, **kwargs)
+       if event is not None:
+           event.metadata["completion_tokens"] = len(generated_output.get("tokens") or [])
    generated_text = generated_output["generated_text_skip_specials"]
    tokens = generated_output["tokens"]
    model_output = generated_output["all_ids"]
@@ -187,7 +217,18 @@ def run_truth_methods(model: PreTrainedModel,
    logprobs=None,
    generated_tokens=None,
    batch_generation=True,
+   concurrent_sampling=False,
+   max_workers=None,
    **kwargs):
+   """Score a generation with every truth method, reusing one shared sample draw.
+
+   ``concurrent_sampling`` (API targets only) issues the N multi-sample draws in
+   parallel instead of sequentially. It changes *when* the samples arrive, never *which*
+   samples arrive -- the seeds are drawn up front in the same order -- so the serial and
+   concurrent series on the §5 frontier plot differ in latency alone. Off by default: API
+   accounts have concurrency caps, and exceeding them turns a 429 retry delay into a
+   fabricated latency measurement.
+   """
 
    # Get sampled generations to be used in truth methods
    (
@@ -204,18 +245,38 @@ def run_truth_methods(model: PreTrainedModel,
    except:
        pass
    if type(model) == str:
-       sampled_gen_dict = sample_generations_api(
-           model,
-           messages,
-           generation_seed,
-           number_of_generations=number_of_generations,
-           return_text=return_text,
-           return_logits=return_logits,
-           return_logprobs=return_logprobs,
-           return_attentions=return_attentions,
-           return_activations=return_activations,
-           **kwargs
-       )
+       if concurrent_sampling:
+           from TruthTorchLM.instrumentation.concurrency import (
+               sample_generations_api_concurrent,
+               DEFAULT_MAX_WORKERS,
+           )
+
+           sampled_gen_dict = sample_generations_api_concurrent(
+               model,
+               messages,
+               generation_seed,
+               number_of_generations=number_of_generations,
+               return_text=return_text,
+               return_logits=return_logits,
+               return_logprobs=return_logprobs,
+               return_attentions=return_attentions,
+               return_activations=return_activations,
+               max_workers=max_workers or DEFAULT_MAX_WORKERS,
+               **kwargs
+           )
+       else:
+           sampled_gen_dict = sample_generations_api(
+               model,
+               messages,
+               generation_seed,
+               number_of_generations=number_of_generations,
+               return_text=return_text,
+               return_logits=return_logits,
+               return_logprobs=return_logprobs,
+               return_attentions=return_attentions,
+               return_activations=return_activations,
+               **kwargs
+           )
    else:
        sampled_gen_dict = sample_generations_hf_local(
            model,
@@ -236,6 +297,16 @@ def run_truth_methods(model: PreTrainedModel,
    unnormalized_truth_values = []
    method_spec_outputs = []
    for truth_method in truth_methods:
+       # Stage 3 of the §5 decomposition: auxiliary compute -- NLI clustering, embedding,
+       # proxy forward pass. Timed per method, because the sampling above is *shared*
+       # across the whole method list (protocol §6's fairness control), so a wall clock
+       # around the loop would attribute one method's draws to all of them. This is the
+       # query-independent floor the protocol asks to be made visible.
+       _span = begin_stage(
+           Stage.AUXILIARY_COMPUTE,
+           label=type(truth_method).__name__,
+           number_of_generations=getattr(truth_method, "number_of_generations", 1),
+       )
        truth_values = truth_method(
            model=model,
            input_text=text,
@@ -251,6 +322,7 @@ def run_truth_methods(model: PreTrainedModel,
            generated_tokens=generated_tokens,
            **kwargs
        )
+       end_stage(_span)
        normalized_truth_values.append(truth_values["normalized_truth_value"])
        unnormalized_truth_values.append(truth_values["truth_value"])
        method_spec_outputs.append(truth_values)
@@ -452,8 +524,24 @@ def sample_generations_hf_local(
        random.seed(generation_seed)
 
 
+   # Stage 2 of the §5 decomposition, local-model arm. Batched vs sequential is the
+   # open-model equivalent of the API's concurrent-vs-serial axis, so it is recorded as
+   # `execution` on the span and reported as a separate series on the frontier plot.
    if batch_generation == True:
-       return sample_generations_batch_hf_local(
+       sampler = sample_generations_batch_hf_local
+   elif batch_generation == False:
+       sampler = sample_generations_sequential_hf_local
+   else:
+       return None
+
+   _span = begin_stage(
+       Stage.EXTRA_GENERATION,
+       label="sample_generations_hf_local",
+       n=number_of_generations,
+       execution="batch" if batch_generation else "sequential",
+   )
+   try:
+       return sampler(
            model=model,
            input_text=input_text,
            tokenizer=tokenizer,
@@ -465,19 +553,8 @@ def sample_generations_hf_local(
            return_activations=return_activations,
            **kwargs
        )
-   if batch_generation == False:
-       return sample_generations_sequential_hf_local(
-           model=model,
-           input_text=input_text,
-           tokenizer=tokenizer,
-           number_of_generations=number_of_generations,
-           return_text=return_text,
-           return_logits=return_logits,
-           return_logprobs=return_logprobs,
-           return_attentions=return_attentions,
-           return_activations=return_activations,
-           **kwargs
-       )
+   finally:
+       end_stage(_span)
 
 
 
@@ -813,6 +890,20 @@ def sample_generations_api(
    generated_texts = []
    logprobs_list = []
    token_lists = []
+   # Stage 2 of the §5 decomposition: the extra target generations. For consistency
+   # methods this is the dominant marginal term and it is *coupled* to the generator --
+   # roughly (N-1)x serial -- which is why its absolute cost explodes on a slow target
+   # even though its ratio stays flat. Timed as one span covering the whole loop so the
+   # serial total is directly comparable to the concurrent tail measured in
+   # TruthTorchLM.instrumentation.concurrency. begin/end rather than `with` so the
+   # upstream loop body keeps its original indentation and stays easy to re-merge.
+   _span = begin_stage(
+       Stage.EXTRA_GENERATION,
+       label="sample_generations_api",
+       n=number_of_generations,
+       execution="serial",
+       model=model,
+   )
    for i in range(number_of_generations):
        kwargs.pop("logprobs", None)
        seed = kwargs.pop("seed", None)
@@ -836,6 +927,7 @@ def sample_generations_api(
                [token["token"]
                    for token in response.choices[0].logprobs["content"]]
            )
+   end_stage(_span)
 
 
    return {
